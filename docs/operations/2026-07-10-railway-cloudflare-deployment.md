@@ -31,6 +31,7 @@ Railway 项目 ID 为 `a2f94bb2-4f70-4a58-92fe-614e90ba2783`，应用服务 ID �
 5. 新增 `cloudflare/edge-gateway/`，用于部署薄型 Cloudflare Worker 边缘代理。
 6. 新增 `middleware/edge_origin_auth.go`，启用共享密钥后只允许 Cloudflare 访问源站业务路由，保留 `/api/status` 给 Railway 健康检查。
 7. 新增本维护记录，并在根 `AGENTS.md` 建立每轮操作文档索引。
+8. 在 `.gitignore` 中排除 Wrangler 本地状态目录 `.wrangler/`，避免临时部署文件进入版本控制。
 
 ## Railway 操作记录
 
