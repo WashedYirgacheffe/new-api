@@ -151,3 +151,16 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 - First compare the current git user (`git config user.name` / `git config user.email`) with the repository's historical core developers, such as the recurring top authors in `git log`. Do not change git config.
 - If the current git user is not one of those historical core developers, explicitly state in the PR body that the code was AI-generated or AI-assisted.
 - Always use the repository PR template at `.github/PULL_REQUEST_TEMPLATE.md` when drafting the PR title/body. Preserve the template structure and fill in the relevant sections instead of replacing it with an ad hoc format.
+
+## Maintenance Documentation (Required)
+
+- Every non-trivial development, deployment, security, or infrastructure operation round MUST create one Markdown record under `docs/operations/`.
+- Use the filename format `YYYY-MM-DD-short-topic.md`. Never include passwords, tokens, session cookies, private keys, or raw secret values.
+- Each record MUST cover scope, assumptions, changed files, cloud resources, configuration names, verification evidence, rollback steps, and remaining risks or permissions.
+- Update the index below in the same change so operators can map an operation to its code and infrastructure impact.
+
+### Operations Index
+
+| Document | Contents | Corresponding code and resources |
+| --- | --- | --- |
+| `docs/operations/2026-07-10-railway-cloudflare-deployment.md` | Railway PostgreSQL/Redis/application deployment, secure administrator initialization, health checks, and Cloudflare edge rollout | `Dockerfile`, `.dockerignore`, `railway.json`, `cloudflare/edge-gateway/`, Railway project `carlab-api`, Cloudflare zone `carlab.top` |
