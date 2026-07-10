@@ -1,0 +1,42 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+.api-docs-shell {
+  min-height: 100svh;
+  padding-top: var(--app-header-height);
+  background: var(--background);
+}
+
+.api-docs-shell .scalar-api-reference {
+  min-height: calc(100dvh - var(--app-header-height));
+  --full-height: calc(100dvh - var(--app-header-height));
+  --scalar-font: var(--font-body);
+  --scalar-radius: 4px;
+  --scalar-radius-lg: 6px;
+  --scalar-radius-xl: 8px;
+  --scalar-background-1: var(--background);
+  --scalar-background-2: var(--muted);
+  --scalar-background-3: var(--accent);
+  --scalar-color-1: var(--foreground);
+  --scalar-color-2: var(--muted-foreground);
+  --scalar-color-3: var(--muted-foreground);
+  --scalar-color-accent: var(--primary);
+  --scalar-border-color: var(--border);
+  --scalar-sidebar-background-1: var(--background);
+  --scalar-sidebar-border-color: var(--border);
+}

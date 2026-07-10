@@ -4,9 +4,9 @@
   "private": false,
   "type": "module",
   "scripts": {
-    "dev": "rsbuild dev",
-    "build": "rsbuild build",
-    "build:check": "tsgo -b && rsbuild build",
+    "dev": "bun run openapi:sync && rsbuild dev",
+    "build": "bun run openapi:sync && rsbuild build",
+    "build:check": "bun run openapi:sync && tsgo -b && rsbuild build",
     "typecheck": "tsgo -b",
     "lint": "oxlint -c .oxlintrc.json .",
     "lint:fix": "oxlint -c .oxlintrc.json . --fix",
@@ -16,6 +16,7 @@
     "copyright:check": "node scripts/add-copyright.mjs --check",
     "copyright": "node scripts/add-copyright.mjs",
     "i18n:sync": "node scripts/sync-i18n.mjs",
+    "openapi:sync": "node scripts/sync-openapi.mjs",
     "knip": "knip"
   },
   "dependencies": {
@@ -31,6 +32,7 @@
     "@hugeicons/react": "^1.1.9",
     "@lezer/highlight": "^1.2.3",
     "@lobehub/icons": "catalog:",
+    "@scalar/api-reference-react": "^0.9.54",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-router": "^1.170.17",
     "@tanstack/react-table": "^8.21.3",

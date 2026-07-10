@@ -6,6 +6,7 @@ COPY web/default/package.json ./default/package.json
 COPY web/classic/package.json ./classic/package.json
 RUN bun install --frozen-lockfile
 COPY ./web/default ./default
+COPY ./docs/openapi/relay.json /build/docs/openapi/relay.json
 COPY ./VERSION /build/VERSION
 RUN cd default && DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat /build/VERSION) bun run build
 
