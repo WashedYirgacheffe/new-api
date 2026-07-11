@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "retrieved_at": "2026-07-11",
+  "sources": [
+    "initial-model-catalog.json",
+    "dmxapi-rmb-price-evidence.json",
+    "CarLab API live channel catalogs"
+  ],
+  "models": [
+    {
+      "model_name": "Qwen/Qwen3-VL-32B-Instruct",
+      "display_name": "Qwen3 VL 32B Instruct",
+      "model_type": "text",
+      "model_provider": "Alibaba",
+      "channel_providers": ["siliconflow"],
+      "source_url": "https://cloud.siliconflow.cn/models",
+      "evidence_status": "channel-catalog"
+    },
+    {
+      "model_name": "doubao-seedance-2-0-260128",
+      "display_name": "Seedance 2.0",
+      "model_type": "video",
+      "model_provider": "ByteDance",
+      "channel_providers": ["nodyhub", "volcengine"],
+      "source_url": "https://doc.deepwl.cn/zh/videos/seedance-2/generation.md",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "doubao-seedance-2-0-fast-260128",
+      "display_name": "Seedance 2.0 Fast",
+      "model_type": "video",
+      "model_provider": "ByteDance",
+      "channel_providers": ["nodyhub", "volcengine"],
+      "source_url": "https://doc.deepwl.cn/zh/videos/seedance-2/generation.md",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "doubao-seedream-5-0-260128",
+      "display_name": "Seedream 5.0",
+      "model_type": "image",
+      "model_provider": "ByteDance",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    },
+    {
+      "model_name": "flux-kontext-max",
+      "display_name": "FLUX.1 Kontext Max",
+      "model_type": "image",
+      "model_provider": "Black Forest Labs",
+      "channel_providers": ["nodyhub"],
+      "evidence_status": "channel-catalog-only"
+    },
+    {
+      "model_name": "flux-kontext-pro",
+      "display_name": "FLUX.1 Kontext Pro",
+      "model_type": "image",
+      "model_provider": "Black Forest Labs",
+      "channel_providers": ["nodyhub"],
+      "evidence_status": "channel-catalog-only"
+    },
+    {
+      "model_name": "gemini-2.5-flash-image",
+      "display_name": "Gemini 2.5 Flash Image",
+      "model_type": "image",
+      "model_provider": "Google",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://api.wuyinkeji.com/doc/54",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "gemini-3-pro-image-preview",
+      "display_name": "Gemini 3 Pro Image Preview",
+      "model_type": "image",
+      "model_provider": "Google",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://api.wuyinkeji.com/doc/55",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "gemini-3.1-flash-image-preview",
+      "display_name": "Gemini 3.1 Flash Image Preview",
+      "model_type": "image",
+      "model_provider": "Google",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://doc.dmxapi.cn/gemini-3.1-flash-image-preview.html",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "gemini-3.1-flash-lite-preview",
+      "display_name": "Gemini 3.1 Flash Lite Preview",
+      "model_type": "text",
+      "model_provider": "Google",
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    },
+    {
+      "model_name": "gemini-3.1-pro-preview",
+      "display_name": "Gemini 3.1 Pro Preview",
+      "model_type": "text",
+      "model_provider": "Google",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://doc.deepwl.cn/zh/texts/model-matrix.md",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "gemini-3.5-flash",
+      "display_name": "Gemini 3.5 Flash",
+      "model_type": "text",
+      "model_provider": "Google",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    },
+    {
+      "model_name": "gpt-4o-mini",
+      "display_name": "GPT-4o mini",
+      "model_type": "text",
+      "model_provider": "OpenAI",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://zx1.deepwl.net/api/pricing",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "gpt-image-1",
+      "display_name": "GPT Image 1",
+      "model_type": "image",
+      "model_provider": "OpenAI",
+      "channel_providers": ["nodyhub"],
+      "evidence_status": "channel-catalog-only"
+    },
+    {
+      "model_name": "gpt-image-2",
+      "display_name": "GPT Image 2",
+      "model_type": "image",
+      "model_provider": "OpenAI",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://doc.deepwl.cn/zh/images/gpt-image-2/generation.md",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "kling-v2-6",
+      "display_name": "Kling V2.6",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "channel_providers": ["nodyhub"],
+      "evidence_status": "channel-catalog-only"
+    },
+    {
+      "model_name": "kling-v2-6-image2video",
+      "display_name": "Kling V2.6 Image to Video",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://doc.dmxapi.cn/kling-v2-6-image2video.html",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "kling-v3",
+      "display_name": "Kling V3",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    },
+    {
+      "model_name": "kling-v3-video-generation",
+      "display_name": "Kling V3 Legacy",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "deprecated-pricing-page"
+    },
+    {
+      "model_name": "nano-banana",
+      "display_name": "Nano Banana",
+      "model_type": "image",
+      "model_provider": "Google",
+      "channel_providers": ["dmxapi", "nodyhub"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    },
+    {
+      "model_name": "nano-banana-hd",
+      "display_name": "Nano Banana HD",
+      "model_type": "image",
+      "model_provider": "Google",
+      "channel_providers": ["nodyhub"],
+      "evidence_status": "channel-catalog-only"
+    },
+    {
+      "model_name": "sora-2",
+      "display_name": "Sora 2",
+      "model_type": "video",
+      "model_provider": "OpenAI",
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    },
+    {
+      "model_name": "sora-2-pro",
+      "display_name": "Sora 2 Pro",
+      "model_type": "video",
+      "model_provider": "OpenAI",
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    },
+    {
+      "model_name": "tencent/Hunyuan-MT-7B",
+      "display_name": "Hunyuan MT 7B",
+      "model_type": "text",
+      "model_provider": "Tencent",
+      "channel_providers": ["siliconflow"],
+      "source_url": "https://cloud.siliconflow.cn/models",
+      "evidence_status": "channel-catalog"
+    },
+    {
+      "model_name": "veo3",
+      "display_name": "Veo 3",
+      "model_type": "video",
+      "model_provider": "Google",
+      "channel_providers": ["nodyhub"],
+      "evidence_status": "channel-catalog-only"
+    },
+    {
+      "model_name": "veo3.1",
+      "display_name": "Veo 3.1",
+      "model_type": "video",
+      "model_provider": "Google",
+      "channel_providers": ["nodyhub"],
+      "evidence_status": "channel-catalog-only"
+    },
+    {
+      "model_name": "viduq2",
+      "display_name": "Vidu Q2",
+      "model_type": "video",
+      "model_provider": "ShengShu AI",
+      "channel_providers": ["nodyhub"],
+      "source_url": "https://doc.deepwl.cn/zh/videos/vidu/overview.md",
+      "evidence_status": "documented"
+    },
+    {
+      "model_name": "wan2.6-image",
+      "display_name": "Wan 2.6 Image",
+      "model_type": "image",
+      "model_provider": "Alibaba",
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://www.dmxapi.cn/rmb",
+      "evidence_status": "pricing-page"
+    }
+  ]
+}
