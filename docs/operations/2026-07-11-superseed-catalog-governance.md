@@ -36,6 +36,13 @@
 | 5 个现有渠道 | 备份后将启用能力收敛到 28 个超级种子模型；空白名单的图片渠道手动禁用 |
 | 模型供应商元数据 | 新增 4 个公司级供应商和 16 条模型元数据，修正 `viduq2` 的公司归属 |
 | New API 全局价格与分组倍率 | 不在多渠道成本未决时批量覆盖 |
+| `theme.frontend` | 云端主题已切换为 `default`，不再使用即将废弃的 `classic` |
+
+主题切换前的无密钥备份：
+
+- 文件：`~/Library/Application Support/CarLabAPI/backups/2026-07-11-pre-default-frontend-theme.json`
+- SHA-256：`9b3e109fc71ebec8a758d813785745ac1e1e7b69536a1e478c0b24301bffd314`
+- 备份内容：`theme.frontend=classic`，`contains_secrets=false`
 
 ## 云端数据操作
 
@@ -67,22 +74,24 @@
 
 平台管理登录方式：
 
-1. 打开 `https://api.carlab.top/login`。
+1. 打开 `https://api.carlab.top/sign-in`。`/login` 当前仍会返回前端壳，但不是新前端的规范路由。
 2. 用户名填写 `root`。
 3. 在本机终端执行 `security find-generic-password -a root -s carlab-api-railway-admin -w` 读取密码并直接登录，不要把输出粘贴到聊天或文档。
-4. 登录后通过 `/channels` 管理和逐模型测试渠道，通过 `/models` 按模型供应商或 API 渠道商筛选，通过 `/system-settings/models` 配置模型价格，通过 `/system-settings/billing` 配置下游分组倍率。
+4. 登录后通过 `/channels` 管理和逐模型测试渠道，通过 `/models/metadata` 按模型供应商或 API 渠道商筛选，通过 `/system-settings/models` 配置模型价格，通过 `/system-settings/billing` 配置下游分组倍率。
 
 ID 3 的 `washedyirgacheffe` 是普通用户，不能访问上述管理员页面。若要把它升级为管理员，应由 Root 在用户管理中显式改角色；本轮不擅自提权。
 
 ## 验证证据
 
 - 前端 `bun run typecheck`、定向 oxlint、7 份 locale JSON、65 模型白名单与 28 模型可路由目录交叉校验全部通过。
-- Railway 部署 `d9533046-4f05-41ab-b4b6-e0f14b4fd55e` 为 `SUCCESS`，包含渠道商筛选代码；定价可见性修复的后续部署 ID 在本轮最终提交后补记。
+- Railway 部署 `d9533046-4f05-41ab-b4b6-e0f14b4fd55e` 曾完成渠道商筛选版本，后被后续部署替换；当前 Railway 活跃部署为 `2a4dea53-81ed-4552-b5b5-f4a8ff97f228`，状态 `SUCCESS`，包含筛选与定价可见性修复。
 - `/api/models/search?channel_provider=dmxapi` 返回 16 条，证明管理筛选已接入后端，不是仅在当前分页做前端过滤。
 - 渠道模型数最终为 SiliconFlow 2、DMXAPI 16、Nodyhub 20、VolcEngine 视频 2；VolcEngine 图片渠道状态为 2。
-- 数据清理后的 `/api/pricing` 有 27 条启用元数据、4 类 API 渠道商且未知模型供应商为 0；其中未配置计费的模型将在定价可见性修复部署后从公开定价隐藏。
-- 现有 `superseed-production` Token 未启用 Token 模型白名单，但 `/v1/models` 只返回 4 个具有计费配置的模型：`gpt-4o-mini`、`gpt-image-1`、`sora-2`、`sora-2-pro`。这是计费配置筛选，不是 Token 权限遗漏。
-- 使用现有业务 Token 调用 `gpt-4o-mini` 的 `/v1/chat/completions` 返回 HTTP 200 和预期文本 `carlab-ok`。
+- 数据清理后的管理元数据为 31 条，4 类 API 渠道商且未知模型供应商为 0 条；公开 `/api/pricing` 只返回 4 个显式计费模型。
+- 现有 `superseed-production` Token 未启用 Token 模型白名单；带令牌访问 `/v1/models` 返回 4 个模型：`gpt-4o-mini`、`gpt-image-1`、`sora-2`、`sora-2-pro`。这是计费配置筛选，不是 Token 权限遗漏；无令牌访问返回 HTTP 401 属于预期保护。
+- 使用现有业务 Token 调用 `gpt-4o-mini` 的 `/v1/chat/completions` 返回 HTTP 200 和预期文本 `carlab-final-ok`。
+- 浏览器实际打开 `https://api.carlab.top/models/metadata`：管理员页显示“模型供应商”和“API 渠道商”筛选；渠道商菜单显示 `dmxapi (16)`、`nodyhub (20)`、`siliconflow (2)`、`volcengine (2)`。选择 `dmxapi (16)` 后 URL 写入 `channelProvider=["dmxapi"]` 的编码查询参数，表格总计和行数均为 16，绑定渠道列显示 `dmxapi · DMXAPI Production`。
+- 云端 `/api/status` 返回 `theme=default`，确认当前前端主题配置已生效。
 
 ## 模型调试顺序
 
@@ -94,7 +103,7 @@ ID 3 的 `washedyirgacheffe` 是普通用户，不能访问上述管理员页面
 ## 回滚
 
 1. 校验快照 SHA-256 后，从无密钥渠道快照恢复各渠道 `models` 与 `status`；模型更新接口会重建 abilities。
-2. Railway 回滚到上一成功部署；首次筛选部署的上一版本为 `4b21b8e6-4a80-4e6a-8c42-b4eebe76bcdd`。
+2. Railway 回滚时优先从 Git 分支重新部署：回到 `c46b2b5f` 可保留筛选但撤销定价可见性修复，回到 `41661832` 可撤销本轮筛选代码；平台上 `2a4dea53-81ed-4552-b5b5-f4a8ff97f228` 是当前成功部署，旧部署可能显示为 `REMOVED`，不要把旧 ID 当成可直接恢复的在线服务。
 3. 删除本轮新增的 16 条模型元数据和 4 个供应商，或恢复 `viduq2` 原 `vendor_id=17`；本轮未修改任何供应商 Key。
 4. 如需恢复全量上游模型，只恢复渠道 abilities，不修改 New API 源码默认倍率。
 
