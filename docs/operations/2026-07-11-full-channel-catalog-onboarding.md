@@ -1,7 +1,7 @@
 # 全渠道模型目录接入维护记录
 
 - 日期：2026-07-11
-- 状态：已完成，等待 Git 收尾部署
+- 状态：已完成
 - 操作目录：`/Volumes/CODE/Code_SYS/CarLabAPI`
 - 代码分支：`codex/oem-api-hub`
 - 公网入口：`https://api.carlab.top`
@@ -69,7 +69,8 @@
 | --- | --- |
 | Railway 项目 `carlab-api` | 项目 ID `a2f94bb2-4f70-4a58-92fe-614e90ba2783` |
 | Railway 服务 `new-api` | 服务 ID `ca79a3e0-a075-4f1e-8d27-c8219414738c` |
-| Railway 当前验证部署 | `563c7176-8513-4f0f-b374-15b76adec403`，状态 `SUCCESS` |
+| Railway 最终验证部署 | `0575a0eb-10ac-4ed3-b61c-1428b23e1579`，状态 `SUCCESS`，镜像摘要 `sha256:bf85b62864740bef3696a753d87bafa07ba10da521e04d6e2e4cc9447843a859` |
+| GitHub 分支 | `WashedYirgacheffe/new-api` 的 `codex/oem-api-hub`，运行代码提交 `058132f1` |
 | Cloudflare `api.carlab.top` | 继续作为统一入口；本轮未修改 Worker 或源站密钥 |
 | macOS 钥匙串 | `carlab-api-railway-admin`、`carlab-api-superseed-token`，只用于本机验收 |
 
@@ -90,7 +91,9 @@
 - `dmxapi/MiniMax-M2.1`、`nodyhub/gpt-4o-mini`、`deepwl/gpt-4o-mini` 的 `/v1/chat/completions` 均返回 HTTP 200。
 - `deepwl/gpt-image-2` 的 `/v1/images/generations` 返回 HTTP 200 和 1 张图片。
 - 历史兼容条目 `kling-v2-6-text2video` 已补为 DMXAPI 目录归属，但没有伪造运行 ability。
-- 按用户要求不运行本地测试；代码正确性以 Railway Docker 云端 Go 编译、前端生产构建、数据库迁移、健康检查和上述线上行为为准。
+- 5 个变更前端文件通过 oxfmt、定向 oxlint 和 TypeScript `tsgo -b`；JSON 与 Git diff 检查通过。
+- 按用户要求不运行本地 Go 测试；Railway Docker 云端完成 Go 编译、前端生产构建、数据库迁移和健康检查，最终部署状态为 `SUCCESS`。
+- 最终部署后 `/api/status` 返回 HTTP 200 和产品名 `CarLab API`；再次调用 `dmxapi/MiniMax-M2.1` 返回 HTTP 200 和有效 choice。
 
 ## 回滚
 
