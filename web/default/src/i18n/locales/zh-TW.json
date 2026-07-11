@@ -1,5 +1,11 @@
 {
   "translation": {
+    "API Channel Provider": "API 渠道商",
+    "Channel merchant code, such as deepwl or dmxapi.": "渠道商代碼，例如 deepwl 或 dmxapi。",
+    "Model Provider": "模型供應商",
+    "Model Type": "模型類型",
+    "Public documentation or model page used as the metadata source.": "作為中繼資料來源的公開文件或模型頁面。",
+    "Source URL": "來源連結",
     "360": "360",
     "1000": "1000",
     "10000": "10000",

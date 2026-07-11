@@ -1,5 +1,11 @@
 {
   "translation": {
+    "API Channel Provider": "API チャネル事業者",
+    "Channel merchant code, such as deepwl or dmxapi.": "deepwl や dmxapi などのチャネル事業者コード。",
+    "Model Provider": "モデル提供元",
+    "Model Type": "モデル種別",
+    "Public documentation or model page used as the metadata source.": "メタデータの出典として使用する公開ドキュメントまたはモデルページ。",
+    "Source URL": "出典 URL",
     "360": "360",
     "1000": "1000",
     "10000": "10000",

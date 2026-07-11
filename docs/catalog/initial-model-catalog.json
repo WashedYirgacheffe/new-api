@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "retrieved_at": "2026-07-11",
+  "channel_providers": [
+    {
+      "code": "deepwl",
+      "name": "DeepWL",
+      "aliases": ["FOX"],
+      "catalog_url": "https://zx1.deepwl.net/api/pricing",
+      "docs_url": "https://doc.deepwl.cn/llms.txt"
+    },
+    {
+      "code": "wuyinkeji",
+      "name": "Wuyinkeji",
+      "aliases": ["速创API"],
+      "catalog_url": "https://api.wuyinkeji.com/doc",
+      "docs_url": "https://api.wuyinkeji.com/doc"
+    },
+    {
+      "code": "dmxapi",
+      "name": "DMXAPI",
+      "aliases": [],
+      "catalog_url": "https://www.dmxapi.cn/rmb",
+      "docs_url": "https://doc.dmxapi.cn/model-list.html"
+    }
+  ],
+  "models": [
+    {
+      "model_name": "gpt-4o-mini",
+      "display_name": "GPT-4o mini",
+      "model_type": "text",
+      "model_provider": "OpenAI",
+      "description": "轻量多模态对话模型，支持视觉输入、工具调用和结构化输出。",
+      "capabilities": ["text", "vision", "tools", "structured-output"],
+      "channel_providers": ["deepwl", "dmxapi"],
+      "source_url": "https://zx1.deepwl.net/api/pricing"
+    },
+    {
+      "model_name": "gemini-3.1-pro-preview",
+      "display_name": "Gemini 3.1 Pro Preview",
+      "model_type": "text",
+      "model_provider": "Google",
+      "description": "面向复杂推理、智能体工作流和多模态任务的 Gemini 预览模型。",
+      "capabilities": ["text", "vision", "reasoning", "tools", "web-search"],
+      "channel_providers": ["deepwl", "dmxapi"],
+      "source_url": "https://doc.deepwl.cn/zh/texts/model-matrix.md"
+    },
+    {
+      "model_name": "gemini-3.1-flash-image-preview",
+      "display_name": "Gemini 3.1 Flash Image Preview",
+      "model_type": "image",
+      "model_provider": "Google",
+      "description": "低延迟图像生成与对话式编辑模型，支持多图输入。",
+      "capabilities": ["text-to-image", "image-edit", "multi-image"],
+      "channel_providers": ["deepwl", "dmxapi", "wuyinkeji"],
+      "source_url": "https://doc.dmxapi.cn/gemini-3.1-flash-image-preview.html"
+    },
+    {
+      "model_name": "gpt-image-2",
+      "display_name": "GPT Image 2",
+      "model_type": "image",
+      "model_provider": "OpenAI",
+      "description": "高质量图像生成和编辑模型，支持灵活尺寸与高保真参考图。",
+      "capabilities": ["text-to-image", "image-edit", "high-resolution"],
+      "channel_providers": ["deepwl", "wuyinkeji"],
+      "source_url": "https://doc.deepwl.cn/zh/images/gpt-image-2/generation.md"
+    },
+    {
+      "model_name": "gemini-2.5-flash-image",
+      "display_name": "NanoBanana",
+      "model_type": "image",
+      "model_provider": "Google",
+      "description": "面向快速图片生成和编辑的 Gemini 图像模型。",
+      "capabilities": ["text-to-image", "image-edit"],
+      "channel_providers": ["deepwl", "wuyinkeji"],
+      "source_url": "https://api.wuyinkeji.com/doc/54"
+    },
+    {
+      "model_name": "gemini-3-pro-image-preview",
+      "display_name": "NanoBanana Pro",
+      "model_type": "image",
+      "model_provider": "Google",
+      "description": "支持 2K、4K 输出和多参考图编辑的 Gemini 图像模型。",
+      "capabilities": ["text-to-image", "image-edit", "2k", "4k"],
+      "channel_providers": ["deepwl", "wuyinkeji"],
+      "source_url": "https://api.wuyinkeji.com/doc/55"
+    },
+    {
+      "model_name": "doubao-seedance-2-0-260128",
+      "display_name": "Seedance 2.0",
+      "model_type": "video",
+      "model_provider": "ByteDance",
+      "description": "支持文本、图片、视频和音频参考的多模态视频生成模型。",
+      "capabilities": ["text-to-video", "image-to-video", "multi-reference", "audio-reference"],
+      "channel_providers": ["deepwl", "dmxapi"],
+      "source_url": "https://doc.deepwl.cn/zh/videos/seedance-2/generation.md"
+    },
+    {
+      "model_name": "doubao-seedance-2-0-fast-260128",
+      "display_name": "Seedance 2.0 Fast",
+      "model_type": "video",
+      "model_provider": "ByteDance",
+      "description": "Seedance 2.0 的快速视频生成版本，支持多模态参考素材。",
+      "capabilities": ["text-to-video", "image-to-video", "multi-reference", "audio-reference"],
+      "channel_providers": ["deepwl", "dmxapi"],
+      "source_url": "https://doc.deepwl.cn/zh/videos/seedance-2/generation.md"
+    },
+    {
+      "model_name": "grok-imagine-video-1.5-preview",
+      "display_name": "Grok Imagine Video 1.5 Preview",
+      "model_type": "video",
+      "model_provider": "xAI",
+      "description": "支持文生视频和图生视频的 Grok Imagine 预览模型。",
+      "capabilities": ["text-to-video", "image-to-video"],
+      "channel_providers": ["deepwl", "wuyinkeji"],
+      "source_url": "https://api.wuyinkeji.com/doc/62"
+    },
+    {
+      "model_name": "omni-fast",
+      "display_name": "Omni Fast",
+      "model_type": "video",
+      "model_provider": "Google",
+      "description": "支持文本、首尾帧和多参考素材的全模态视频生成模型。",
+      "capabilities": ["text-to-video", "image-to-video", "first-last-frame", "multi-reference"],
+      "channel_providers": ["deepwl", "wuyinkeji"],
+      "source_url": "https://api.wuyinkeji.com/doc/70"
+    },
+    {
+      "model_name": "viduq2",
+      "display_name": "Vidu Q2",
+      "model_type": "video",
+      "model_provider": "Vidu",
+      "description": "支持文生视频、参考生视频及相关图像能力的 Vidu 模型。",
+      "capabilities": ["text-to-video", "reference-to-video", "image-generation"],
+      "channel_providers": ["deepwl"],
+      "source_url": "https://doc.deepwl.cn/zh/videos/vidu/overview.md"
+    },
+    {
+      "model_name": "kling-v2-6-text2video",
+      "display_name": "Kling V2.6 Text to Video",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "description": "可灵 V2.6 文生视频模型，支持时长、画幅和声音参数。",
+      "capabilities": ["text-to-video", "audio-generation"],
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://doc.dmxapi.cn/kling-v2-6-text2video.html"
+    },
+    {
+      "model_name": "kling-v2-6-image2video",
+      "display_name": "Kling V2.6 Image to Video",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "description": "可灵 V2.6 图生视频模型，支持画幅、时长和声音参数。",
+      "capabilities": ["image-to-video", "audio-generation"],
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://doc.dmxapi.cn/kling-v2-6-image2video.html"
+    },
+    {
+      "model_name": "kling-v3-video-generation",
+      "display_name": "Kling V3",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "description": "可灵 V3 视频生成模型，覆盖单镜头、多镜头和图生视频场景。",
+      "capabilities": ["text-to-video", "image-to-video", "multi-shot", "audio-generation"],
+      "channel_providers": ["dmxapi"],
+      "source_url": "https://doc.dmxapi.cn/kling-v3-text-to-video-single-shot.html"
+    }
+  ]
+}

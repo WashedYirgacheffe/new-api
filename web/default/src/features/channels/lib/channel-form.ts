@@ -131,6 +131,7 @@ function addRequiredIssue(
 export const channelFormSchema = z
   .object({
     name: z.string().min(1, ERROR_MESSAGES.REQUIRED_NAME),
+    channel_provider: z.string().max(64).optional(),
     type: z.number().min(0, ERROR_MESSAGES.REQUIRED_TYPE),
     base_url: z.string().optional(),
     key: z.string(),
@@ -300,6 +301,7 @@ export type ChannelFormValues = z.infer<typeof channelFormSchema>
 
 export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   name: '',
+  channel_provider: '',
   type: 1,
   base_url: '',
   key: '',
@@ -441,6 +443,7 @@ export function transformChannelToFormDefaults(
 
   return {
     name: channel.name || '',
+    channel_provider: channel.channel_provider || '',
     type: channel.type,
     base_url: channel.base_url || '',
     key: '', // Never populate key from backend for security
@@ -564,12 +567,15 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     settingsObj.allow_inference_geo = formData.allow_inference_geo === true
   } else {
     if ('disable_store' in settingsObj) delete settingsObj.disable_store
-    if ('allow_safety_identifier' in settingsObj)
+    if ('allow_safety_identifier' in settingsObj) {
       delete settingsObj.allow_safety_identifier
-    if ('allow_include_obfuscation' in settingsObj)
+    }
+    if ('allow_include_obfuscation' in settingsObj) {
       delete settingsObj.allow_include_obfuscation
-    if (formData.type !== 14 && 'allow_inference_geo' in settingsObj)
+    }
+    if (formData.type !== 14 && 'allow_inference_geo' in settingsObj) {
       delete settingsObj.allow_inference_geo
+    }
   }
 
   // Anthropic (type 14): claude_beta_query, allow_inference_geo, allow_speed
@@ -592,14 +598,14 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     settingsObj.upstream_model_update_auto_sync_enabled =
       settingsObj.upstream_model_update_check_enabled === true &&
       formData.upstream_model_update_auto_sync_enabled === true
-    settingsObj.upstream_model_update_ignored_models = Array.from(
-      new Set(
+    settingsObj.upstream_model_update_ignored_models = [
+      ...new Set(
         String(formData.upstream_model_update_ignored_models || '')
           .split(',')
           .map((model) => model.trim())
           .filter(Boolean)
-      )
-    )
+      ),
+    ]
     if (
       !Array.isArray(settingsObj.upstream_model_update_last_detected_models) ||
       settingsObj.upstream_model_update_check_enabled !== true
@@ -644,6 +650,7 @@ export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
 
   const channel: Partial<Channel> = {
     name: formData.name,
+    channel_provider: formData.channel_provider?.trim().toLowerCase() || '',
     type: formData.type,
     base_url: normalizeBaseUrl(formData.base_url) || null,
     key: formData.key,
@@ -693,6 +700,7 @@ export function transformFormDataToUpdatePayload(
   const payload: Partial<Channel> = {
     id: channelId,
     name: formData.name,
+    channel_provider: formData.channel_provider?.trim().toLowerCase() || '',
     type: formData.type,
     base_url: normalizeBaseUrl(formData.base_url) || null,
     openai_organization: formData.openai_organization || null,

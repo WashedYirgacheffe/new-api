@@ -17,14 +17,18 @@ const (
 )
 
 type BoundChannel struct {
-	Name string `json:"name"`
-	Type int    `json:"type"`
+	Name            string `json:"name"`
+	Type            int    `json:"type"`
+	ChannelProvider string `json:"channel_provider,omitempty"`
 }
 
 type Model struct {
 	Id           int            `json:"id"`
 	ModelName    string         `json:"model_name" gorm:"size:128;not null;uniqueIndex:uk_model_name_delete_at,priority:1"`
+	DisplayName  string         `json:"display_name,omitempty" gorm:"type:varchar(128)"`
+	ModelType    string         `json:"model_type,omitempty" gorm:"type:varchar(32);index"`
 	Description  string         `json:"description,omitempty" gorm:"type:text"`
+	SourceURL    string         `json:"source_url,omitempty" gorm:"type:text"`
 	Icon         string         `json:"icon,omitempty" gorm:"type:varchar(128)"`
 	Tags         string         `json:"tags,omitempty" gorm:"type:varchar(255)"`
 	VendorID     int            `json:"vendor_id,omitempty" gorm:"index"`
@@ -78,7 +82,7 @@ func (mi *Model) Update() error {
 	mi.UpdatedTime = common.GetTimestamp()
 	// 使用 Select 强制更新所有字段，包括零值
 	return DB.Model(&Model{}).Where("id = ?", mi.Id).
-		Select("model_name", "description", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "updated_time").
+		Select("model_name", "display_name", "model_type", "description", "source_url", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "updated_time").
 		Updates(mi).Error
 }
 
@@ -116,13 +120,14 @@ func GetBoundChannelsByModelsMap(modelNames []string) (map[string][]BoundChannel
 		return result, nil
 	}
 	type row struct {
-		Model string
-		Name  string
-		Type  int
+		Model           string
+		Name            string
+		Type            int
+		ChannelProvider string
 	}
 	var rows []row
 	err := DB.Table("channels").
-		Select("abilities.model as model, channels.name as name, channels.type as type").
+		Select("abilities.model as model, channels.name as name, channels.type as type, channels.channel_provider as channel_provider").
 		Joins("JOIN abilities ON abilities.channel_id = channels.id").
 		Where("abilities.model IN ? AND abilities.enabled = ?", modelNames, true).
 		Distinct().
@@ -131,7 +136,11 @@ func GetBoundChannelsByModelsMap(modelNames []string) (map[string][]BoundChannel
 		return nil, err
 	}
 	for _, r := range rows {
-		result[r.Model] = append(result[r.Model], BoundChannel{Name: r.Name, Type: r.Type})
+		result[r.Model] = append(result[r.Model], BoundChannel{
+			Name:            r.Name,
+			Type:            r.Type,
+			ChannelProvider: r.ChannelProvider,
+		})
 	}
 	return result, nil
 }
@@ -197,7 +206,7 @@ func SearchModels(keyword string, vendor string, offset int, limit int) ([]*Mode
 	db := DB.Model(&Model{})
 	if keyword != "" {
 		like := "%" + keyword + "%"
-		db = db.Where("model_name LIKE ? OR description LIKE ? OR tags LIKE ?", like, like, like)
+		db = db.Where("models.model_name LIKE ? OR models.display_name LIKE ? OR models.model_type LIKE ? OR models.description LIKE ? OR models.tags LIKE ?", like, like, like, like, like)
 	}
 	if vendor != "" {
 		if vid, err := strconv.Atoi(vendor); err == nil {

@@ -90,7 +90,10 @@ import type { Model } from '../../types'
 const extendedModelFormSchema = z.object({
   id: z.number().optional(),
   model_name: z.string().min(1, 'Model name is required'),
+  display_name: z.string(),
+  model_type: z.string(),
   description: z.string(),
+  source_url: z.union([z.literal(''), z.string().url()]),
   icon: z.string(),
   tags: z.array(z.string()),
   vendor_id: z.number().optional(),
@@ -229,7 +232,10 @@ export function ModelMutateDrawer({
     resolver: zodResolver(extendedModelFormSchema),
     defaultValues: {
       model_name: '',
+      display_name: '',
+      model_type: '',
       description: '',
+      source_url: '',
       icon: '',
       tags: [],
       vendor_id: undefined,
@@ -289,7 +295,10 @@ export function ModelMutateDrawer({
       const baseModelData = {
         id: model.id,
         model_name: model.model_name,
+        display_name: model.display_name || '',
+        model_type: model.model_type || '',
         description: model.description || '',
+        source_url: model.source_url || '',
         icon: model.icon || '',
         tags: parseModelTags(model.tags),
         vendor_id: model.vendor_id,
@@ -393,7 +402,10 @@ export function ModelMutateDrawer({
       setAdvancedOpen(false)
       form.reset({
         model_name: currentRow?.model_name || '',
+        display_name: currentRow?.display_name || '',
+        model_type: currentRow?.model_type || '',
         description: '',
+        source_url: currentRow?.source_url || '',
         icon: '',
         tags: [],
         vendor_id: undefined,
@@ -728,6 +740,62 @@ export function ModelMutateDrawer({
                 )}
               />
 
+              <div className='grid gap-4 sm:grid-cols-2'>
+                <FormField
+                  control={form.control}
+                  name='display_name'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Display Name')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('Display Name')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='model_type'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Model Type')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='text, image, video, audio'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name='source_url'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Source URL')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='url'
+                        placeholder='https://docs.example.com/models/...'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Public documentation or model page used as the metadata source.'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name='icon'
@@ -753,7 +821,7 @@ export function ModelMutateDrawer({
                 name='vendor_id'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('Vendor')}</FormLabel>
+                    <FormLabel>{t('Model Provider')}</FormLabel>
                     <Select
                       items={vendors.map((vendor) => ({
                         value: String(vendor.id),

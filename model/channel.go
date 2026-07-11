@@ -28,6 +28,7 @@ type Channel struct {
 	TestModel          *string `json:"test_model"`
 	Status             int     `json:"status" gorm:"default:1"`
 	Name               string  `json:"name" gorm:"index"`
+	ChannelProvider    string  `json:"channel_provider" gorm:"type:varchar(64);index"`
 	Weight             *uint   `json:"weight" gorm:"default:0"`
 	CreatedTime        int64   `json:"created_time" gorm:"bigint"`
 	TestTime           int64   `json:"test_time" gorm:"bigint"`
@@ -397,8 +398,8 @@ func SearchChannels(keyword string, group string, model string, idSort bool, sor
 	baseQuery := DB.Model(&Channel{}).Omit("key")
 
 	// 构造WHERE子句
-	whereClause := "(id = ? OR name LIKE ? OR " + commonKeyCol + " = ? OR " + baseURLCol + " LIKE ?) AND " + modelsCol + " LIKE ?"
-	args := []any{common.String2Int(keyword), "%" + keyword + "%", keyword, "%" + keyword + "%", "%" + model + "%"}
+	whereClause := "(id = ? OR name LIKE ? OR channel_provider LIKE ? OR " + commonKeyCol + " = ? OR " + baseURLCol + " LIKE ?) AND " + modelsCol + " LIKE ?"
+	args := []any{common.String2Int(keyword), "%" + keyword + "%", "%" + keyword + "%", keyword, "%" + keyword + "%", "%" + model + "%"}
 	baseQuery = ApplyChannelGroupFilter(baseQuery.Where(whereClause, args...), group)
 
 	// 执行查询

@@ -465,6 +465,11 @@ func validateTwoFactorAuth(twoFA *model.TwoFA, code string) bool {
 
 // validateChannel 通用的渠道校验函数
 func validateChannel(channel *model.Channel, isAdd bool) error {
+	channel.ChannelProvider = strings.ToLower(strings.TrimSpace(channel.ChannelProvider))
+	if len(channel.ChannelProvider) > 64 {
+		return fmt.Errorf("API channel provider must be 64 characters or fewer")
+	}
+
 	// 校验 channel settings
 	if err := channel.ValidateSettings(); err != nil {
 		return fmt.Errorf("渠道额外设置[channel setting] 格式错误：%s", err.Error())

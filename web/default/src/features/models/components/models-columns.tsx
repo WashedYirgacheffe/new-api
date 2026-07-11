@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import { BadgeCell, BadgeListCell } from '@/components/data-table'
@@ -133,17 +133,40 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
       meta: { mobileTitle: true },
       cell: ({ row }) => {
         const name = row.getValue('model_name') as string
+        const displayName = row.original.display_name
         return (
-          <StatusBadge
-            label={name}
-            variant='neutral'
-            copyText={name}
-            size='sm'
-            className='-ml-1.5 font-mono'
-          />
+          <div className='flex min-w-0 flex-col gap-1'>
+            {displayName && (
+              <span className='truncate text-sm font-medium'>
+                {displayName}
+              </span>
+            )}
+            <StatusBadge
+              label={name}
+              variant='neutral'
+              copyText={name}
+              size='sm'
+              className='-ml-1.5 font-mono'
+            />
+          </div>
         )
       },
       minSize: 200,
+    },
+
+    {
+      accessorKey: 'model_type',
+      header: t('Model Type'),
+      meta: { mobileHidden: true },
+      cell: ({ row }) => {
+        const modelType = row.getValue('model_type') as string
+        if (!modelType) {
+          return <span className='text-muted-foreground text-xs'>-</span>
+        }
+        return <StatusBadge label={modelType} autoColor={modelType} size='sm' />
+      },
+      size: 110,
+      enableSorting: false,
     },
 
     // Name Rule column
@@ -182,8 +205,8 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
           model.matched_models &&
           model.matched_models.length > 0
         ) {
-          const matchedBadges = model.matched_models.map((m, idx) => (
-            <StatusBadge key={idx} label={m} autoColor={m} size='sm' />
+          const matchedBadges = model.matched_models.map((m) => (
+            <StatusBadge key={m} label={m} autoColor={m} size='sm' />
           ))
 
           return (
@@ -243,7 +266,7 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
     // Vendor column
     {
       accessorKey: 'vendor_id',
-      header: t('Vendor'),
+      header: t('Model Provider'),
       cell: ({ row }) => {
         const vendorId = row.getValue('vendor_id') as number
         const vendor = vendorMap[vendorId]
@@ -283,6 +306,36 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
       enableSorting: false,
     },
 
+    {
+      accessorKey: 'source_url',
+      header: t('Source URL'),
+      meta: { mobileHidden: true },
+      cell: ({ row }) => {
+        const sourceUrl = row.getValue('source_url') as string
+        if (!sourceUrl) {
+          return <span className='text-muted-foreground text-xs'>-</span>
+        }
+        let sourceLabel = sourceUrl
+        try {
+          sourceLabel = new URL(sourceUrl).hostname
+        } catch {
+          sourceLabel = sourceUrl
+        }
+        return (
+          <a
+            href={sourceUrl}
+            target='_blank'
+            rel='noreferrer'
+            className='text-primary block max-w-40 truncate text-xs hover:underline'
+          >
+            {sourceLabel}
+          </a>
+        )
+      },
+      size: 170,
+      enableSorting: false,
+    },
+
     // Tags column
     {
       accessorKey: 'tags',
@@ -293,8 +346,8 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
         const tagArray = parseModelTags(tags)
         return (
           <BadgeListCell
-            items={tagArray.map((tag, idx) => (
-              <StatusBadge key={idx} label={tag} autoColor={tag} size='sm' />
+            items={tagArray.map((tag) => (
+              <StatusBadge key={tag} label={tag} autoColor={tag} size='sm' />
             ))}
           />
         )
@@ -313,8 +366,8 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
         const endpointArray = formatEndpointsDisplay(endpoints)
         return (
           <BadgeListCell
-            items={endpointArray.map((ep, idx) => (
-              <StatusBadge key={idx} label={ep} autoColor={ep} size='sm' />
+            items={endpointArray.map((ep) => (
+              <StatusBadge key={ep} label={ep} autoColor={ep} size='sm' />
             ))}
           />
         )
@@ -330,18 +383,21 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
       meta: { mobileHidden: true },
       cell: ({ row }) => {
         const channels = row.getValue('bound_channels') as Array<{
-          id: number
           name: string
           type?: number
-          status?: number
+          channel_provider?: string
         }>
         return (
           <BadgeListCell
-            items={(channels ?? []).map((c, idx) => (
+            items={(channels ?? []).map((c) => (
               <StatusBadge
-                key={idx}
-                label={`${c.name} (${c.type})`}
-                autoColor={c.name}
+                key={`${c.channel_provider || 'unknown'}:${c.type}:${c.name}`}
+                label={
+                  c.channel_provider
+                    ? `${c.channel_provider} · ${c.name}`
+                    : `${c.name} (${c.type})`
+                }
+                autoColor={c.channel_provider || c.name}
                 size='sm'
               />
             ))}
@@ -380,11 +436,11 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
         const quotaTypes = row.getValue('quota_types') as number[]
         return (
           <BadgeListCell
-            items={(quotaTypes ?? []).map((qt, idx) => {
+            items={(quotaTypes ?? []).map((qt) => {
               const config = QUOTA_TYPE_CONFIG[qt]
               return (
                 <StatusBadge
-                  key={idx}
+                  key={qt}
                   label={config?.label || String(qt)}
                   variant={
                     (config?.color === 'error' ? 'danger' : config?.color) as

@@ -1998,6 +1998,30 @@ export function ChannelMutateDrawer({
                               </FormItem>
                             )}
                           />
+
+                          <FormField
+                            control={form.control}
+                            name='channel_provider'
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  {t('API Channel Provider')}
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder='deepwl, wuyinkeji, dmxapi'
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  {t(
+                                    'Channel merchant code, such as deepwl or dmxapi.'
+                                  )}
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
 
                         {!isEditing && (

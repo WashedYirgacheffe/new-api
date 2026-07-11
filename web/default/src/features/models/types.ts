@@ -28,6 +28,7 @@ import { z } from 'zod'
 export interface BoundChannel {
   name: string
   type: number
+  channel_provider?: string
 }
 
 /**
@@ -36,7 +37,10 @@ export interface BoundChannel {
 export interface Model {
   id: number
   model_name: string
+  display_name?: string
+  model_type?: string
   description?: string
+  source_url?: string
   icon?: string
   tags?: string
   vendor_id?: number
@@ -230,7 +234,10 @@ export interface PrefillGroupsResponse {
 export const modelFormSchema = z.object({
   id: z.number().optional(),
   model_name: z.string().min(1, 'Model name is required'),
+  display_name: z.string().default(''),
+  model_type: z.string().default(''),
   description: z.string().default(''),
+  source_url: z.union([z.literal(''), z.string().url()]).default(''),
   icon: z.string().default(''),
   tags: z.array(z.string()).default([]),
   vendor_id: z.number().optional(),

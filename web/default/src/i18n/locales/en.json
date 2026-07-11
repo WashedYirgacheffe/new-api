@@ -1,5 +1,11 @@
 {
   "translation": {
+    "API Channel Provider": "API Channel Provider",
+    "Channel merchant code, such as deepwl or dmxapi.": "Channel merchant code, such as deepwl or dmxapi.",
+    "Model Provider": "Model Provider",
+    "Model Type": "Model Type",
+    "Public documentation or model page used as the metadata source.": "Public documentation or model page used as the metadata source.",
+    "Source URL": "Source URL",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
