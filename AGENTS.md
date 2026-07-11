@@ -164,3 +164,4 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 | Document | Contents | Corresponding code and resources |
 | --- | --- | --- |
 | `docs/operations/2026-07-10-railway-cloudflare-deployment.md` | Railway PostgreSQL/Redis/application deployment, secure administrator initialization, health checks, and Cloudflare edge rollout | `Dockerfile`, `.dockerignore`, `railway.json`, `cloudflare/edge-gateway/`, Railway project `carlab-api`, Cloudflare zone `carlab.top` |
+| `docs/operations/2026-07-11-provider-channel-migration.md` | Existing Superseed provider credentials migrated into compatible New API channels, service token issuance, cloud verification, and unsupported protocol boundaries | New API channel/token configuration, `api.carlab.top`, Vercel project `superseed`, macOS Keychain service `carlab-api-superseed-token` |
