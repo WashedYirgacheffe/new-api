@@ -166,7 +166,12 @@ func DeleteModelMeta(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	if err := model.DB.Delete(&model.Model{}, id).Error; err != nil {
+	var m model.Model
+	if err := model.DB.First(&m, id).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := m.Delete(); err != nil {
 		common.ApiError(c, err)
 		return
 	}
@@ -182,12 +187,14 @@ func enrichModels(models []*model.Model) {
 
 	// 1) 拆分精确与规则匹配
 	exactNames := make([]string, 0)
+	modelIDs := make([]int, 0, len(models))
 	exactIdx := make(map[string][]int) // modelName -> indices in models
 	ruleIndices := make([]int, 0)
 	for i, m := range models {
 		if m == nil {
 			continue
 		}
+		modelIDs = append(modelIDs, m.Id)
 		if m.NameRule == model.NameRuleExact {
 			exactNames = append(exactNames, m.ModelName)
 			exactIdx[m.ModelName] = append(exactIdx[m.ModelName], i)
@@ -198,6 +205,7 @@ func enrichModels(models []*model.Model) {
 
 	// 2) 批量查询精确模型的绑定渠道
 	channelsByModel, _ := model.GetBoundChannelsByModelsMap(exactNames)
+	channelProvidersByModel, _ := model.GetChannelProvidersByModelsMap(modelIDs)
 
 	// 3) 精确模型：端点从缓存、渠道批量映射、分组/计费类型从缓存
 	for name, indices := range exactIdx {
@@ -211,6 +219,7 @@ func enrichModels(models []*model.Model) {
 				}
 			}
 			mm.BoundChannels = chs
+			mm.ChannelProviders = channelProvidersByModel[mm.Id]
 			mm.EnableGroups = model.GetModelEnableGroups(mm.ModelName)
 			mm.QuotaTypes = model.GetModelQuotaTypes(mm.ModelName)
 		}
@@ -289,6 +298,7 @@ func enrichModels(models []*model.Model) {
 	// 6) 回填每个规则模型的并集信息
 	for _, idx := range ruleIndices {
 		mm := models[idx]
+		mm.ChannelProviders = channelProvidersByModel[mm.Id]
 
 		// 端点并集 -> 序列化
 		if es, ok := endpointSetByIdx[idx]; ok && mm.Endpoints == "" {
@@ -335,6 +345,20 @@ func enrichModels(models []*model.Model) {
 				chs = append(chs, ch)
 			}
 			mm.BoundChannels = chs
+			providerSet := make(map[string]struct{}, len(mm.ChannelProviders)+len(chs))
+			for _, provider := range mm.ChannelProviders {
+				providerSet[provider] = struct{}{}
+			}
+			for _, ch := range chs {
+				if ch.ChannelProvider != "" {
+					providerSet[ch.ChannelProvider] = struct{}{}
+				}
+			}
+			mm.ChannelProviders = mm.ChannelProviders[:0]
+			for provider := range providerSet {
+				mm.ChannelProviders = append(mm.ChannelProviders, provider)
+			}
+			sort.Strings(mm.ChannelProviders)
 		}
 
 		// 匹配信息

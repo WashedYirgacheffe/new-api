@@ -64,7 +64,7 @@ export function ModelsTable() {
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'vendor_id', searchKey: 'vendor', type: 'array' },
       {
-        columnId: 'bound_channels',
+        columnId: 'channel_providers',
         searchKey: 'channelProvider',
         type: 'array',
       },
@@ -78,7 +78,7 @@ export function ModelsTable() {
   const vendorFilter =
     (columnFilters.find((f) => f.id === 'vendor_id')?.value as string[]) || []
   const channelProviderFilter =
-    (columnFilters.find((f) => f.id === 'bound_channels')?.value as
+    (columnFilters.find((f) => f.id === 'channel_providers')?.value as
       | string[]
       | undefined) || []
   const syncFilter =
@@ -125,10 +125,10 @@ export function ModelsTable() {
   // Determine whether to use search or regular list API
   const shouldSearch = Boolean(
     globalFilter?.trim() ||
-      activeVendorFilter ||
-      activeChannelProviderFilter ||
-      activeStatusFilter ||
-      activeSyncFilter
+    activeVendorFilter ||
+    activeChannelProviderFilter ||
+    activeStatusFilter ||
+    activeSyncFilter
   )
 
   // Fetch models data
@@ -246,7 +246,7 @@ export function ModelsTable() {
             singleSelect: true,
           },
           {
-            columnId: 'bound_channels',
+            columnId: 'channel_providers',
             title: t('API Channel Provider'),
             options: channelProviderFilterOptions,
             singleSelect: true,

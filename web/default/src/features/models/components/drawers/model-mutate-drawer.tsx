@@ -97,6 +97,7 @@ const extendedModelFormSchema = z.object({
   icon: z.string(),
   tags: z.array(z.string()),
   vendor_id: z.number().optional(),
+  channel_providers: z.array(z.string()),
   endpoints: z.string(),
   name_rule: z.number(),
   status: z.boolean(),
@@ -239,6 +240,7 @@ export function ModelMutateDrawer({
       icon: '',
       tags: [],
       vendor_id: undefined,
+      channel_providers: [],
       endpoints: '',
       name_rule: 0,
       status: true,
@@ -302,6 +304,7 @@ export function ModelMutateDrawer({
         icon: model.icon || '',
         tags: parseModelTags(model.tags),
         vendor_id: model.vendor_id,
+        channel_providers: model.channel_providers || [],
         endpoints: model.endpoints || '',
         name_rule: model.name_rule || 0,
         status: model.status === 1,
@@ -409,6 +412,7 @@ export function ModelMutateDrawer({
         icon: '',
         tags: [],
         vendor_id: undefined,
+        channel_providers: [],
         endpoints: '',
         name_rule: 0,
         status: true,
@@ -852,6 +856,27 @@ export function ModelMutateDrawer({
                         </SelectGroup>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='channel_providers'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('API Channel Provider')}</FormLabel>
+                    <FormControl>
+                      <TagInput
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        placeholder='deepwl, dmxapi'
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Channel merchant code, such as deepwl or dmxapi.')}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

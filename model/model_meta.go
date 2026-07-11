@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -22,6 +24,11 @@ type BoundChannel struct {
 	ChannelProvider string `json:"channel_provider,omitempty"`
 }
 
+type ModelChannelProvider struct {
+	ModelID         int    `json:"model_id" gorm:"primaryKey;autoIncrement:false"`
+	ChannelProvider string `json:"channel_provider" gorm:"type:varchar(64);primaryKey;autoIncrement:false;index"`
+}
+
 type Model struct {
 	Id           int            `json:"id"`
 	ModelName    string         `json:"model_name" gorm:"size:128;not null;uniqueIndex:uk_model_name_delete_at,priority:1"`
@@ -39,10 +46,11 @@ type Model struct {
 	UpdatedTime  int64          `json:"updated_time" gorm:"bigint"`
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index;uniqueIndex:uk_model_name_delete_at,priority:2"`
 
-	BoundChannels []BoundChannel `json:"bound_channels,omitempty" gorm:"-"`
-	EnableGroups  []string       `json:"enable_groups,omitempty" gorm:"-"`
-	QuotaTypes    []int          `json:"quota_types,omitempty" gorm:"-"`
-	NameRule      int            `json:"name_rule" gorm:"default:0"`
+	BoundChannels    []BoundChannel `json:"bound_channels,omitempty" gorm:"-"`
+	ChannelProviders []string       `json:"channel_providers,omitempty" gorm:"-"`
+	EnableGroups     []string       `json:"enable_groups,omitempty" gorm:"-"`
+	QuotaTypes       []int          `json:"quota_types,omitempty" gorm:"-"`
+	NameRule         int            `json:"name_rule" gorm:"default:0"`
 
 	MatchedModels []string `json:"matched_models,omitempty" gorm:"-"`
 	MatchedCount  int      `json:"matched_count,omitempty" gorm:"-"`
@@ -57,16 +65,18 @@ func (mi *Model) Insert() error {
 	originalStatus := mi.Status
 	originalSyncOfficial := mi.SyncOfficial
 
-	// 先创建记录（GORM 会对零值字段应用默认值）
-	if err := DB.Create(mi).Error; err != nil {
-		return err
-	}
-
-	// 使用保存的原始值进行更新，确保零值能正确保存
-	return DB.Model(&Model{}).Where("id = ?", mi.Id).Updates(map[string]interface{}{
-		"status":        originalStatus,
-		"sync_official": originalSyncOfficial,
-	}).Error
+	return DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(mi).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&Model{}).Where("id = ?", mi.Id).Updates(map[string]interface{}{
+			"status":        originalStatus,
+			"sync_official": originalSyncOfficial,
+		}).Error; err != nil {
+			return err
+		}
+		return replaceModelChannelProviders(tx, mi.Id, mi.ChannelProviders)
+	})
 }
 
 func IsModelNameDuplicated(id int, name string) (bool, error) {
@@ -80,14 +90,56 @@ func IsModelNameDuplicated(id int, name string) (bool, error) {
 
 func (mi *Model) Update() error {
 	mi.UpdatedTime = common.GetTimestamp()
-	// 使用 Select 强制更新所有字段，包括零值
-	return DB.Model(&Model{}).Where("id = ?", mi.Id).
-		Select("model_name", "display_name", "model_type", "description", "source_url", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "updated_time").
-		Updates(mi).Error
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var existing Model
+		if err := lockForUpdate(tx).Select("id").First(&existing, mi.Id).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&Model{}).Where("id = ?", mi.Id).
+			Select("model_name", "display_name", "model_type", "description", "source_url", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "updated_time").
+			Updates(mi).Error; err != nil {
+			return err
+		}
+		return replaceModelChannelProviders(tx, mi.Id, mi.ChannelProviders)
+	})
 }
 
 func (mi *Model) Delete() error {
-	return DB.Delete(mi).Error
+	return DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("model_id = ?", mi.Id).Delete(&ModelChannelProvider{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(mi).Error
+	})
+}
+
+func replaceModelChannelProviders(tx *gorm.DB, modelID int, providers []string) error {
+	if providers == nil {
+		return nil
+	}
+	if err := tx.Where("model_id = ?", modelID).Delete(&ModelChannelProvider{}).Error; err != nil {
+		return err
+	}
+	seen := make(map[string]struct{}, len(providers))
+	rows := make([]ModelChannelProvider, 0, len(providers))
+	for _, provider := range providers {
+		provider = strings.ToLower(strings.TrimSpace(provider))
+		if provider == "" {
+			continue
+		}
+		if len(provider) > 64 {
+			return fmt.Errorf("API channel provider must be 64 characters or fewer")
+		}
+		if _, exists := seen[provider]; exists {
+			continue
+		}
+		seen[provider] = struct{}{}
+		rows = append(rows, ModelChannelProvider{ModelID: modelID, ChannelProvider: provider})
+	}
+	if len(rows) == 0 {
+		return nil
+	}
+	return tx.Create(&rows).Error
 }
 
 func GetVendorModelCounts() (map[int64]int64, error) {
@@ -109,26 +161,84 @@ func GetVendorModelCounts() (map[int64]int64, error) {
 }
 
 func GetChannelProviderModelCounts() (map[string]int64, error) {
-	type row struct {
+	type providerModelRow struct {
+		ModelID         int
 		ChannelProvider string
-		Count           int64
 	}
-	var stats []row
-	err := DB.Table("models").
-		Select("channels.channel_provider as channel_provider, count(distinct models.id) as count").
-		Joins("JOIN abilities ON abilities.model = models.model_name").
-		Joins("JOIN channels ON channels.id = abilities.channel_id").
-		Where("abilities.enabled = ? AND channels.channel_provider <> ?", true, "").
-		Group("channels.channel_provider").
-		Scan(&stats).Error
-	if err != nil {
+	var catalogProviders []providerModelRow
+	if err := DB.Table("model_channel_providers").
+		Select("model_channel_providers.model_id, model_channel_providers.channel_provider").
+		Joins("JOIN models ON models.id = model_channel_providers.model_id").
+		Where("models.deleted_at IS NULL").
+		Scan(&catalogProviders).Error; err != nil {
 		return nil, err
 	}
-	counts := make(map[string]int64, len(stats))
-	for _, item := range stats {
-		counts[item.ChannelProvider] = item.Count
+	var runtimeProviders []providerModelRow
+	if err := DB.Table("models").
+		Select("models.id as model_id, channels.channel_provider as channel_provider").
+		Joins("JOIN abilities ON abilities.model = models.model_name").
+		Joins("JOIN channels ON channels.id = abilities.channel_id").
+		Where("models.deleted_at IS NULL AND abilities.enabled = ? AND channels.status = ? AND channels.channel_provider <> ?", true, common.ChannelStatusEnabled, "").
+		Scan(&runtimeProviders).Error; err != nil {
+		return nil, err
+	}
+	providerModels := make(map[string]map[int]struct{})
+	for _, item := range append(catalogProviders, runtimeProviders...) {
+		models, exists := providerModels[item.ChannelProvider]
+		if !exists {
+			models = make(map[int]struct{})
+			providerModels[item.ChannelProvider] = models
+		}
+		models[item.ModelID] = struct{}{}
+	}
+	counts := make(map[string]int64, len(providerModels))
+	for provider, models := range providerModels {
+		counts[provider] = int64(len(models))
 	}
 	return counts, nil
+}
+
+func GetChannelProvidersByModelsMap(modelIDs []int) (map[int][]string, error) {
+	providerSets := make(map[int]map[string]struct{})
+	if len(modelIDs) == 0 {
+		return map[int][]string{}, nil
+	}
+	type providerModelRow struct {
+		ModelID         int
+		ChannelProvider string
+	}
+	var catalogProviders []providerModelRow
+	if err := DB.Table("model_channel_providers").
+		Select("model_id, channel_provider").
+		Where("model_id IN ?", modelIDs).
+		Scan(&catalogProviders).Error; err != nil {
+		return nil, err
+	}
+	var runtimeProviders []providerModelRow
+	if err := DB.Table("models").
+		Select("models.id as model_id, channels.channel_provider as channel_provider").
+		Joins("JOIN abilities ON abilities.model = models.model_name").
+		Joins("JOIN channels ON channels.id = abilities.channel_id").
+		Where("models.id IN ? AND abilities.enabled = ? AND channels.status = ? AND channels.channel_provider <> ?", modelIDs, true, common.ChannelStatusEnabled, "").
+		Scan(&runtimeProviders).Error; err != nil {
+		return nil, err
+	}
+	for _, item := range append(catalogProviders, runtimeProviders...) {
+		providers, exists := providerSets[item.ModelID]
+		if !exists {
+			providers = make(map[string]struct{})
+			providerSets[item.ModelID] = providers
+		}
+		providers[item.ChannelProvider] = struct{}{}
+	}
+	result := make(map[int][]string, len(providerSets))
+	for modelID, providers := range providerSets {
+		for provider := range providers {
+			result[modelID] = append(result[modelID], provider)
+		}
+		sort.Strings(result[modelID])
+	}
+	return result, nil
 }
 
 func GetAllModels(offset int, limit int) ([]*Model, error) {
@@ -152,7 +262,7 @@ func GetBoundChannelsByModelsMap(modelNames []string) (map[string][]BoundChannel
 	err := DB.Table("channels").
 		Select("abilities.model as model, channels.name as name, channels.type as type, channels.channel_provider as channel_provider").
 		Joins("JOIN abilities ON abilities.channel_id = channels.id").
-		Where("abilities.model IN ? AND abilities.enabled = ?", modelNames, true).
+		Where("abilities.model IN ? AND abilities.enabled = ? AND channels.status = ?", modelNames, true, common.ChannelStatusEnabled).
 		Distinct().
 		Scan(&rows).Error
 	if err != nil {
@@ -227,6 +337,7 @@ func GetPreferredModelOwnerChannelTypes(modelNames []string, groups []string) (m
 func SearchModels(keyword string, vendor string, channelProvider string, status string, syncOfficial string, offset int, limit int) ([]*Model, int64, error) {
 	var models []*Model
 	db := DB.Model(&Model{})
+	channelProvider = strings.ToLower(strings.TrimSpace(channelProvider))
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		db = db.Where("models.model_name LIKE ? OR models.display_name LIKE ? OR models.model_type LIKE ? OR models.description LIKE ? OR models.tags LIKE ?", like, like, like, like, like)
@@ -239,13 +350,18 @@ func SearchModels(keyword string, vendor string, channelProvider string, status 
 		}
 	}
 	if channelProvider != "" {
-		channelProviderQuery := DB.Table("abilities").
+		catalogProviderQuery := DB.Table("model_channel_providers").
+			Select("1").
+			Where("model_channel_providers.model_id = models.id").
+			Where("model_channel_providers.channel_provider = ?", channelProvider)
+		runtimeProviderQuery := DB.Table("abilities").
 			Select("1").
 			Joins("JOIN channels ON channels.id = abilities.channel_id").
 			Where("abilities.model = models.model_name").
 			Where("abilities.enabled = ?", true).
+			Where("channels.status = ?", common.ChannelStatusEnabled).
 			Where("channels.channel_provider = ?", channelProvider)
-		db = db.Where("EXISTS (?)", channelProviderQuery)
+		db = db.Where("EXISTS (?) OR EXISTS (?)", catalogProviderQuery, runtimeProviderQuery)
 	}
 	if value, err := strconv.Atoi(status); status != "" && err == nil {
 		db = db.Where("models.status = ?", value)

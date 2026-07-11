@@ -376,6 +376,29 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
       enableSorting: false,
     },
 
+    {
+      accessorKey: 'channel_providers',
+      header: t('API Channel Provider'),
+      meta: { mobileHidden: true },
+      cell: ({ row }) => {
+        const providers = row.getValue('channel_providers') as string[]
+        return (
+          <BadgeListCell
+            items={(providers ?? []).map((provider) => (
+              <StatusBadge
+                key={provider}
+                label={provider}
+                autoColor={provider}
+                size='sm'
+              />
+            ))}
+          />
+        )
+      },
+      size: 150,
+      enableSorting: false,
+    },
+
     // Bound Channels column
     {
       accessorKey: 'bound_channels',
