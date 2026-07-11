@@ -93,6 +93,7 @@ export interface GetModelsParams {
   p?: number
   page_size?: number
   vendor?: string // vendor ID to filter by
+  channel_provider?: string // API channel provider code
   status?: string // filter by status
   sync_official?: string // filter by sync_official status
 }
@@ -103,6 +104,7 @@ export interface GetModelsParams {
 export interface SearchModelsParams {
   keyword?: string
   vendor?: string // vendor ID to filter by
+  channel_provider?: string // API channel provider code
   status?: string // filter by status
   sync_official?: string // filter by sync_official status
   p?: number
@@ -121,6 +123,7 @@ export interface GetModelsResponse {
     page: number
     page_size: number
     vendor_counts?: Record<string, number>
+    channel_provider_counts?: Record<string, number>
   }
 }
 

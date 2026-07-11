@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "retrieved_at": "2026-07-11",
+  "sources": [
+    "/Volumes/CODE/Code_SYS/超级种子/CarLab/TapLater/packages/taplater/src/services/_models.ts",
+    "/Volumes/CODE/Code_SYS/超级种子/CarLab/TapDash/api/admin-models.js",
+    "initial-model-catalog.json"
+  ],
+  "source_counts": {
+    "taplater": 50,
+    "tapdash": 50,
+    "initial_catalog": 15,
+    "union": 65
+  },
+  "model_names": [
+    "Pro/moonshotai/Kimi-K2.5",
+    "Qwen/Qwen3-VL-32B-Instruct",
+    "doubao-seedance-2-0-260128",
+    "doubao-seedance-2-0-fast-260128",
+    "doubao-seedream-5-0-260128",
+    "flux-kontext-max",
+    "flux-kontext-pro",
+    "fox-gpt-image-2",
+    "fox-grok-video-3",
+    "fox-nano-banana",
+    "fox-nano-banana-pro",
+    "fox-nano-banana2",
+    "fox-omni-fast",
+    "fox-seedance-2-0-fast",
+    "fox-seedance-2-0-mini",
+    "fox-seedance-2-0-vip",
+    "fox-vidu",
+    "gemini-2.5-flash-image",
+    "gemini-3-pro-image-preview",
+    "gemini-3.1-flash-image-preview",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-pro-preview",
+    "gemini-3.5-flash",
+    "gpt-1.5-image",
+    "gpt-4o-mini",
+    "gpt-image-1",
+    "gpt-image-2",
+    "grok-imagine",
+    "grok-imagine-video-1.5-preview",
+    "kling-v2-6",
+    "kling-v2-6-image2video",
+    "kling-v2-6-text2video",
+    "kling-v3",
+    "kling-v3-video-generation",
+    "nano-banana",
+    "nano-banana-hd",
+    "nano-banana2",
+    "omni-fast",
+    "sora-2",
+    "sora-2-i2v",
+    "sora-2-pro",
+    "sora-image",
+    "tencent/Hunyuan-MT-7B",
+    "ts-gpt-image-2",
+    "veo3",
+    "veo3.1",
+    "viduq2",
+    "wan2.1-i2v",
+    "wan2.1-t2v",
+    "wan2.6-image",
+    "wk-gemini-2.5-flash",
+    "wk-gemini-2.5-flash-lite",
+    "wk-gemini-2.5-pro",
+    "wk-gemini-3-pro",
+    "wk-google-omni",
+    "wk-gpt-4o-all",
+    "wk-gpt-4o-mini",
+    "wk-grok-imagine",
+    "wk-o4-mini-all",
+    "wk-package-1.0",
+    "wk-sora2-character",
+    "wk-veo3.1-fast",
+    "wk-veo3.1-pro",
+    "wk-wan2.6",
+    "zai-org/GLM-4.6"
+  ],
+  "standard_channel_allowlists": {
+    "nodyhub": [
+      "doubao-seedance-2-0-260128",
+      "doubao-seedance-2-0-fast-260128",
+      "doubao-seedream-5-0-260128",
+      "flux-kontext-max",
+      "flux-kontext-pro",
+      "gemini-2.5-flash-image",
+      "gemini-3-pro-image-preview",
+      "gemini-3.1-flash-image-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-3.5-flash",
+      "gpt-4o-mini",
+      "gpt-image-1",
+      "gpt-image-2",
+      "kling-v2-6",
+      "kling-v3",
+      "nano-banana",
+      "nano-banana-hd",
+      "veo3",
+      "veo3.1",
+      "viduq2"
+    ],
+    "siliconflow": [
+      "Qwen/Qwen3-VL-32B-Instruct",
+      "tencent/Hunyuan-MT-7B"
+    ],
+    "volcengine-image": [],
+    "volcengine-video": [
+      "doubao-seedance-2-0-260128",
+      "doubao-seedance-2-0-fast-260128"
+    ],
+    "dmxapi": [
+      "doubao-seedream-5-0-260128",
+      "gemini-2.5-flash-image",
+      "gemini-3-pro-image-preview",
+      "gemini-3.1-flash-image-preview",
+      "gemini-3.1-flash-lite-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-3.5-flash",
+      "gpt-4o-mini",
+      "gpt-image-2",
+      "kling-v2-6-image2video",
+      "kling-v3",
+      "kling-v3-video-generation",
+      "nano-banana",
+      "sora-2",
+      "sora-2-pro",
+      "wan2.6-image"
+    ]
+  },
+  "model_provider_groups": {
+    "Google": [
+      "gemini-2.5-flash-image",
+      "gemini-3-pro-image-preview",
+      "gemini-3.1-flash-image-preview",
+      "gemini-3.1-flash-lite-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-3.5-flash",
+      "nano-banana",
+      "nano-banana-hd",
+      "veo3",
+      "veo3.1"
+    ],
+    "OpenAI": [
+      "gpt-4o-mini",
+      "gpt-image-1",
+      "gpt-image-2",
+      "sora-2",
+      "sora-2-pro"
+    ],
+    "ByteDance": [
+      "doubao-seedance-2-0-260128",
+      "doubao-seedance-2-0-fast-260128",
+      "doubao-seedream-5-0-260128"
+    ],
+    "Kuaishou": [
+      "kling-v2-6",
+      "kling-v2-6-image2video",
+      "kling-v3",
+      "kling-v3-video-generation"
+    ],
+    "Alibaba": [
+      "Qwen/Qwen3-VL-32B-Instruct",
+      "wan2.6-image"
+    ],
+    "Tencent": ["tencent/Hunyuan-MT-7B"],
+    "Black Forest Labs": ["flux-kontext-max", "flux-kontext-pro"],
+    "ShengShu AI": ["viduq2"]
+  },
+  "source_differences": {
+    "taplater_only": [
+      "fox-seedance-2-0-fast",
+      "fox-seedance-2-0-mini",
+      "fox-grok-video-3",
+      "fox-omni-fast",
+      "veo3.1"
+    ],
+    "tapdash_only": [
+      "doubao-seedream-5-0-260128",
+      "veo3",
+      "wk-veo3.1-fast",
+      "wk-veo3.1-pro",
+      "gemini-3.1-flash-image-preview"
+    ]
+  },
+  "governance": {
+    "matching": "exact-model-id-only",
+    "unavailable_private_protocol_models": "metadata-only-until-adapter-exists",
+    "empty_standard_channel": "disable-channel-and-preserve-pre-prune-backup",
+    "pricing": "do-not-overwrite-global-model-pricing-when-retained-channels-have-different-costs"
+  }
+}

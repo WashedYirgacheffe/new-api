@@ -77,14 +77,17 @@ export interface PricingToolbarProps {
   quotaTypeFilter: string
   endpointTypeFilter: string
   vendorFilter: string
+  channelProviderFilter: string
   groupFilter: string
   tagFilter: string
   onQuotaTypeChange: (value: string) => void
   onEndpointTypeChange: (value: string) => void
   onVendorChange: (value: string) => void
+  onChannelProviderChange: (value: string) => void
   onGroupChange: (value: string) => void
   onTagChange: (value: string) => void
   vendors: PricingVendor[]
+  channelProviders: string[]
   groups: string[]
   groupRatios?: Record<string, number>
   tags: string[]
@@ -281,7 +284,9 @@ export function PricingToolbar(props: PricingToolbarProps) {
           <SheetHeader className={sideDrawerHeaderClassName()}>
             <SheetTitle>{t('Filter')}</SheetTitle>
             <SheetDescription>
-              {t('Filter models by provider, group, type, endpoint, and tags.')}
+              {t(
+                'Filter models by model provider, API channel provider, group, type, endpoint, and tags.'
+              )}
             </SheetDescription>
           </SheetHeader>
           <div className={sideDrawerFormClassName('gap-0')}>
@@ -289,14 +294,17 @@ export function PricingToolbar(props: PricingToolbarProps) {
               quotaTypeFilter={props.quotaTypeFilter}
               endpointTypeFilter={props.endpointTypeFilter}
               vendorFilter={props.vendorFilter}
+              channelProviderFilter={props.channelProviderFilter}
               groupFilter={props.groupFilter}
               tagFilter={props.tagFilter}
               onQuotaTypeChange={props.onQuotaTypeChange}
               onEndpointTypeChange={props.onEndpointTypeChange}
               onVendorChange={props.onVendorChange}
+              onChannelProviderChange={props.onChannelProviderChange}
               onGroupChange={props.onGroupChange}
               onTagChange={props.onTagChange}
               vendors={props.vendors}
+              channelProviders={props.channelProviders}
               groups={props.groups}
               groupRatios={props.groupRatios}
               tags={props.tags}

@@ -1,10 +1,14 @@
 {
   "translation": {
     "API Channel Provider": "Fournisseur de canal API",
+    "All API Channel Providers": "Tous les fournisseurs de canaux API",
+    "All Model Providers": "Tous les fournisseurs de modèles",
     "Channel merchant code, such as deepwl or dmxapi.": "Code du fournisseur de canal, par exemple deepwl ou dmxapi.",
+    "Filter models by model provider, API channel provider, group, type, endpoint, and tags.": "Filtrer les modèles par fournisseur de modèle, fournisseur de canal API, groupe, type, point de terminaison et étiquettes.",
     "Model Provider": "Fournisseur du modèle",
     "Model Type": "Type de modèle",
     "Public documentation or model page used as the metadata source.": "Documentation publique ou page du modèle utilisée comme source des métadonnées.",
+    "Refine models by model provider, API channel provider, group, type, and tags.": "Affiner les modèles par fournisseur de modèle, fournisseur de canal API, groupe, type et étiquettes.",
     "Source URL": "URL source",
     "360": "360",
     "1000": "1000",

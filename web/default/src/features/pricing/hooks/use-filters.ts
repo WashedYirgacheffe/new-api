@@ -35,6 +35,7 @@ type FilterState = {
   search?: string
   sort?: string
   vendor?: string
+  channelProvider?: string
   group?: string
   quotaType?: string
   endpointType?: string
@@ -57,6 +58,7 @@ export function useFilters(models: PricingModel[]) {
     search: search.search,
     sort: search.sort,
     vendor: search.vendor,
+    channelProvider: search.channelProvider,
     group: search.group,
     quotaType: search.quotaType,
     endpointType: search.endpointType,
@@ -69,6 +71,7 @@ export function useFilters(models: PricingModel[]) {
   const searchInput = filterState.search || ''
   const sortBy = filterState.sort || SORT_OPTIONS.NAME
   const vendorFilter = filterState.vendor || FILTER_ALL
+  const channelProviderFilter = filterState.channelProvider || FILTER_ALL
   const groupFilter = filterState.group || FILTER_ALL
   const quotaTypeFilter = filterState.quotaType || QUOTA_TYPES.ALL
   const endpointTypeFilter = filterState.endpointType || ENDPOINT_TYPES.ALL
@@ -101,6 +104,11 @@ export function useFilters(models: PricingModel[]) {
   )
   const setVendorFilter = useCallback(
     (v: string) => updateFilters({ vendor: v === FILTER_ALL ? undefined : v }),
+    [updateFilters]
+  )
+  const setChannelProviderFilter = useCallback(
+    (v: string) =>
+      updateFilters({ channelProvider: v === FILTER_ALL ? undefined : v }),
     [updateFilters]
   )
   const setGroupFilter = useCallback(
@@ -149,6 +157,7 @@ export function useFilters(models: PricingModel[]) {
     return filterAndSortModels(models, {
       search: searchInput,
       vendor: vendorFilter,
+      channelProvider: channelProviderFilter,
       group: groupFilter,
       quotaType: quotaTypeFilter,
       endpointType: endpointTypeFilter,
@@ -159,6 +168,7 @@ export function useFilters(models: PricingModel[]) {
     models,
     searchInput,
     vendorFilter,
+    channelProviderFilter,
     groupFilter,
     quotaTypeFilter,
     endpointTypeFilter,
@@ -169,26 +179,43 @@ export function useFilters(models: PricingModel[]) {
   const hasActiveFilters = useMemo(
     () =>
       vendorFilter !== FILTER_ALL ||
+      channelProviderFilter !== FILTER_ALL ||
       groupFilter !== FILTER_ALL ||
       quotaTypeFilter !== QUOTA_TYPES.ALL ||
       endpointTypeFilter !== ENDPOINT_TYPES.ALL ||
       tagFilter !== FILTER_ALL,
-    [vendorFilter, groupFilter, quotaTypeFilter, endpointTypeFilter, tagFilter]
+    [
+      vendorFilter,
+      channelProviderFilter,
+      groupFilter,
+      quotaTypeFilter,
+      endpointTypeFilter,
+      tagFilter,
+    ]
   )
 
   const activeFilterCount = useMemo(
     () =>
       (vendorFilter !== FILTER_ALL ? 1 : 0) +
+      (channelProviderFilter !== FILTER_ALL ? 1 : 0) +
       (groupFilter !== FILTER_ALL ? 1 : 0) +
       (quotaTypeFilter !== QUOTA_TYPES.ALL ? 1 : 0) +
       (endpointTypeFilter !== ENDPOINT_TYPES.ALL ? 1 : 0) +
       (tagFilter !== FILTER_ALL ? 1 : 0),
-    [vendorFilter, groupFilter, quotaTypeFilter, endpointTypeFilter, tagFilter]
+    [
+      vendorFilter,
+      channelProviderFilter,
+      groupFilter,
+      quotaTypeFilter,
+      endpointTypeFilter,
+      tagFilter,
+    ]
   )
 
   const clearFilters = useCallback(() => {
     updateFilters({
       vendor: undefined,
+      channelProvider: undefined,
       group: undefined,
       quotaType: undefined,
       endpointType: undefined,
@@ -204,6 +231,7 @@ export function useFilters(models: PricingModel[]) {
     searchInput,
     sortBy,
     vendorFilter,
+    channelProviderFilter,
     groupFilter,
     quotaTypeFilter,
     endpointTypeFilter,
@@ -214,6 +242,7 @@ export function useFilters(models: PricingModel[]) {
     setSearchInput,
     setSortBy,
     setVendorFilter,
+    setChannelProviderFilter,
     setGroupFilter,
     setQuotaTypeFilter,
     setEndpointTypeFilter,

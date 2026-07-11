@@ -58,6 +58,7 @@ export function Pricing() {
     searchInput,
     sortBy,
     vendorFilter,
+    channelProviderFilter,
     groupFilter,
     quotaTypeFilter,
     endpointTypeFilter,
@@ -68,6 +69,7 @@ export function Pricing() {
     setSearchInput,
     setSortBy,
     setVendorFilter,
+    setChannelProviderFilter,
     setGroupFilter,
     setQuotaTypeFilter,
     setEndpointTypeFilter,
@@ -103,6 +105,16 @@ export function Pricing() {
         (g) => !EXCLUDED_GROUPS.includes(g)
       ),
     [usableGroup]
+  )
+
+  const availableChannelProviders = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (models || []).flatMap((model) => model.channel_providers || [])
+        )
+      ).sort((left, right) => left.localeCompare(right)),
+    [models]
   )
 
   const handleClearAll = useCallback(() => {
@@ -207,14 +219,17 @@ export function Pricing() {
               quotaTypeFilter={quotaTypeFilter}
               endpointTypeFilter={endpointTypeFilter}
               vendorFilter={vendorFilter}
+              channelProviderFilter={channelProviderFilter}
               groupFilter={groupFilter}
               tagFilter={tagFilter}
               onQuotaTypeChange={setQuotaTypeFilter}
               onEndpointTypeChange={setEndpointTypeFilter}
               onVendorChange={setVendorFilter}
+              onChannelProviderChange={setChannelProviderFilter}
               onGroupChange={setGroupFilter}
               onTagChange={setTagFilter}
               vendors={vendors || []}
+              channelProviders={availableChannelProviders}
               groups={availableGroups}
               groupRatios={groupRatio}
               tags={availableTags}
@@ -239,14 +254,17 @@ export function Pricing() {
                 quotaTypeFilter={quotaTypeFilter}
                 endpointTypeFilter={endpointTypeFilter}
                 vendorFilter={vendorFilter}
+                channelProviderFilter={channelProviderFilter}
                 groupFilter={groupFilter}
                 tagFilter={tagFilter}
                 onQuotaTypeChange={setQuotaTypeFilter}
                 onEndpointTypeChange={setEndpointTypeFilter}
                 onVendorChange={setVendorFilter}
+                onChannelProviderChange={setChannelProviderFilter}
                 onGroupChange={setGroupFilter}
                 onTagChange={setTagFilter}
                 vendors={vendors || []}
+                channelProviders={availableChannelProviders}
                 groups={availableGroups}
                 groupRatios={groupRatio}
                 tags={availableTags}

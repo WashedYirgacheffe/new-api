@@ -322,10 +322,10 @@ export function usePricingColumns(
       enableSorting: false,
     },
 
-    // Vendor column
+    // Model provider column
     {
       accessorKey: 'vendor_name',
-      header: t('Vendor'),
+      header: t('Model Provider'),
       cell: ({ row }) => {
         const model = row.original
         if (!model.vendor_name) {
@@ -347,6 +347,27 @@ export function usePricingColumns(
         )
       },
       size: 130,
+      enableSorting: false,
+    },
+
+    // API channel provider column
+    {
+      accessorKey: 'channel_providers',
+      header: t('API Channel Provider'),
+      cell: ({ row }) => (
+        <BadgeListCell
+          items={(row.original.channel_providers || []).map((provider) => (
+            <StatusBadge
+              key={provider}
+              label={provider}
+              autoColor={provider}
+              size='sm'
+              copyable={false}
+            />
+          ))}
+        />
+      ),
+      size: 160,
       enableSorting: false,
     },
 

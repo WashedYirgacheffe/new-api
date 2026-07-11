@@ -1,10 +1,14 @@
 {
   "translation": {
     "API Channel Provider": "Nhà cung cấp kênh API",
+    "All API Channel Providers": "Tất cả nhà cung cấp kênh API",
+    "All Model Providers": "Tất cả nhà cung cấp mô hình",
     "Channel merchant code, such as deepwl or dmxapi.": "Mã nhà cung cấp kênh, chẳng hạn deepwl hoặc dmxapi.",
+    "Filter models by model provider, API channel provider, group, type, endpoint, and tags.": "Lọc mô hình theo nhà cung cấp mô hình, nhà cung cấp kênh API, nhóm, loại, điểm cuối và thẻ.",
     "Model Provider": "Nhà cung cấp mô hình",
     "Model Type": "Loại mô hình",
     "Public documentation or model page used as the metadata source.": "Tài liệu công khai hoặc trang mô hình được dùng làm nguồn siêu dữ liệu.",
+    "Refine models by model provider, API channel provider, group, type, and tags.": "Tinh chỉnh mô hình theo nhà cung cấp mô hình, nhà cung cấp kênh API, nhóm, loại và thẻ.",
     "Source URL": "URL nguồn",
     "360": "360",
     "1000": "1000",

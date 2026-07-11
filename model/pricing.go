@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"sync"
@@ -36,6 +37,7 @@ type Pricing struct {
 	BillingMode            string                  `json:"billing_mode,omitempty"`
 	BillingExpr            string                  `json:"billing_expr,omitempty"`
 	PricingVersion         string                  `json:"pricing_version,omitempty"`
+	ChannelProviders       []string                `json:"channel_providers,omitempty"`
 }
 
 type PricingVendor struct {
@@ -189,6 +191,7 @@ func updatePricing() {
 	}
 
 	modelGroupsMap := make(map[string]*types.Set[string])
+	modelChannelProvidersMap := make(map[string]*types.Set[string])
 
 	for _, ability := range enableAbilities {
 		groups, ok := modelGroupsMap[ability.Model]
@@ -197,6 +200,14 @@ func updatePricing() {
 			modelGroupsMap[ability.Model] = groups
 		}
 		groups.Add(ability.Group)
+		if ability.ChannelProvider != "" {
+			channelProviders, ok := modelChannelProvidersMap[ability.Model]
+			if !ok {
+				channelProviders = types.NewSet[string]()
+				modelChannelProvidersMap[ability.Model] = channelProviders
+			}
+			channelProviders.Add(ability.ChannelProvider)
+		}
 	}
 
 	//这里使用切片而不是Set，因为一个模型可能支持多个端点类型，并且第一个端点是优先使用端点
@@ -287,10 +298,16 @@ func updatePricing() {
 
 	pricingMap = make([]Pricing, 0)
 	for model, groups := range modelGroupsMap {
+		channelProviders := make([]string, 0)
+		if providers, ok := modelChannelProvidersMap[model]; ok {
+			channelProviders = providers.Items()
+			sort.Strings(channelProviders)
+		}
 		pricing := Pricing{
 			ModelName:              model,
 			EnableGroup:            groups.Items(),
 			SupportedEndpointTypes: modelSupportEndpointTypes[model],
+			ChannelProviders:       channelProviders,
 		}
 
 		// 补充模型元数据（描述、标签、供应商、状态）

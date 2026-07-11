@@ -36,6 +36,7 @@ export type PricingModel = {
   vendor_name?: string
   vendor_icon?: string
   vendor_description?: string
+  channel_providers?: string[]
   quota_type: number
   model_ratio: number
   completion_ratio: number

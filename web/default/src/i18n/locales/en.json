@@ -1,10 +1,14 @@
 {
   "translation": {
     "API Channel Provider": "API Channel Provider",
+    "All API Channel Providers": "All API Channel Providers",
+    "All Model Providers": "All Model Providers",
     "Channel merchant code, such as deepwl or dmxapi.": "Channel merchant code, such as deepwl or dmxapi.",
+    "Filter models by model provider, API channel provider, group, type, endpoint, and tags.": "Filter models by model provider, API channel provider, group, type, endpoint, and tags.",
     "Model Provider": "Model Provider",
     "Model Type": "Model Type",
     "Public documentation or model page used as the metadata source.": "Public documentation or model page used as the metadata source.",
+    "Refine models by model provider, API channel provider, group, type, and tags.": "Refine models by model provider, API channel provider, group, type, and tags.",
     "Source URL": "Source URL",
     "360": "360",
     "1000": "1000",

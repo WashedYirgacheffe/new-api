@@ -451,8 +451,19 @@ function ModelBackendProviderSection(props: { model: PricingModel }) {
 
   if (model.vendor_name) {
     cells.push(
-      <CatalogInfoCell key='provider' label={t('Provider')}>
+      <CatalogInfoCell key='provider' label={t('Model Provider')}>
         <CatalogTextValue>{model.vendor_name}</CatalogTextValue>
+      </CatalogInfoCell>
+    )
+  }
+
+  if (model.channel_providers && model.channel_providers.length > 0) {
+    cells.push(
+      <CatalogInfoCell
+        key='channel-providers'
+        label={t('API Channel Provider')}
+      >
+        <CatalogPillList items={model.channel_providers} />
       </CatalogInfoCell>
     )
   }

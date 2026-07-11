@@ -63,6 +63,11 @@ export function ModelsTable() {
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'vendor_id', searchKey: 'vendor', type: 'array' },
+      {
+        columnId: 'bound_channels',
+        searchKey: 'channelProvider',
+        type: 'array',
+      },
       { columnId: 'sync_official', searchKey: 'sync', type: 'array' },
     ],
   })
@@ -72,6 +77,10 @@ export function ModelsTable() {
     (columnFilters.find((f) => f.id === 'status')?.value as string[]) || []
   const vendorFilter =
     (columnFilters.find((f) => f.id === 'vendor_id')?.value as string[]) || []
+  const channelProviderFilter =
+    (columnFilters.find((f) => f.id === 'bound_channels')?.value as
+      | string[]
+      | undefined) || []
   const syncFilter =
     (columnFilters.find((f) => f.id === 'sync_official')?.value as string[]) ||
     []
@@ -94,15 +103,33 @@ export function ModelsTable() {
     }))
   }, [vendors])
 
-  // Determine whether to use search or regular list API
-  const shouldSearch = Boolean(globalFilter?.trim())
-
   // Apply selected vendor from context or filter
   const activeVendorFilter =
     selectedVendor ||
     (vendorFilter.length > 0 && !vendorFilter.includes('all')
       ? vendorFilter[0]
       : undefined)
+  const activeChannelProviderFilter =
+    channelProviderFilter.length > 0 && !channelProviderFilter.includes('all')
+      ? channelProviderFilter[0]
+      : undefined
+  const activeStatusFilter =
+    statusFilter.length > 0 && !statusFilter.includes('all')
+      ? statusFilter[0]
+      : undefined
+  const activeSyncFilter =
+    syncFilter.length > 0 && !syncFilter.includes('all')
+      ? syncFilter[0]
+      : undefined
+
+  // Determine whether to use search or regular list API
+  const shouldSearch = Boolean(
+    globalFilter?.trim() ||
+      activeVendorFilter ||
+      activeChannelProviderFilter ||
+      activeStatusFilter ||
+      activeSyncFilter
+  )
 
   // Fetch models data
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -110,43 +137,25 @@ export function ModelsTable() {
     queryKey: modelsQueryKeys.list({
       keyword: globalFilter,
       vendor: activeVendorFilter,
-      status:
-        statusFilter.length > 0 && !statusFilter.includes('all')
-          ? statusFilter[0]
-          : undefined,
-      sync_official:
-        syncFilter.length > 0 && !syncFilter.includes('all')
-          ? syncFilter[0]
-          : undefined,
+      channel_provider: activeChannelProviderFilter,
+      status: activeStatusFilter,
+      sync_official: activeSyncFilter,
       p: pagination.pageIndex + 1,
       page_size: pagination.pageSize,
     }),
     queryFn: async () => {
-      if (shouldSearch || activeVendorFilter) {
+      if (shouldSearch) {
         return searchModels({
           keyword: globalFilter,
           vendor: activeVendorFilter,
-          status:
-            statusFilter.length > 0 && !statusFilter.includes('all')
-              ? statusFilter[0]
-              : undefined,
-          sync_official:
-            syncFilter.length > 0 && !syncFilter.includes('all')
-              ? syncFilter[0]
-              : undefined,
+          channel_provider: activeChannelProviderFilter,
+          status: activeStatusFilter,
+          sync_official: activeSyncFilter,
           p: pagination.pageIndex + 1,
           page_size: pagination.pageSize,
         })
       } else {
         return getModels({
-          status:
-            statusFilter.length > 0 && !statusFilter.includes('all')
-              ? statusFilter[0]
-              : undefined,
-          sync_official:
-            syncFilter.length > 0 && !syncFilter.includes('all')
-              ? syncFilter[0]
-              : undefined,
           p: pagination.pageIndex + 1,
           page_size: pagination.pageSize,
         })
@@ -158,6 +167,7 @@ export function ModelsTable() {
   const models = data?.data?.items || []
   const totalCount = data?.data?.total || 0
   const vendorCounts = data?.data?.vendor_counts
+  const channelProviderCounts = data?.data?.channel_provider_counts
 
   // Columns configuration
   const columns = useModelsColumns(vendors)
@@ -169,7 +179,6 @@ export function ModelsTable() {
     totalCount,
     initialColumnVisibility: {
       description: false,
-      bound_channels: false,
       quota_types: false,
     },
     columnFilters,
@@ -188,13 +197,25 @@ export function ModelsTable() {
   // Prepare filter options
   const vendorFilterOptions = [
     {
-      label: `${t('All Vendors')}${vendorCounts?.all ? ` (${vendorCounts.all})` : ''}`,
+      label: `${t('All Model Providers')}${vendorCounts?.all ? ` (${vendorCounts.all})` : ''}`,
       value: 'all',
     },
     ...vendorOptions.map((option) => ({
       label: `${option.label}${vendorCounts?.[option.value] ? ` (${vendorCounts[option.value]})` : ''}`,
       value: option.value,
     })),
+  ]
+  const channelProviderFilterOptions = [
+    {
+      label: t('All API Channel Providers'),
+      value: 'all',
+    },
+    ...Object.entries(channelProviderCounts || {})
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([provider, count]) => ({
+        label: `${provider} (${count})`,
+        value: provider,
+      })),
   ]
 
   return (
@@ -220,8 +241,14 @@ export function ModelsTable() {
           },
           {
             columnId: 'vendor_id',
-            title: t('Vendor'),
+            title: t('Model Provider'),
             options: vendorFilterOptions,
+            singleSelect: true,
+          },
+          {
+            columnId: 'bound_channels',
+            title: t('API Channel Provider'),
+            options: channelProviderFilterOptions,
             singleSelect: true,
           },
           {

@@ -108,6 +108,29 @@ func GetVendorModelCounts() (map[int64]int64, error) {
 	return m, nil
 }
 
+func GetChannelProviderModelCounts() (map[string]int64, error) {
+	type row struct {
+		ChannelProvider string
+		Count           int64
+	}
+	var stats []row
+	err := DB.Table("models").
+		Select("channels.channel_provider as channel_provider, count(distinct models.id) as count").
+		Joins("JOIN abilities ON abilities.model = models.model_name").
+		Joins("JOIN channels ON channels.id = abilities.channel_id").
+		Where("abilities.enabled = ? AND channels.channel_provider <> ?", true, "").
+		Group("channels.channel_provider").
+		Scan(&stats).Error
+	if err != nil {
+		return nil, err
+	}
+	counts := make(map[string]int64, len(stats))
+	for _, item := range stats {
+		counts[item.ChannelProvider] = item.Count
+	}
+	return counts, nil
+}
+
 func GetAllModels(offset int, limit int) ([]*Model, error) {
 	var models []*Model
 	err := DB.Order("id DESC").Offset(offset).Limit(limit).Find(&models).Error
@@ -201,7 +224,7 @@ func GetPreferredModelOwnerChannelTypes(modelNames []string, groups []string) (m
 	return result, nil
 }
 
-func SearchModels(keyword string, vendor string, offset int, limit int) ([]*Model, int64, error) {
+func SearchModels(keyword string, vendor string, channelProvider string, status string, syncOfficial string, offset int, limit int) ([]*Model, int64, error) {
 	var models []*Model
 	db := DB.Model(&Model{})
 	if keyword != "" {
@@ -214,6 +237,21 @@ func SearchModels(keyword string, vendor string, offset int, limit int) ([]*Mode
 		} else {
 			db = db.Joins("JOIN vendors ON vendors.id = models.vendor_id").Where("vendors.name LIKE ?", "%"+vendor+"%")
 		}
+	}
+	if channelProvider != "" {
+		channelProviderQuery := DB.Table("abilities").
+			Select("1").
+			Joins("JOIN channels ON channels.id = abilities.channel_id").
+			Where("abilities.model = models.model_name").
+			Where("abilities.enabled = ?", true).
+			Where("channels.channel_provider = ?", channelProvider)
+		db = db.Where("EXISTS (?)", channelProviderQuery)
+	}
+	if value, err := strconv.Atoi(status); status != "" && err == nil {
+		db = db.Where("models.status = ?", value)
+	}
+	if value, err := strconv.Atoi(syncOfficial); syncOfficial != "" && err == nil {
+		db = db.Where("models.sync_official = ?", value)
 	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {

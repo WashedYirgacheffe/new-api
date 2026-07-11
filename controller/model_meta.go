@@ -29,15 +29,17 @@ func GetAllModelsMeta(c *gin.Context) {
 
 	// 统计供应商计数（全部数据，不受分页影响）
 	vendorCounts, _ := model.GetVendorModelCounts()
+	channelProviderCounts, _ := model.GetChannelProviderModelCounts()
 
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(modelsMeta)
 	common.ApiSuccess(c, gin.H{
-		"items":         modelsMeta,
-		"total":         total,
-		"page":          pageInfo.GetPage(),
-		"page_size":     pageInfo.GetPageSize(),
-		"vendor_counts": vendorCounts,
+		"items":                   modelsMeta,
+		"total":                   total,
+		"page":                    pageInfo.GetPage(),
+		"page_size":               pageInfo.GetPageSize(),
+		"vendor_counts":           vendorCounts,
+		"channel_provider_counts": channelProviderCounts,
 	})
 }
 
@@ -46,9 +48,12 @@ func SearchModelsMeta(c *gin.Context) {
 
 	keyword := c.Query("keyword")
 	vendor := c.Query("vendor")
+	channelProvider := c.Query("channel_provider")
+	status := c.Query("status")
+	syncOfficial := c.Query("sync_official")
 	pageInfo := common.GetPageQuery(c)
 
-	modelsMeta, total, err := model.SearchModels(keyword, vendor, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	modelsMeta, total, err := model.SearchModels(keyword, vendor, channelProvider, status, syncOfficial, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -57,7 +62,16 @@ func SearchModelsMeta(c *gin.Context) {
 	enrichModels(modelsMeta)
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(modelsMeta)
-	common.ApiSuccess(c, pageInfo)
+	vendorCounts, _ := model.GetVendorModelCounts()
+	channelProviderCounts, _ := model.GetChannelProviderModelCounts()
+	common.ApiSuccess(c, gin.H{
+		"items":                   modelsMeta,
+		"total":                   total,
+		"page":                    pageInfo.GetPage(),
+		"page_size":               pageInfo.GetPageSize(),
+		"vendor_counts":           vendorCounts,
+		"channel_provider_counts": channelProviderCounts,
+	})
 }
 
 // GetModelMeta 根据 ID 获取单条模型信息

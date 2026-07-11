@@ -59,14 +59,17 @@ export interface PricingSidebarProps {
   quotaTypeFilter: string
   endpointTypeFilter: string
   vendorFilter: string
+  channelProviderFilter: string
   groupFilter: string
   tagFilter: string
   onQuotaTypeChange: (value: string) => void
   onEndpointTypeChange: (value: string) => void
   onVendorChange: (value: string) => void
+  onChannelProviderChange: (value: string) => void
   onGroupChange: (value: string) => void
   onTagChange: (value: string) => void
   vendors: PricingVendor[]
+  channelProviders: string[]
   groups: string[]
   groupRatios?: Record<string, number>
   tags: string[]
@@ -164,7 +167,7 @@ export function PricingSidebar(props: PricingSidebarProps) {
   const vendorOptions: FilterOption[] = [
     {
       value: FILTER_ALL,
-      label: t('All Vendors'),
+      label: t('All Model Providers'),
       count: props.models.length,
     },
     ...props.vendors
@@ -178,6 +181,22 @@ export function PricingSidebar(props: PricingSidebarProps) {
         icon: vendor.icon ? getLobeIcon(vendor.icon, 14) : undefined,
       }))
       .filter((vendor) => vendor.count > 0),
+  ]
+
+  const channelProviderOptions: FilterOption[] = [
+    {
+      value: FILTER_ALL,
+      label: t('All API Channel Providers'),
+      count: props.models.length,
+    },
+    ...props.channelProviders.map((provider) => ({
+      value: provider,
+      label: provider,
+      count: countBy(
+        props.models,
+        (model) => model.channel_providers?.includes(provider) ?? false
+      ),
+    })),
   ]
 
   const groupOptions: FilterOption[] = [
@@ -251,7 +270,9 @@ export function PricingSidebar(props: PricingSidebarProps) {
         <div>
           <h2 className='text-foreground text-sm font-bold'>{t('Filter')}</h2>
           <p className='text-muted-foreground mt-1 text-xs'>
-            {t('Refine models by provider, group, type, and tags.')}
+            {t(
+              'Refine models by model provider, API channel provider, group, type, and tags.'
+            )}
           </p>
         </div>
         <Button
@@ -281,10 +302,16 @@ export function PricingSidebar(props: PricingSidebarProps) {
           onChange={props.onGroupChange}
         />
         <FilterSection
-          title={t('All Vendors')}
+          title={t('Model Provider')}
           value={props.vendorFilter}
           options={vendorOptions}
           onChange={props.onVendorChange}
+        />
+        <FilterSection
+          title={t('API Channel Provider')}
+          value={props.channelProviderFilter}
+          options={channelProviderOptions}
+          onChange={props.onChannelProviderChange}
         />
         <FilterSection
           title={t('Model Tags')}

@@ -44,7 +44,10 @@ export function filterBySearch(
       m.model_name?.toLowerCase().includes(lowerQuery) ||
       m.description?.toLowerCase().includes(lowerQuery) ||
       m.tags?.toLowerCase().includes(lowerQuery) ||
-      m.vendor_name?.toLowerCase().includes(lowerQuery)
+      m.vendor_name?.toLowerCase().includes(lowerQuery) ||
+      m.channel_providers?.some((provider) =>
+        provider.toLowerCase().includes(lowerQuery)
+      )
   )
 }
 
@@ -57,6 +60,16 @@ export function filterByVendor(
 ): PricingModel[] {
   if (vendor === FILTER_ALL) return models
   return models.filter((m) => m.vendor_name === vendor)
+}
+
+export function filterByChannelProvider(
+  models: PricingModel[],
+  channelProvider: string
+): PricingModel[] {
+  if (channelProvider === FILTER_ALL) return models
+  return models.filter((model) =>
+    model.channel_providers?.includes(channelProvider)
+  )
 }
 
 /**
@@ -139,6 +152,7 @@ export function filterAndSortModels(
   filters: {
     search: string
     vendor: string
+    channelProvider: string
     group: string
     quotaType: string
     endpointType: string
@@ -148,6 +162,7 @@ export function filterAndSortModels(
 ): PricingModel[] {
   let result = filterBySearch(models, filters.search)
   result = filterByVendor(result, filters.vendor)
+  result = filterByChannelProvider(result, filters.channelProvider)
   result = filterByGroup(result, filters.group)
   result = filterByQuotaType(result, filters.quotaType)
   result = filterByEndpointType(result, filters.endpointType)

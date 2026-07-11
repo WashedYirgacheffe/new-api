@@ -1,10 +1,14 @@
 {
   "translation": {
     "API Channel Provider": "API 渠道商",
+    "All API Channel Providers": "所有 API 渠道商",
+    "All Model Providers": "所有模型供應商",
     "Channel merchant code, such as deepwl or dmxapi.": "渠道商代碼，例如 deepwl 或 dmxapi。",
+    "Filter models by model provider, API channel provider, group, type, endpoint, and tags.": "依模型供應商、API 渠道商、分組、類型、端點與標籤篩選模型。",
     "Model Provider": "模型供應商",
     "Model Type": "模型類型",
     "Public documentation or model page used as the metadata source.": "作為中繼資料來源的公開文件或模型頁面。",
+    "Refine models by model provider, API channel provider, group, type, and tags.": "依模型供應商、API 渠道商、分組、類型與標籤細化模型。",
     "Source URL": "來源連結",
     "360": "360",
     "1000": "1000",
