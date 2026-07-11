@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-11T22:44:18+08:00",
+  "gateway": "https://api.carlab.top",
+  "scope": {
+    "metadata_total": 1589,
+    "legacy_compatibility_models": 65,
+    "full_channel_namespaced_models": 1524,
+    "business_token_visible_models": 1056,
+    "business_token_visible_namespaced_models": 1048,
+    "business_token_visible_compatibility_models": 8
+  },
+  "integrity": {
+    "models_without_model_provider": 0,
+    "models_without_channel_provider": 0,
+    "full_catalog_sorted_name_sha256": "ec9926883a968f53189a18f4ab08a895784c2c34b9ae6158be2307f7601941e2"
+  },
+  "model_type_counts": {
+    "text": 1063,
+    "image": 212,
+    "video": 227,
+    "audio": 45,
+    "embedding": 26,
+    "rerank": 16
+  },
+  "namespaces": [
+    {
+      "channel_provider": "deepwl",
+      "aliases": ["FOX"],
+      "upstream_catalog": "https://zx1.deepwl.net/api/pricing",
+      "documentation": "https://doc.deepwl.cn/llms.txt",
+      "catalog_models": 67,
+      "enabled_metadata_models": 67,
+      "business_token_visible_models": 67,
+      "sorted_name_sha256": "cd5b26b508bfd26bdf30e878b4d4bdb189877faf2a3ab93ce566e173d6db892b"
+    },
+    {
+      "channel_provider": "dmxapi",
+      "upstream_catalog": "https://www.dmxapi.cn/v1/models",
+      "pricing_page": "https://www.dmxapi.cn/rmb",
+      "catalog_models": 640,
+      "enabled_metadata_models": 255,
+      "business_token_visible_models": 255,
+      "models_awaiting_safe_pricing": 385,
+      "sorted_name_sha256": "df9b90ac1687b251ecb53e65324bfc31c27211d08127558ddc3ba02d82b7a4ca"
+    },
+    {
+      "channel_provider": "nodyhub",
+      "upstream_catalog": "https://nodyhub.com/v1/models",
+      "catalog_models": 726,
+      "enabled_metadata_models": 726,
+      "business_token_visible_models": 726,
+      "sorted_name_sha256": "39bf503f99967dca63722c8df3017f1f3db72229b687e60d888d90ab08c50746"
+    },
+    {
+      "channel_provider": "siliconflow",
+      "upstream_catalog": "https://api.siliconflow.cn/v1/models",
+      "catalog_models": 91,
+      "enabled_metadata_models": 0,
+      "business_token_visible_models": 0,
+      "models_awaiting_safe_pricing": 91,
+      "sorted_name_sha256": "cbef23fc7475ecefcbaf3fda9f2cc29ff7067af236e4e0419dda5c2d251a6ffe"
+    }
+  ],
+  "runtime_channels": [
+    {
+      "id": 1,
+      "name": "SiliconFlow Production",
+      "channel_provider": "siliconflow",
+      "status": "enabled",
+      "configured_model_entries": 93
+    },
+    {
+      "id": 2,
+      "name": "DMXAPI Production",
+      "channel_provider": "dmxapi",
+      "status": "enabled",
+      "configured_model_entries": 656
+    },
+    {
+      "id": 3,
+      "name": "Nodyhub Production",
+      "channel_provider": "nodyhub",
+      "status": "enabled",
+      "configured_model_entries": 746
+    },
+    {
+      "id": 6,
+      "name": "DeepWL Text",
+      "channel_provider": "deepwl",
+      "status": "enabled",
+      "configured_model_entries": 33
+    },
+    {
+      "id": 7,
+      "name": "DeepWL Image",
+      "channel_provider": "deepwl",
+      "status": "enabled",
+      "configured_model_entries": 16
+    },
+    {
+      "id": 8,
+      "name": "DeepWL Video",
+      "channel_provider": "deepwl",
+      "status": "enabled",
+      "configured_model_entries": 22
+    }
+  ],
+  "management_filter_counts": {
+    "deepwl": 90,
+    "dmxapi": 658,
+    "nodyhub": 748,
+    "siliconflow": 95
+  },
+  "verification": {
+    "dmxapi/MiniMax-M2.1": "chat-completions-http-200",
+    "nodyhub/gpt-4o-mini": "chat-completions-http-200",
+    "deepwl/gpt-4o-mini": "chat-completions-http-200",
+    "deepwl/gpt-image-2": "images-generations-http-200-one-image"
+  },
+  "digest_algorithm": "SHA-256 of UTF-8 model_name values sorted bytewise, one value per line with a final LF",
+  "pricing_policy": "Models without a verified positive New API billing configuration stay in the admin catalog but are not exposed to business tokens."
+}
