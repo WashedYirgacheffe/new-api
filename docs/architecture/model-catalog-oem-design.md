@@ -34,10 +34,12 @@ New API 现有 `vendors` 表继续表示模型供应商。`channels.channel_prov
 | `source_url` | 本条元数据的公开来源 |
 | `description` | 来自公开文档并经压缩整理的能力说明 |
 | `tags` | 能力标签，例如视觉、工具调用、图生图、音频生成 |
+| `lifecycle_status` | 源目录治理状态；省略等同 `active`，还可为 `deprecated` 或 `retired` |
+| `replacement_model` | 退役或弃用模型的明确替代路由 ID，不用于自动重写请求 |
 | `endpoints` | New API 支持的端点类型 |
 | `bound_channels` | 运行时反查的渠道实例及 `channel_provider` |
 
-`display_name` 不作为请求参数，`source_url` 不参与计费，`channel_provider` 不参与路由选择。真正的路由仍由 abilities、优先级、权重、分组和渠道状态决定。
+`display_name` 不作为请求参数，`source_url` 不参与计费，`channel_provider` 不参与路由选择。真正的路由仍由 abilities、优先级、权重、分组和渠道状态决定。当前数据库尚无独立生命周期列，云端将 `deprecated` 映射为模型元数据 `status=0`，替代说明保留在源目录；不得据此自动建立旧名到新名的模型映射。
 
 ## 3. 信息来源优先级
 
@@ -57,11 +59,14 @@ New API 现有 `vendors` 表继续表示模型供应商。`channels.channel_prov
 
 每次更新记录抓取日期。文档与公开价格冲突时，目录能力以具体模型文档为准，成本核对以渠道商价格页为准。
 
+DMXAPI 的 `/rmb` 是独立动态价目页，不能等同于 New API 标准 `/api/pricing`，也不能替代凭据化 `/v1/models` 的可用性核验。公开页快照与当前目录的精确 ID 对账记录在 `docs/catalog/dmxapi-rmb-price-evidence.json`；模糊包含、前缀相似或产品系列相同均不得自动视为同一模型。
+
 ## 4. 价格与倍率
 
 本项目不新增第二套计费引擎：
 
 - 上游页面价格只用于运营核对成本。
+- 渠道价格证据文件只保存抓取时点的上游成本，不由程序自动写入 New API 价格配置。
 - CarLab 对外计费继续使用 New API `ModelPrice`、`ModelRatio`、`CompletionRatio`、图片/音频倍率和 Group Ratio。
 - OEM 差异价格使用不同用户分组和分组倍率实现。
 - 未配置价格的模型继续拒绝调用，不开启全局自用模式绕过。
@@ -92,7 +97,7 @@ New API 与 QuantumNous 的开源归属、许可、代码标识和关于信息�
 
 以下条件全部满足后，才可向用户申请迁移确认：
 
-1. 目标模型已存在正式目录记录和公开来源。
+1. 目标模型已存在正式目录记录和公开来源，且 `lifecycle_status` 为 `active` 或省略。
 2. 至少一个渠道已通过真实低成本调用。
 3. 模型价格和 OEM 分组倍率已配置。
 4. 文本、图片或视频协议适配已通过对应测试。

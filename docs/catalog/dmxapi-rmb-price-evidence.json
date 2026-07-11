@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "source_url": "https://www.dmxapi.cn/rmb",
+  "retrieved_at": "2026-07-11T16:11:20+08:00",
+  "source_metadata": {
+    "http_status": 200,
+    "dmx_api_version": "v2.6.8",
+    "currency": "CNY",
+    "dmx_price_includes_tax_percent": 6,
+    "stated_enabled_model_count": 532,
+    "public_table_row_count": 333,
+    "standard_pricing_endpoint": {
+      "url": "https://www.dmxapi.cn/api/pricing",
+      "http_status": 403,
+      "message": "pricing is disabled"
+    }
+  },
+  "scope": "Only exact model IDs needed for the current CarLab API lifecycle correction are retained. This is cost evidence, not a billing configuration.",
+  "models": [
+    {
+      "model_name": "kling-v3",
+      "model_provider": "Kuaishou",
+      "channel_provider": "dmxapi",
+      "lifecycle_status": "active",
+      "billing_basis": "second",
+      "prices_cny_including_tax": [
+        {"variant": "std", "audio": true, "amount": 0.711},
+        {"variant": "std", "audio": false, "amount": 0.474},
+        {"variant": "pro", "audio": true, "amount": 0.948},
+        {"variant": "pro", "audio": false, "amount": 0.632},
+        {"variant": "4k", "audio": true, "amount": 2.37},
+        {"variant": "4k", "audio": false, "amount": 2.37}
+      ]
+    },
+    {
+      "model_name": "kling-v3-video-generation",
+      "model_provider": "Kuaishou",
+      "channel_provider": "dmxapi",
+      "lifecycle_status": "deprecated",
+      "replacement_model": "kling-v3",
+      "upstream_notice": "该模型将于6月30日下架，请尽快迁移至kling-v3",
+      "billing_basis": "second",
+      "prices_cny_including_tax": [
+        {"resolution": "720p", "audio": false, "amount": 0.6},
+        {"resolution": "1080p", "audio": false, "amount": 0.8},
+        {"resolution": "720p", "audio": true, "amount": 0.9},
+        {"resolution": "1080p", "audio": true, "amount": 1.2}
+      ]
+    }
+  ],
+  "reconciliation": {
+    "current_dmx_catalog_ids_not_exactly_listed_on_public_rmb_page": [
+      "gpt-4o-mini",
+      "gemini-3.1-pro-preview",
+      "gemini-3.1-flash-image-preview",
+      "doubao-seedance-2-0-260128",
+      "doubao-seedance-2-0-fast-260128",
+      "kling-v2-6-text2video",
+      "kling-v2-6-image2video"
+    ],
+    "name_conflicts": [
+      {
+        "catalog_model": "viduq2",
+        "dmx_public_models": ["viduq2-pro", "viduq2-ctv"],
+        "resolution": "No automatic alias mapping; keep the existing viduq2 entry bound only to DeepWL until protocol and semantics are verified."
+      }
+    ]
+  },
+  "non_import_rules": [
+    "Do not write these values directly to ModelPrice, ModelRatio, CompletionRatio, or Group Ratio.",
+    "Do not treat the 333 public price rows as the full DMX routable-model inventory.",
+    "Do not use fuzzy name matching to create channel bindings or model aliases."
+  ]
+}

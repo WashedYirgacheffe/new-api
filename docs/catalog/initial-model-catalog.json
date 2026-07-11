@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "retrieved_at": "2026-07-11",
   "channel_providers": [
     {
@@ -21,7 +21,8 @@
       "name": "DMXAPI",
       "aliases": [],
       "catalog_url": "https://www.dmxapi.cn/rmb",
-      "docs_url": "https://doc.dmxapi.cn/model-list.html"
+      "docs_url": "https://doc.dmxapi.cn/model-list.html",
+      "price_evidence_file": "dmxapi-rmb-price-evidence.json"
     }
   ],
   "models": [
@@ -156,14 +157,28 @@
       "source_url": "https://doc.dmxapi.cn/kling-v2-6-image2video.html"
     },
     {
-      "model_name": "kling-v3-video-generation",
+      "model_name": "kling-v3",
       "display_name": "Kling V3",
       "model_type": "video",
       "model_provider": "Kuaishou",
-      "description": "可灵 V3 视频生成模型，覆盖单镜头、多镜头和图生视频场景。",
+      "description": "可灵第三代文生与图生视频模型，DMXAPI 提供 std、pro、4k 及有声或无声规格。",
+      "capabilities": ["text-to-video", "image-to-video", "audio-generation", "4k"],
+      "channel_providers": ["dmxapi"],
+      "lifecycle_status": "active",
+      "source_url": "https://www.dmxapi.cn/rmb"
+    },
+    {
+      "model_name": "kling-v3-video-generation",
+      "display_name": "Kling V3 Legacy",
+      "model_type": "video",
+      "model_provider": "Kuaishou",
+      "description": "DMXAPI 已标注该旧路由将下架并要求迁移至 kling-v3；仅保留兼容性记录。",
       "capabilities": ["text-to-video", "image-to-video", "multi-shot", "audio-generation"],
       "channel_providers": ["dmxapi"],
-      "source_url": "https://doc.dmxapi.cn/kling-v3-text-to-video-single-shot.html"
+      "lifecycle_status": "deprecated",
+      "replacement_model": "kling-v3",
+      "upstream_notice": "该模型将于6月30日下架，请尽快迁移至kling-v3",
+      "source_url": "https://www.dmxapi.cn/rmb"
     }
   ]
 }
