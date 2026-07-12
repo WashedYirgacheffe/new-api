@@ -1,0 +1,163 @@
+{
+  "captured_at": "2026-07-12T12:50:00+08:00",
+  "sources": {
+    "carlab_pricing_api": "https://api.carlab.top/api/pricing",
+    "deepwl_pricing_api": "https://zx1.deepwl.net/api/pricing",
+    "deepwl_pricing_page_example": "https://zx1.deepwl.net/pricing/gemini-3.5-flash",
+    "settlement_evidence": "DeepWL token-scoped /api/log/token records and CarLab API consume logs"
+  },
+  "authority_order": [
+    "DeepWL token-scoped settlement logs or balance delta",
+    "The active token's observed group plus DeepWL /api/pricing ratios",
+    "DeepWL pricing page presentation"
+  ],
+  "static_catalog_comparison": {
+    "carlab_deepwl_namespaced_models": 67,
+    "deepwl_pricing_models": 119,
+    "matched_models": 67,
+    "pricing_field_mismatches": 0,
+    "deepwl_models_missing_from_carlab": 52,
+    "compared_fields": [
+      "quota_type",
+      "model_ratio",
+      "completion_ratio",
+      "cache_ratio",
+      "create_cache_ratio",
+      "model_price"
+    ]
+  },
+  "group_evidence": {
+    "pricing_api_fields": [
+      "group_ratio",
+      "usable_group",
+      "auto_groups",
+      "data[].enable_groups"
+    ],
+    "selected_ratios": {
+      "default": 1,
+      "gemini": 2,
+      "gemini-anti": 0.5,
+      "gemini-vertex": 2.5,
+      "gemini-text": 2
+    },
+    "observed_active_groups": {
+      "DeepWL Text": "default",
+      "DeepWL Image": "default",
+      "DeepWL Video": "default"
+    },
+    "model_group_names_without_public_ratio": [
+      "AM-special",
+      "Gemini-vertex-case-variant",
+      "SD-video-HC",
+      "vidu",
+      "zh-dedicated"
+    ],
+    "imported_models_with_known_group_above_default": 11,
+    "highest_known_supported_group_ratio": 2.5,
+    "token_usage_api_exposes_group": false,
+    "token_log_api_exposes_actual_group": true
+  },
+  "verified_settlement_samples": [
+    {
+      "model": "gemini-3.5-flash",
+      "request": {
+        "prompt_tokens": 2,
+        "completion_tokens": 13
+      },
+      "deepwl_actual": {
+        "group": "default",
+        "model_ratio": 0.75,
+        "completion_ratio": 6,
+        "quota": 60
+      },
+      "carlab_quota": 60,
+      "result": "equal"
+    },
+    {
+      "model": "gemini-3.5-flash",
+      "request": {
+        "prompt_tokens": 2,
+        "completion_tokens": 5
+      },
+      "deepwl_actual": {
+        "group": "default",
+        "quota": 24
+      },
+      "result": "fresh-direct-upstream-call-confirms-default-formula"
+    },
+    {
+      "model": "gpt-image-2",
+      "request": {
+        "prompt_tokens": 23,
+        "completion_tokens": 229,
+        "size": "1024x1024",
+        "quality": "standard",
+        "count": 1
+      },
+      "deepwl_public_pricing": {
+        "quota_type": 1,
+        "model_price": 0.15
+      },
+      "deepwl_actual": {
+        "group": "default",
+        "model_ratio": 4,
+        "completion_ratio": 5,
+        "model_price": -1,
+        "quota": 4672
+      },
+      "carlab_quota": 75000,
+      "result": "carlab-conservative-overcharge-not-loss"
+    },
+    {
+      "model": "gpt-image-2",
+      "request": {
+        "prompt_tokens": 17,
+        "completion_tokens": 2058,
+        "size": "1024x1024",
+        "quality": "standard",
+        "count": 1
+      },
+      "deepwl_actual": {
+        "group": "default",
+        "model_ratio": 4,
+        "completion_ratio": 5,
+        "model_price": -1,
+        "quota": 41228
+      },
+      "carlab_quota": 75000,
+      "result": "carlab-conservative-overcharge-not-loss"
+    },
+    {
+      "model": "grok-video-3",
+      "request": {
+        "seconds": 6
+      },
+      "before_fix": {
+        "deepwl_quota": 200000,
+        "carlab_quota": 1200000
+      },
+      "after_fix": {
+        "deepwl_quota": 200000,
+        "carlab_quota": 200000
+      },
+      "result": "equal-after-per-call-billing-patch"
+    }
+  ],
+  "cloud_change": {
+    "railway_project": "carlab-api",
+    "service": "new-api",
+    "variable": "TASK_PRICE_PATCH",
+    "models": [
+      "fox-grok-video-3",
+      "deepwl/grok-video-3"
+    ],
+    "deployment_id": "8fce2d72-981b-490c-877a-23d80de71f03"
+  },
+  "conclusion": {
+    "verified_undercharging_found": false,
+    "public_pricing_is_settlement_authority": false,
+    "pricing_page_is_independent_from_pricing_api": false,
+    "current_deepwl_keys_observed_group": "default",
+    "gemini_3_5_flash_carlab_default_price_is_correct": true
+  }
+}
