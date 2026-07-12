@@ -18,6 +18,9 @@ import (
 
 type Pricing struct {
 	ModelName              string                  `json:"model_name"`
+	DisplayName            string                  `json:"display_name,omitempty"`
+	ModelType              string                  `json:"model_type,omitempty"`
+	ModelProvider          string                  `json:"model_provider,omitempty"`
 	Description            string                  `json:"description,omitempty"`
 	Icon                   string                  `json:"icon,omitempty"`
 	Tags                   string                  `json:"tags,omitempty"`
@@ -57,6 +60,7 @@ var (
 	// 缓存映射：模型名 -> 启用分组 / 计费类型
 	modelEnableGroups     = make(map[string][]string)
 	modelQuotaTypeMap     = make(map[string]int)
+	modelTypeMap          = make(map[string]string)
 	modelEnableGroupsLock = sync.RWMutex{}
 )
 
@@ -107,6 +111,16 @@ func GetModelSupportEndpointTypes(model string) []constant.EndpointType {
 		return endpoints
 	}
 	return make([]constant.EndpointType, 0)
+}
+
+func GetModelType(modelName string) string {
+	if strings.TrimSpace(modelName) == "" {
+		return ""
+	}
+	GetPricing()
+	modelEnableGroupsLock.RLock()
+	defer modelEnableGroupsLock.RUnlock()
+	return modelTypeMap[modelName]
 }
 
 func updatePricing() {
@@ -317,9 +331,14 @@ func updatePricing() {
 				continue
 			}
 			pricing.Description = meta.Description
+			pricing.DisplayName = meta.DisplayName
+			pricing.ModelType = strings.ToLower(strings.TrimSpace(meta.ModelType))
 			pricing.Icon = meta.Icon
 			pricing.Tags = meta.Tags
 			pricing.VendorID = meta.VendorID
+			if vendor, exists := vendorMap[meta.VendorID]; exists {
+				pricing.ModelProvider = vendor.Name
+			}
 		}
 		modelPrice, findPrice := ratio_setting.GetModelPrice(model, false)
 		if findPrice {
@@ -366,9 +385,11 @@ func updatePricing() {
 	modelEnableGroupsLock.Lock()
 	modelEnableGroups = make(map[string][]string)
 	modelQuotaTypeMap = make(map[string]int)
+	modelTypeMap = make(map[string]string)
 	for _, p := range pricingMap {
 		modelEnableGroups[p.ModelName] = p.EnableGroup
 		modelQuotaTypeMap[p.ModelName] = p.QuotaType
+		modelTypeMap[p.ModelName] = p.ModelType
 	}
 	modelEnableGroupsLock.Unlock()
 

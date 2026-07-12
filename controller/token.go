@@ -151,15 +151,17 @@ func GetTokenUsage(c *gin.Context) {
 		"code":    true,
 		"message": "ok",
 		"data": gin.H{
-			"object":               "token_usage",
-			"name":                 token.Name,
-			"total_granted":        token.RemainQuota + token.UsedQuota,
-			"total_used":           token.UsedQuota,
-			"total_available":      token.RemainQuota,
-			"unlimited_quota":      token.UnlimitedQuota,
-			"model_limits":         token.GetModelLimitsMap(),
-			"model_limits_enabled": token.ModelLimitsEnabled,
-			"expires_at":           expiredAt,
+			"object":                    "token_usage",
+			"name":                      token.Name,
+			"total_granted":             token.RemainQuota + token.UsedQuota,
+			"total_used":                token.UsedQuota,
+			"total_available":           token.RemainQuota,
+			"unlimited_quota":           token.UnlimitedQuota,
+			"model_limits":              token.GetModelLimitsMap(),
+			"model_limits_enabled":      token.ModelLimitsEnabled,
+			"model_type_limits":         token.GetModelTypeLimitsMap(),
+			"model_type_limits_enabled": token.ModelTypeLimitsEnabled,
+			"expires_at":                expiredAt,
 		},
 	})
 }
@@ -175,6 +177,12 @@ func AddToken(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
 		return
 	}
+	normalizedModelTypes, err := model.NormalizeModelTypeLimits(token.ModelTypeLimits)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	token.ModelTypeLimits = normalizedModelTypes
 	// 非无限额度时，检查额度值是否超出有效范围
 	if !token.UnlimitedQuota {
 		if token.RemainQuota < 0 {
@@ -208,19 +216,21 @@ func AddToken(c *gin.Context) {
 		return
 	}
 	cleanToken := model.Token{
-		UserId:             c.GetInt("id"),
-		Name:               token.Name,
-		Key:                key,
-		CreatedTime:        common.GetTimestamp(),
-		AccessedTime:       common.GetTimestamp(),
-		ExpiredTime:        token.ExpiredTime,
-		RemainQuota:        token.RemainQuota,
-		UnlimitedQuota:     token.UnlimitedQuota,
-		ModelLimitsEnabled: token.ModelLimitsEnabled,
-		ModelLimits:        token.ModelLimits,
-		AllowIps:           token.AllowIps,
-		Group:              token.Group,
-		CrossGroupRetry:    token.CrossGroupRetry,
+		UserId:                 c.GetInt("id"),
+		Name:                   token.Name,
+		Key:                    key,
+		CreatedTime:            common.GetTimestamp(),
+		AccessedTime:           common.GetTimestamp(),
+		ExpiredTime:            token.ExpiredTime,
+		RemainQuota:            token.RemainQuota,
+		UnlimitedQuota:         token.UnlimitedQuota,
+		ModelLimitsEnabled:     token.ModelLimitsEnabled,
+		ModelLimits:            token.ModelLimits,
+		ModelTypeLimitsEnabled: token.ModelTypeLimitsEnabled,
+		ModelTypeLimits:        token.ModelTypeLimits,
+		AllowIps:               token.AllowIps,
+		Group:                  token.Group,
+		CrossGroupRetry:        token.CrossGroupRetry,
 	}
 	err = cleanToken.Insert()
 	if err != nil {
@@ -260,6 +270,12 @@ func UpdateToken(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
 		return
 	}
+	normalizedModelTypes, err := model.NormalizeModelTypeLimits(token.ModelTypeLimits)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	token.ModelTypeLimits = normalizedModelTypes
 	if !token.UnlimitedQuota {
 		if token.RemainQuota < 0 {
 			common.ApiErrorI18n(c, i18n.MsgTokenQuotaNegative)
@@ -296,6 +312,8 @@ func UpdateToken(c *gin.Context) {
 		cleanToken.UnlimitedQuota = token.UnlimitedQuota
 		cleanToken.ModelLimitsEnabled = token.ModelLimitsEnabled
 		cleanToken.ModelLimits = token.ModelLimits
+		cleanToken.ModelTypeLimitsEnabled = token.ModelTypeLimitsEnabled
+		cleanToken.ModelTypeLimits = token.ModelTypeLimits
 		cleanToken.AllowIps = token.AllowIps
 		cleanToken.Group = token.Group
 		cleanToken.CrossGroupRetry = token.CrossGroupRetry

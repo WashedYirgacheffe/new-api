@@ -76,6 +76,20 @@ func Distribute() func(c *gin.Context) {
 				}
 			}
 
+			modelTypeLimitEnabled := common.GetContextKeyBool(c, constant.ContextKeyTokenModelTypeLimitEnabled)
+			if modelTypeLimitEnabled {
+				value, ok := common.GetContextKey(c, constant.ContextKeyTokenModelTypeLimit)
+				allowedModelTypes, valid := value.(map[string]bool)
+				if !ok || !valid {
+					allowedModelTypes = map[string]bool{}
+				}
+				modelType := model.GetModelType(modelRequest.Model)
+				if modelType == "" || !allowedModelTypes[modelType] {
+					abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("令牌无权访问 %s 类型模型", modelType))
+					return
+				}
+			}
+
 			if shouldSelectChannel {
 				if modelRequest.Model == "" {
 					abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorModelNameRequired))
@@ -420,7 +434,8 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 // modelRequest.Model 为空而误报 "This token has no access to model"。
 // 从已存储的任务记录中回填 OriginModelName 即可让校验走在正确的模型上。
 func getTaskOriginModelName(c *gin.Context) string {
-	if !common.GetContextKeyBool(c, constant.ContextKeyTokenModelLimitEnabled) {
+	if !common.GetContextKeyBool(c, constant.ContextKeyTokenModelLimitEnabled) &&
+		!common.GetContextKeyBool(c, constant.ContextKeyTokenModelTypeLimitEnabled) {
 		return ""
 	}
 

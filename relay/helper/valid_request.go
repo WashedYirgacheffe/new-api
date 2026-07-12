@@ -114,14 +114,14 @@ func GetAndValidateEmbeddingRequest(c *gin.Context, relayMode int) (*dto.Embeddi
 	return embeddingRequest, nil
 }
 
-// maxTokensLimit bounds user-supplied max token fields. These values feed
+// MaxTokensLimit bounds user-supplied max token fields. These values feed
 // pre-consume quota math (preConsumedTokens * ratio); an unbounded value can
 // overflow the conversion and corrupt billing.
-const maxTokensLimit = math.MaxInt32 / 2
+const MaxTokensLimit = math.MaxInt32 / 2
 
 func exceedsMaxTokensLimit(values ...*uint) bool {
 	for _, v := range values {
-		if lo.FromPtrOr(v, uint(0)) > maxTokensLimit {
+		if lo.FromPtrOr(v, uint(0)) > MaxTokensLimit {
 			return true
 		}
 	}

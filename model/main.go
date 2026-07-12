@@ -283,6 +283,9 @@ func migrateDB() error {
 		&Task{},
 		&Model{},
 		&ModelChannelProvider{},
+		&ModelOperationProfile{},
+		&ModelOperationProfileVersion{},
+		&ModelOperationBinding{},
 		&Vendor{},
 		&PrefillGroup{},
 		&Setup{},
@@ -313,7 +316,7 @@ func migrateDB() error {
 			return err
 		}
 	}
-	return nil
+	return SeedDefaultModelOperationProfiles()
 }
 
 func migrateDBFast() error {
@@ -338,6 +341,9 @@ func migrateDBFast() error {
 		{&Task{}, "Task"},
 		{&Model{}, "Model"},
 		{&ModelChannelProvider{}, "ModelChannelProvider"},
+		{&ModelOperationProfile{}, "ModelOperationProfile"},
+		{&ModelOperationProfileVersion{}, "ModelOperationProfileVersion"},
+		{&ModelOperationBinding{}, "ModelOperationBinding"},
 		{&Vendor{}, "Vendor"},
 		{&PrefillGroup{}, "PrefillGroup"},
 		{&Setup{}, "Setup"},
@@ -385,6 +391,9 @@ func migrateDBFast() error {
 		if err := DB.AutoMigrate(&SubscriptionPlan{}); err != nil {
 			return err
 		}
+	}
+	if err := SeedDefaultModelOperationProfiles(); err != nil {
+		return err
 	}
 	common.SysLog("database migrated")
 	return nil

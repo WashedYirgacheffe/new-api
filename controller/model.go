@@ -19,6 +19,7 @@ import (
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
@@ -205,6 +206,55 @@ func getModelListGroups(c *gin.Context) (modelListGroups, error) {
 	}, nil
 }
 
+func getRoutableModelNames(groups modelListGroups) []string {
+	models := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, group := range groups.ownerGroups {
+		for _, modelName := range model.GetGroupEnabledModels(group) {
+			if _, ok := seen[modelName]; ok {
+				continue
+			}
+			seen[modelName] = struct{}{}
+			models = append(models, modelName)
+		}
+	}
+	return models
+}
+
+func filterTokenScopedModelNames(c *gin.Context, modelNames []string, acceptUnsetRatioModel bool) []string {
+	modelLimitEnabled := common.GetContextKeyBool(c, constant.ContextKeyTokenModelLimitEnabled)
+	modelLimits := map[string]bool{}
+	if value, ok := common.GetContextKey(c, constant.ContextKeyTokenModelLimit); modelLimitEnabled && ok {
+		modelLimits, _ = value.(map[string]bool)
+	}
+	modelTypeLimitEnabled := common.GetContextKeyBool(c, constant.ContextKeyTokenModelTypeLimitEnabled)
+	modelTypeLimits := map[string]bool{}
+	if value, ok := common.GetContextKey(c, constant.ContextKeyTokenModelTypeLimit); modelTypeLimitEnabled && ok {
+		modelTypeLimits, _ = value.(map[string]bool)
+	}
+
+	filtered := make([]string, 0, len(modelNames))
+	for _, modelName := range modelNames {
+		if modelLimitEnabled {
+			matchedName := ratio_setting.FormatMatchingModelName(modelName)
+			if !modelLimits[modelName] && !modelLimits[matchedName] {
+				continue
+			}
+		}
+		if modelTypeLimitEnabled {
+			modelType := model.GetModelType(modelName)
+			if modelType == "" || !modelTypeLimits[modelType] {
+				continue
+			}
+		}
+		if !acceptUnsetRatioModel && !helper.HasModelBillingConfig(modelName) {
+			continue
+		}
+		filtered = append(filtered, modelName)
+	}
+	return filtered
+}
+
 func ListModels(c *gin.Context, modelType int) {
 	acceptUnsetRatioModel := operation_setting.SelfUseModeEnabled
 	if !acceptUnsetRatioModel {
@@ -217,7 +267,6 @@ func ListModels(c *gin.Context, modelType int) {
 		}
 	}
 
-	userModelNames := make([]string, 0)
 	groups, err := getModelListGroups(c)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -227,46 +276,7 @@ func ListModels(c *gin.Context, modelType int) {
 		return
 	}
 	ownerGroups := groups.ownerGroups
-	modelLimitEnable := common.GetContextKeyBool(c, constant.ContextKeyTokenModelLimitEnabled)
-	if modelLimitEnable {
-		s, ok := common.GetContextKey(c, constant.ContextKeyTokenModelLimit)
-		var tokenModelLimit map[string]bool
-		if ok {
-			tokenModelLimit = s.(map[string]bool)
-		} else {
-			tokenModelLimit = map[string]bool{}
-		}
-		for allowModel, _ := range tokenModelLimit {
-			if !acceptUnsetRatioModel {
-				if !helper.HasModelBillingConfig(allowModel) {
-					continue
-				}
-			}
-			userModelNames = append(userModelNames, allowModel)
-		}
-	} else {
-		var models []string
-		if groups.tokenGroup == "auto" {
-			for _, autoGroup := range ownerGroups {
-				groupModels := model.GetGroupEnabledModels(autoGroup)
-				for _, g := range groupModels {
-					if !common.StringsContains(models, g) {
-						models = append(models, g)
-					}
-				}
-			}
-		} else {
-			models = model.GetGroupEnabledModels(ownerGroups[0])
-		}
-		for _, modelName := range models {
-			if !acceptUnsetRatioModel {
-				if !helper.HasModelBillingConfig(modelName) {
-					continue
-				}
-			}
-			userModelNames = append(userModelNames, modelName)
-		}
-	}
+	userModelNames := filterTokenScopedModelNames(c, getRoutableModelNames(groups), acceptUnsetRatioModel)
 
 	ownerByModel := map[string]string{}
 	if len(ownerGroups) > 0 {

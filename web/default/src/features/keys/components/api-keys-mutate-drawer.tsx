@@ -76,7 +76,7 @@ import {
   transformFormDataToPayload,
   transformApiKeyToFormDefaults,
 } from '../lib'
-import { type ApiKey } from '../types'
+import type { ApiKey } from '../types'
 import {
   ApiKeyGroupCombobox,
   type ApiKeyGroupOption,
@@ -88,6 +88,15 @@ type ApiKeyMutateDrawerProps = {
   onOpenChange: (open: boolean) => void
   currentRow?: ApiKey
 }
+
+const MODEL_TYPE_OPTIONS = [
+  { value: 'text', labelKey: 'Text' },
+  { value: 'image', labelKey: 'Image' },
+  { value: 'video', labelKey: 'Video' },
+  { value: 'audio', labelKey: 'Audio' },
+  { value: 'embedding', labelKey: 'Embeddings' },
+  { value: 'rerank', labelKey: 'Rerank' },
+] as const
 
 export function ApiKeysMutateDrawer({
   open,
@@ -139,17 +148,21 @@ export function ApiKeysMutateDrawer({
   // Load existing data when updating
   useEffect(() => {
     if (open && isUpdate && currentRow) {
-      getApiKey(currentRow.id).then((result) => {
-        if (result.success && result.data) {
-          form.reset(transformApiKeyToFormDefaults(result.data))
-        }
-      })
+      void getApiKey(currentRow.id)
+        .then((result) => {
+          if (result.success && result.data) {
+            form.reset(transformApiKeyToFormDefaults(result.data))
+          }
+        })
+        .catch(() => {
+          toast.error(t(ERROR_MESSAGES.UNEXPECTED))
+        })
     } else if (open && !isUpdate) {
       form.reset(
         getApiKeyFormDefaultValues(defaultUseAutoGroup && backendHasAuto)
       )
     }
-  }, [open, isUpdate, currentRow, form, defaultUseAutoGroup, backendHasAuto])
+  }, [open, isUpdate, currentRow, form, defaultUseAutoGroup, backendHasAuto, t])
 
   // Correct group after groups load: if the form value is not in available groups, fall back
   useEffect(() => {
@@ -215,7 +228,7 @@ export function ApiKeysMutateDrawer({
           triggerRefresh()
         }
       }
-    } catch (_error) {
+    } catch {
       toast.error(t(ERROR_MESSAGES.UNEXPECTED))
     } finally {
       setIsSubmitting(false)
@@ -520,6 +533,35 @@ export function ApiKeysMutateDrawer({
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className='flex flex-col gap-4 pt-2'>
+                    <FormField
+                      control={form.control}
+                      name='model_type_limits'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Model Type')}</FormLabel>
+                          <FormControl>
+                            <MultiSelect
+                              options={MODEL_TYPE_OPTIONS.map((option) => ({
+                                label: t(option.labelKey),
+                                value: option.value,
+                              }))}
+                              selected={field.value}
+                              onChange={field.onChange}
+                              placeholder={t(
+                                'Select model types (empty for allow all)'
+                              )}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              'Limit which model types can be used with this key'
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name='model_limits'

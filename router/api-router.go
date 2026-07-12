@@ -76,6 +76,9 @@ func SetApiRouter(router *gin.Engine) {
 			userRoute.POST("/epay/notify", anonymousRequestBodyLimit, controller.EpayNotify)
 			userRoute.GET("/epay/notify", controller.EpayNotify)
 			userRoute.GET("/groups", controller.GetUserGroups)
+			userRoute.GET("/models/catalog", middleware.TokenAuth(), controller.GetTokenModelCatalog)
+			userRoute.GET("/models/profile", middleware.TokenAuth(), controller.GetTokenModelProfile)
+			userRoute.POST("/models/quote", middleware.TokenAuth(), middleware.CriticalRateLimit(), controller.QuoteTokenModel)
 
 			selfRoute := userRoute.Group("/")
 			selfRoute.Use(middleware.UserAuth())
@@ -351,6 +354,17 @@ func SetApiRouter(router *gin.Engine) {
 			modelsRoute.POST("/", controller.CreateModelMeta)
 			modelsRoute.PUT("/", controller.UpdateModelMeta)
 			modelsRoute.DELETE("/:id", controller.DeleteModelMeta)
+		}
+
+		modelProfilesRoute := apiRouter.Group("/model-profiles")
+		modelProfilesRoute.Use(middleware.AdminAuth())
+		{
+			modelProfilesRoute.GET("/", controller.GetModelOperationProfiles)
+			modelProfilesRoute.GET("/bindings", controller.GetModelOperationBindings)
+			modelProfilesRoute.GET("/:profile_key", controller.GetModelOperationProfile)
+			modelProfilesRoute.POST("/", controller.SaveModelOperationProfile)
+			modelProfilesRoute.POST("/bindings", controller.SaveModelOperationBinding)
+			modelProfilesRoute.DELETE("/bindings", controller.DeleteModelOperationBinding)
 		}
 
 		// Deployments (model deployment management)

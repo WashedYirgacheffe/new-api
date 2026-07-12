@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/tooltip'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 
-import { type ApiKey } from '../types'
+import type { ApiKey } from '../types'
 import { useApiKeys } from './api-keys-provider'
 
 export function ApiKeyCell({ apiKey }: { apiKey: ApiKey }) {
@@ -77,6 +77,16 @@ export function ApiKeyCell({ apiKey }: { apiKey: ApiKey }) {
       if (ok) markKeyCopied(apiKey.id)
     }
   }, [resolvedFullKey, resolveRealKey, apiKey.id, markKeyCopied, t])
+
+  let copyButtonIcon = <Copy className='size-3.5' />
+  let copyTooltip = t('Copy API key')
+  if (isLoading) {
+    copyButtonIcon = <Loader2 className='size-3.5 animate-spin' />
+    copyTooltip = t('Loading...')
+  } else if (isCopied) {
+    copyButtonIcon = <Check className='size-3.5 text-green-600' />
+    copyTooltip = t('Copied!')
+  }
 
   return (
     <div className='flex max-w-full min-w-0 items-center'>
@@ -135,21 +145,9 @@ export function ApiKeyCell({ apiKey }: { apiKey: ApiKey }) {
             />
           }
         >
-          {isLoading ? (
-            <Loader2 className='size-3.5 animate-spin' />
-          ) : isCopied ? (
-            <Check className='size-3.5 text-green-600' />
-          ) : (
-            <Copy className='size-3.5' />
-          )}
+          {copyButtonIcon}
         </TooltipTrigger>
-        <TooltipContent>
-          {isLoading
-            ? t('Loading...')
-            : isCopied
-              ? t('Copied!')
-              : t('Copy API key')}
-        </TooltipContent>
+        <TooltipContent>{copyTooltip}</TooltipContent>
       </Tooltip>
     </div>
   )
@@ -185,6 +183,44 @@ export function ModelLimitsCell({ apiKey }: { apiKey: ApiKey }) {
           {models.map((m) => (
             <div key={m} className='font-mono'>
               {m}
+            </div>
+          ))}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+export function ModelTypeLimitsCell({ apiKey }: { apiKey: ApiKey }) {
+  const { t } = useTranslation()
+
+  if (!apiKey.model_type_limits_enabled || !apiKey.model_type_limits) {
+    return (
+      <StatusBadge
+        label={t('Unlimited')}
+        variant='neutral'
+        copyable={false}
+        className='-ml-1.5'
+      />
+    )
+  }
+
+  const modelTypes = apiKey.model_type_limits.split(',').filter(Boolean)
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<BadgeCell />}>
+        <StatusBadge
+          label={t('{{count}} type(s)', { count: modelTypes.length })}
+          variant='neutral'
+          copyable={false}
+        />
+      </TooltipTrigger>
+      <TooltipContent side='top' className='max-w-xs'>
+        <div className='space-y-0.5 text-xs'>
+          {modelTypes.map((modelType) => (
+            <div key={modelType} className='font-mono'>
+              {modelType}
             </div>
           ))}
         </div>
