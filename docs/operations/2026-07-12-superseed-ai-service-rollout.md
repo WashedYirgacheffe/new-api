@@ -86,6 +86,12 @@ Configuration names used in this round:
 - TapDash can sync models, publish an application model, run a smoke test, and manage collection membership.
 - Cloud deployments are healthy and all temporary users, tokens, credits, and test rows are removed unless explicitly retained as production configuration.
 
+## Completion Evidence
+
+The staged Preview acceptance is complete for text, Chat-Markdown image, asynchronous video, OEM collection filtering, and local billing-group routing. The final cloud evidence, deployment identifiers, settlement values, routing checks, low-token investigation, cleanup proof, and rollback boundary are recorded in [2026-07-12-superseed-video-oem-cloud-acceptance.md](./2026-07-12-superseed-video-oem-cloud-acceptance.md).
+
+Production Generation BFF flags remain disabled pending explicit migration approval.
+
 ## Rollback
 
 1. Disable all `GENERATION_BFF_*` and `VITE_GENERATION_BFF_*` flags.
