@@ -84,10 +84,10 @@ Token 新增：
 
 | 资源 | 本轮操作 |
 | --- | --- |
-| Railway 项目 `carlab-api` / 服务 `new-api` | 待本分支推送后部署并记录 Deployment ID |
-| PostgreSQL | 应用启动时通过 GORM AutoMigrate 新增三张 Profile 表和两个 Token 字段 |
+| Railway 项目 `carlab-api` / 服务 `new-api` | 部署 `1b04842f-09dd-4fa7-97b9-9e406adaceec`，状态 Online，区域 Southeast Asia |
+| PostgreSQL | GORM AutoMigrate 已新增三张 Profile 表和两个 Token 字段，六个默认 Profile 已发布 |
 | Redis | Token 缓存对象自动包含新增字段，无独立数据迁移 |
-| `https://api.carlab.top` | 待 Railway 健康检查成功后验收新接口 |
+| `https://api.carlab.top` | Railway 健康检查和 Cloudflare 公网接口验收通过 |
 | Cloudflare | 不修改 DNS、Worker 或路由 |
 | 超级种子 / Vercel / Supabase | 不修改 |
 
@@ -100,6 +100,13 @@ Token 新增：
 - 受影响的默认前端 TypeScript/TSX 文件通过 `oxfmt`。
 - 受影响的默认前端文件通过 `oxlint`，只剩两个改动前已存在的 `parseInt` / `parseFloat` 建议级 warning，没有 lint error。
 - 用户明确要求不运行本地 Go 测试；Go 编译、前端生产构建、PostgreSQL AutoMigrate、启动和接口验收由 Railway 云端完成。
+- Railway 云端默认前端生产构建、Classic 前端构建、Go 编译、镜像生成和 `/api/status` 健康检查全部成功。
+- `/api/model-profiles/` 以 Root 会话返回六个 Published Profile：文本、图片、视频、音频、Embedding、Rerank。
+- 现有业务 Token 的 `/api/user/models/catalog` 返回 1056 个可路由模型，包含模型供应商、渠道商、类型、计费模式和 Profile Binding。
+- `/api/user/models/profile` 成功返回 `deepwl/chat_fast_imagine` 的 `image.generate.basic@1` JSON Schema 和绑定。
+- 固定价 Quote 返回 `base_price=0.2`、`group_ratio=1`、`estimated_amount=0.2`；Token 价 Quote 返回 `model_ratio=1.5`、`completion_ratio=3` 和预扣估算。
+- 临时创建只允许 `image` 的 Token 后，目录仅返回 159 个图片模型；调用文本模型在 Distributor 前置返回 HTTP 403。验收结束后临时 Token 已删除，前缀复查数量为 0。
+- 部署日志没有迁移或启动失败；唯一 `@level:error` 是上述预期的文本模型拒绝验收记录。
 
 ## 回滚
 
