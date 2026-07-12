@@ -128,7 +128,8 @@ func profileDispatchReady(operation, endpointType, executionMode, responseContra
 	case "text.chat":
 		return endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync" && responseContract == "openai-chat-completion-v1"
 	case "image.generate":
-		return endpointType == string(constant.EndpointTypeImageGeneration) && executionMode == "sync" && responseContract == "openai-image-generation-v1"
+		return (endpointType == string(constant.EndpointTypeImageGeneration) && executionMode == "sync" && responseContract == "openai-image-generation-v1") ||
+			(endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync" && responseContract == "openai-chat-markdown-images-v1")
 	case "video.generate":
 		return endpointType == string(constant.EndpointTypeOpenAIVideo) && executionMode == "async" && responseContract == "openai-video-task-v1"
 	case "audio.generate":

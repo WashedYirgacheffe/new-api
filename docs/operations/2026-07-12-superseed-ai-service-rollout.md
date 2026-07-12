@@ -25,7 +25,7 @@ The implementation covers:
 ## Implementation Plan
 
 1. CarLab capability contracts
-   - Update `model/model_operation_profile.go` with text Profile v3, including a 1024-token generation default and a 128-token smoke-test ceiling that accommodates reasoning-token models, plus endpoint-correct image/video v2 contracts.
+   - Update `model/model_operation_profile.go` with text Profile v3, an endpoint-native image Profile v2, a Chat-Markdown image Profile v1 for verified DeepWL models, and video Profile v3 with the gateway-required string duration.
    - Update `controller/model_catalog.go` so catalog bindings expose only compatible endpoint contracts and Quote returns route and retail-relevant metadata.
    - Verify through Railway deployment and token-scoped `/api/user/models/catalog`, `/profile`, and `/quote` requests.
 2. Generation BFF
@@ -97,5 +97,6 @@ Configuration names used in this round:
 ## Remaining Risks
 
 - Provider-specific image and video parameter names cannot be declared production-ready from model names alone; each published Profile still requires upstream documentation and a live request.
+- DeepWL image models using Chat Completions require `openai-chat-markdown-images-v1`; they must not be mislabeled as `/v1/images/generations` models. The first explicit binding is limited to `deepwl/gpt-image-2-all`, whose observed upstream quota matched CarLab's fixed price.
 - A pre-request Quote is an estimate for token-priced models. Final provider usage settlement must remain observable and may require a later reconciliation job.
 - Existing imported model metadata contains classification errors. Application publication must stay allowlist-based until endpoint and provider evidence is corrected.

@@ -373,6 +373,7 @@ func DeleteModelOperationBinding(modelName string, operation string) error {
 
 type defaultModelOperationProfile struct {
 	ModelType string
+	ModelNames []string
 	Profile   ModelOperationProfile
 	Version   ModelOperationProfileVersion
 }
@@ -390,9 +391,14 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version:   ModelOperationProfileVersion{Version: 2, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"n":{"type":"integer","minimum":1,"maximum":4},"size":{"type":"string","minLength":1,"maxLength":32},"quality":{"type":"string","minLength":1,"maxLength":32},"response_format":{"type":"string","enum":["url","b64_json"]}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","quality","n","response_format"],"widgets":{"prompt":"textarea","size":"text","quality":"text","n":"stepper","response_format":"select"}}`, MaterialSchema: `{"image":{"max_items":4}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","n":1}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
+			ModelNames: []string{"deepwl/gpt-image-2-all"},
+			Profile:    ModelOperationProfile{ProfileKey: "image.generate.chat", DisplayName: "Chat 图片生成", Description: "通过 OpenAI Chat Completions 返回 Markdown 图片链接的同步图片能力。"},
+			Version:    ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-chat-markdown-images-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
 			ModelType: "video",
 			Profile:   ModelOperationProfile{ProfileKey: "video.generate.basic", DisplayName: "通用视频生成", Description: "通过 OpenAI 兼容接口调用视频模型的最低公共能力。"},
-			Version:   ModelOperationProfileVersion{Version: 2, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","minimum":1,"maximum":60},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"stepper","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个四秒钟的简单镜头运动","seconds":4}`, Status: ModelOperationProfileStatusPublished},
+			Version:   ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6"],"default":"6"},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"select","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒钟的简单镜头运动","seconds":"6"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelType: "audio",
@@ -456,6 +462,20 @@ func SeedDefaultModelOperationProfiles() error {
 		template.UpdatedTime = now
 		bindings = append(bindings, template)
 	}
+	for _, profile := range profiles {
+		for _, modelName := range profile.ModelNames {
+			bindings = append(bindings, ModelOperationBinding{
+				ModelName:      modelName,
+				Operation:      profile.Version.Operation,
+				ProfileKey:     profile.Profile.ProfileKey,
+				ProfileVersion: profile.Version.Version,
+				Overrides:      "{}",
+				Enabled:        true,
+				CreatedTime:    now,
+				UpdatedTime:    now,
+			})
+		}
+	}
 	if len(bindings) == 0 {
 		return nil
 	}
@@ -475,13 +495,24 @@ func SeedDefaultModelOperationProfiles() error {
 				modelNames = append(modelNames, modelItem.ModelName)
 			}
 		}
-		if len(modelNames) == 0 {
-			continue
+		if len(modelNames) > 0 {
+			if err := DB.Model(&ModelOperationBinding{}).
+				Where("model_name IN ? AND operation = ? AND profile_key = ?", modelNames, profile.Version.Operation, profile.Profile.ProfileKey).
+				Updates(map[string]interface{}{"profile_version": profile.Version.Version, "updated_time": now}).Error; err != nil {
+				return err
+			}
 		}
-		if err := DB.Model(&ModelOperationBinding{}).
-			Where("model_name IN ? AND operation = ? AND profile_key = ?", modelNames, profile.Version.Operation, profile.Profile.ProfileKey).
-			Updates(map[string]interface{}{"profile_version": profile.Version.Version, "updated_time": now}).Error; err != nil {
-			return err
+		if len(profile.ModelNames) > 0 {
+			if err := DB.Model(&ModelOperationBinding{}).
+				Where("model_name IN ? AND operation = ?", profile.ModelNames, profile.Version.Operation).
+				Updates(map[string]interface{}{
+					"profile_key":     profile.Profile.ProfileKey,
+					"profile_version": profile.Version.Version,
+					"enabled":         true,
+					"updated_time":    now,
+				}).Error; err != nil {
+				return err
+			}
 		}
 	}
 	return nil
