@@ -334,10 +334,11 @@ func GetPreferredModelOwnerChannelTypes(modelNames []string, groups []string) (m
 	return result, nil
 }
 
-func SearchModels(keyword string, vendor string, channelProvider string, status string, syncOfficial string, offset int, limit int) ([]*Model, int64, error) {
+func SearchModels(keyword string, vendor string, channelProvider string, modelType string, status string, syncOfficial string, offset int, limit int) ([]*Model, int64, error) {
 	var models []*Model
 	db := DB.Model(&Model{})
 	channelProvider = strings.ToLower(strings.TrimSpace(channelProvider))
+	modelType = strings.ToLower(strings.TrimSpace(modelType))
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		db = db.Where("models.model_name LIKE ? OR models.display_name LIKE ? OR models.model_type LIKE ? OR models.description LIKE ? OR models.tags LIKE ?", like, like, like, like, like)
@@ -362,6 +363,9 @@ func SearchModels(keyword string, vendor string, channelProvider string, status 
 			Where("channels.status = ?", common.ChannelStatusEnabled).
 			Where("channels.channel_provider = ?", channelProvider)
 		db = db.Where("EXISTS (?) OR EXISTS (?)", catalogProviderQuery, runtimeProviderQuery)
+	}
+	if modelType != "" {
+		db = db.Where("LOWER(models.model_type) = ?", modelType)
 	}
 	if value, err := strconv.Atoi(status); status != "" && err == nil {
 		db = db.Where("models.status = ?", value)

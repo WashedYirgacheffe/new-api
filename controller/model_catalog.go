@@ -112,20 +112,22 @@ func intersectRoutingGroups(enabledGroups []string, ownerGroups []string) []stri
 	return groups
 }
 
-func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperationBinding) map[string][]tokenCatalogProfileBinding {
+func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperationBinding) (map[string][]tokenCatalogProfileBinding, []modelOperationProfileContract) {
 	result := make(map[string][]tokenCatalogProfileBinding, len(bindingsByModel))
 	profileVersions := make(map[string]*model.ModelOperationProfileVersion)
+	profileContracts := make(map[string]modelOperationProfileContract)
 	for modelName, bindings := range bindingsByModel {
 		for _, binding := range bindings {
 			cacheKey := fmt.Sprintf("%s:%d", binding.ProfileKey, binding.ProfileVersion)
 			profileVersion := profileVersions[cacheKey]
 			if profileVersion == nil {
-				_, loadedVersion, err := model.GetModelOperationProfileVersion(binding.ProfileKey, binding.ProfileVersion, true)
+				profile, loadedVersion, err := model.GetModelOperationProfileVersion(binding.ProfileKey, binding.ProfileVersion, true)
 				if err != nil {
 					continue
 				}
 				profileVersion = loadedVersion
 				profileVersions[cacheKey] = loadedVersion
+				profileContracts[cacheKey] = buildModelOperationProfileContract(profile, loadedVersion)
 			}
 			result[modelName] = append(result[modelName], tokenCatalogProfileBinding{
 				Operation:        binding.Operation,
@@ -138,7 +140,17 @@ func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperatio
 			})
 		}
 	}
-	return result
+	profiles := make([]modelOperationProfileContract, 0, len(profileContracts))
+	for _, profile := range profileContracts {
+		profiles = append(profiles, profile)
+	}
+	sort.Slice(profiles, func(i, j int) bool {
+		if profiles[i].ProfileKey == profiles[j].ProfileKey {
+			return profiles[i].Version < profiles[j].Version
+		}
+		return profiles[i].ProfileKey < profiles[j].ProfileKey
+	})
+	return result, profiles
 }
 
 func GetTokenModelCatalog(c *gin.Context) {
@@ -156,7 +168,7 @@ func GetTokenModelCatalog(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	profileBindings := loadCatalogProfileBindings(bindingsByModel)
+	profileBindings, profiles := loadCatalogProfileBindings(bindingsByModel)
 	items := make([]tokenCatalogModel, 0, len(pricing))
 	for _, item := range pricing {
 		displayName := strings.TrimSpace(item.DisplayName)
@@ -183,6 +195,7 @@ func GetTokenModelCatalog(c *gin.Context) {
 	}
 	common.ApiSuccess(c, gin.H{
 		"items":                 items,
+		"profiles":              profiles,
 		"total":                 len(items),
 		"token_group":           groups.tokenGroup,
 		"routing_groups":        groups.ownerGroups,

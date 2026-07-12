@@ -75,7 +75,7 @@ func TestCatalogChannelProviderFilterDoesNotCreateRoutingAbility(t *testing.T) {
 	require.Equal(t, int64(1), counts["dmxapi"])
 	require.NotContains(t, counts, "stale")
 
-	models, total, err := model.SearchModels("", "", "deepwl", "", "", 0, 20)
+	models, total, err := model.SearchModels("", "", "deepwl", "", "", "", 0, 20)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), total)
 	require.Len(t, models, 1)
@@ -102,8 +102,14 @@ func TestCatalogChannelProviderFilterDoesNotCreateRoutingAbility(t *testing.T) {
 	require.Empty(t, boundChannels[catalogOnly.ModelName])
 	require.Empty(t, boundChannels[driftedModel.ModelName])
 
-	models, total, err = model.SearchModels("", "", "stale", "", "", 0, 20)
+	models, total, err = model.SearchModels("", "", "stale", "", "", "", 0, 20)
 	require.NoError(t, err)
 	require.Zero(t, total)
 	require.Empty(t, models)
+
+	models, total, err = model.SearchModels("", "", "", "video", "", "", 0, 20)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, models, 1)
+	require.Equal(t, catalogOnly.ModelName, models[0].ModelName)
 }

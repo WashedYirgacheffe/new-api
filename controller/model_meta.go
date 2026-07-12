@@ -49,11 +49,12 @@ func SearchModelsMeta(c *gin.Context) {
 	keyword := c.Query("keyword")
 	vendor := c.Query("vendor")
 	channelProvider := c.Query("channel_provider")
+	modelType := c.Query("model_type")
 	status := c.Query("status")
 	syncOfficial := c.Query("sync_official")
 	pageInfo := common.GetPageQuery(c)
 
-	modelsMeta, total, err := model.SearchModels(keyword, vendor, channelProvider, status, syncOfficial, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	modelsMeta, total, err := model.SearchModels(keyword, vendor, channelProvider, modelType, status, syncOfficial, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return
