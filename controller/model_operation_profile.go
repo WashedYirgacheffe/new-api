@@ -53,12 +53,15 @@ type modelOperationBindingPayload struct {
 }
 
 type modelOperationBindingContract struct {
-	ModelName      string                 `json:"model_name"`
-	Operation      string                 `json:"operation"`
-	ProfileKey     string                 `json:"profile_key"`
-	ProfileVersion int                    `json:"profile_version"`
-	Overrides      map[string]interface{} `json:"overrides"`
-	Enabled        bool                   `json:"enabled"`
+	ModelName        string                                 `json:"model_name"`
+	Operation        string                                 `json:"operation"`
+	ProfileKey       string                                 `json:"profile_key"`
+	ProfileVersion   int                                    `json:"profile_version"`
+	ContractVersion  int                                    `json:"contract_version"`
+	ContractHash     string                                 `json:"contract_hash"`
+	Overrides        map[string]interface{}                 `json:"overrides"`
+	EffectiveContract *model.ModelOperationEffectiveContract `json:"effective_contract"`
+	Enabled          bool                                   `json:"enabled"`
 }
 
 func marshalContractObject(value map[string]interface{}) (string, error) {
@@ -103,15 +106,22 @@ func buildModelOperationProfileContract(profile *model.ModelOperationProfile, ve
 	}
 }
 
-func buildModelOperationBindingContract(binding model.ModelOperationBinding) modelOperationBindingContract {
-	return modelOperationBindingContract{
-		ModelName:      binding.ModelName,
-		Operation:      binding.Operation,
-		ProfileKey:     binding.ProfileKey,
-		ProfileVersion: binding.ProfileVersion,
-		Overrides:      unmarshalContractObject(binding.Overrides),
-		Enabled:        binding.Enabled,
+func buildModelOperationBindingContract(binding model.ModelOperationBinding, profile *model.ModelOperationProfile, version *model.ModelOperationProfileVersion) (modelOperationBindingContract, error) {
+	effectiveContract, err := model.BuildModelOperationEffectiveContract(binding, profile, version)
+	if err != nil {
+		return modelOperationBindingContract{}, err
 	}
+	return modelOperationBindingContract{
+		ModelName:         binding.ModelName,
+		Operation:         binding.Operation,
+		ProfileKey:        binding.ProfileKey,
+		ProfileVersion:    binding.ProfileVersion,
+		ContractVersion:   binding.ContractVersion,
+		ContractHash:      binding.ContractHash,
+		Overrides:         unmarshalContractObject(binding.Overrides),
+		EffectiveContract: effectiveContract,
+		Enabled:           binding.Enabled,
+	}, nil
 }
 
 func GetModelOperationProfiles(c *gin.Context) {
@@ -219,7 +229,17 @@ func GetModelOperationBindings(c *gin.Context) {
 	bindings := bindingsByModel[modelName]
 	items := make([]modelOperationBindingContract, 0, len(bindings))
 	for _, binding := range bindings {
-		items = append(items, buildModelOperationBindingContract(binding))
+		profile, version, err := model.GetModelOperationProfileVersion(binding.ProfileKey, binding.ProfileVersion, false)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		contract, err := buildModelOperationBindingContract(binding, profile, version)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		items = append(items, contract)
 	}
 	common.ApiSuccess(c, items)
 }
@@ -251,7 +271,17 @@ func SaveModelOperationBinding(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	common.ApiSuccess(c, buildModelOperationBindingContract(binding))
+	profile, version, err := model.GetModelOperationProfileVersion(binding.ProfileKey, binding.ProfileVersion, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	contract, err := buildModelOperationBindingContract(binding, profile, version)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, contract)
 }
 
 func DeleteModelOperationBinding(c *gin.Context) {

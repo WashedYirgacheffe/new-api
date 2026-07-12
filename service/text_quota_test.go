@@ -70,6 +70,34 @@ func TestCalculateTextQuotaSummaryUnifiedForClaudeSemantic(t *testing.T) {
 	require.Equal(t, 1488, chatSummary.Quota)
 }
 
+func TestCalculateTextQuotaForQuoteUsesActualUsageInsteadOfPreConsumeFloor(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+
+	priceData := types.PriceData{
+		ModelRatio:        1.5,
+		CompletionRatio:   3,
+		QuotaToPreConsume: 1500,
+		GroupRatioInfo: types.GroupRatioInfo{
+			GroupRatio: 1,
+		},
+	}
+	priceData.AddOtherRatio("resolution", 2)
+	relayInfo := &relaycommon.RelayInfo{
+		OriginModelName: "deepwl/gemini-3.5-flash",
+		PriceData:       priceData,
+		StartTime:       time.Now(),
+	}
+
+	quota := CalculateTextQuotaForQuote(ctx, relayInfo, &dto.Usage{
+		PromptTokens:     4,
+		CompletionTokens: 8,
+	})
+
+	require.Equal(t, 84, quota)
+}
+
 func TestCalculateTextQuotaSummaryUsesSplitClaudeCacheCreationRatios(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

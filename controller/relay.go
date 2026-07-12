@@ -65,6 +65,24 @@ func geminiRelayHandler(c *gin.Context, info *relaycommon.RelayInfo) *types.NewA
 	return err
 }
 
+func relayModelOperation(c *gin.Context, info *relaycommon.RelayInfo) string {
+	if operation := strings.TrimSpace(c.GetHeader("X-CarLab-Operation")); operation != "" {
+		return operation
+	}
+	switch info.RelayMode {
+	case relayconstant.RelayModeImagesGenerations, relayconstant.RelayModeImagesEdits:
+		return "image.generate"
+	case relayconstant.RelayModeAudioSpeech:
+		return "audio.generate"
+	case relayconstant.RelayModeEmbeddings:
+		return "embedding.create"
+	case relayconstant.RelayModeRerank:
+		return "rerank.create"
+	default:
+		return "text.chat"
+	}
+}
+
 func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	requestId := c.GetString(common.RequestIdKey)
@@ -155,6 +173,20 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		newAPIError = types.NewError(err, types.ErrorCodeModelPriceError, types.ErrOptionWithStatusCode(http.StatusBadRequest))
 		return
 	}
+	contractParameters, err := helper.ModelOperationParameters(request)
+	if err != nil {
+		newAPIError = types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithStatusCode(http.StatusBadRequest))
+		return
+	}
+	if _, err := helper.ApplyModelOperationContractPricing(relayInfo, relayModelOperation(c, relayInfo), contractParameters); err != nil {
+		newAPIError = types.NewError(err, types.ErrorCodeModelPriceError, types.ErrOptionWithStatusCode(http.StatusBadRequest))
+		return
+	}
+	if err := helper.ApplyModelOperationRatiosToPreConsume(relayInfo); err != nil {
+		newAPIError = types.NewError(err, types.ErrorCodeModelPriceError, types.ErrOptionWithStatusCode(http.StatusBadRequest))
+		return
+	}
+	priceData = relayInfo.PriceData
 
 	// common.SetContextKey(c, constant.ContextKeyTokenCountMeta, meta)
 

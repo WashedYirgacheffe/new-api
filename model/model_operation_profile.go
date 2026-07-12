@@ -45,15 +45,17 @@ type ModelOperationProfileVersion struct {
 }
 
 type ModelOperationBinding struct {
-	Id             int    `json:"id"`
-	ModelName      string `json:"model_name" gorm:"type:varchar(255);not null;uniqueIndex:uk_model_operation,priority:1;index"`
-	Operation      string `json:"operation" gorm:"type:varchar(64);not null;uniqueIndex:uk_model_operation,priority:2;index"`
-	ProfileKey     string `json:"profile_key" gorm:"type:varchar(128);not null;index"`
-	ProfileVersion int    `json:"profile_version" gorm:"not null"`
-	Overrides      string `json:"overrides" gorm:"type:text;not null"`
-	Enabled        bool   `json:"enabled" gorm:"not null"`
-	CreatedTime    int64  `json:"created_time" gorm:"bigint"`
-	UpdatedTime    int64  `json:"updated_time" gorm:"bigint"`
+	Id              int    `json:"id"`
+	ModelName       string `json:"model_name" gorm:"type:varchar(255);not null;uniqueIndex:uk_model_operation,priority:1;index"`
+	Operation       string `json:"operation" gorm:"type:varchar(64);not null;uniqueIndex:uk_model_operation,priority:2;index"`
+	ProfileKey      string `json:"profile_key" gorm:"type:varchar(128);not null;index"`
+	ProfileVersion  int    `json:"profile_version" gorm:"not null"`
+	ContractVersion int    `json:"contract_version"`
+	ContractHash    string `json:"contract_hash" gorm:"type:varchar(64);index"`
+	Overrides       string `json:"overrides" gorm:"type:text;not null"`
+	Enabled         bool   `json:"enabled" gorm:"not null"`
+	CreatedTime     int64  `json:"created_time" gorm:"bigint"`
+	UpdatedTime     int64  `json:"updated_time" gorm:"bigint"`
 }
 
 func normalizeContractIdentifier(value string, maxLength int) (string, error) {
@@ -301,10 +303,6 @@ func SaveModelOperationBinding(binding *ModelOperationBinding) error {
 	if err != nil {
 		return fmt.Errorf("profile_key: %w", err)
 	}
-	overrides, err := normalizeContractJSONObject("overrides", binding.Overrides)
-	if err != nil {
-		return err
-	}
 	if binding.ProfileVersion <= 0 {
 		return errors.New("profile_version must be greater than zero")
 	}
@@ -322,24 +320,46 @@ func SaveModelOperationBinding(binding *ModelOperationBinding) error {
 	if version.Operation != operation {
 		return fmt.Errorf("binding operation %s does not match profile operation %s", operation, version.Operation)
 	}
+	overrides, _, err := normalizeModelOperationBindingOverrides(binding.Overrides, profile, version)
+	if err != nil {
+		return err
+	}
 
 	now := common.GetTimestamp()
 	binding.Operation = operation
 	binding.ProfileKey = profile.ProfileKey
 	binding.Overrides = overrides
 	binding.UpdatedTime = now
-	var stored ModelOperationBinding
-	err = DB.Where("model_name = ? AND operation = ?", binding.ModelName, operation).First(&stored).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		binding.CreatedTime = now
-		return DB.Create(binding).Error
-	}
+	contractHash, err := computeModelOperationContractHash(*binding, profile, version)
 	if err != nil {
 		return err
 	}
-	binding.Id = stored.Id
-	binding.CreatedTime = stored.CreatedTime
-	return DB.Model(&stored).Select("profile_key", "profile_version", "overrides", "enabled", "updated_time").Updates(binding).Error
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var stored ModelOperationBinding
+		err := lockForUpdate(tx).Where("model_name = ? AND operation = ?", binding.ModelName, operation).First(&stored).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			binding.ContractVersion = 1
+			binding.ContractHash = contractHash
+			binding.CreatedTime = now
+			return tx.Create(binding).Error
+		}
+		if err != nil {
+			return err
+		}
+		contractVersion := stored.ContractVersion
+		if contractVersion <= 0 {
+			contractVersion = 1
+		} else if stored.ContractHash != contractHash {
+			contractVersion++
+		}
+		binding.Id = stored.Id
+		binding.ContractVersion = contractVersion
+		binding.ContractHash = contractHash
+		binding.CreatedTime = stored.CreatedTime
+		return tx.Model(&stored).Select(
+			"profile_key", "profile_version", "contract_version", "contract_hash", "overrides", "enabled", "updated_time",
+		).Updates(binding).Error
+	})
 }
 
 func GetModelOperationBindings(modelNames []string, enabledOnly bool) (map[string][]ModelOperationBinding, error) {
@@ -372,18 +392,21 @@ func DeleteModelOperationBinding(modelName string, operation string) error {
 }
 
 type defaultModelOperationProfile struct {
-	ModelType string
-	ModelNames []string
-	Profile   ModelOperationProfile
-	Version   ModelOperationProfileVersion
+	ModelType       string
+	ModelNames      []string
+	BindingOverrides string
+	Profile         ModelOperationProfile
+	Version         ModelOperationProfileVersion
 }
 
 func defaultModelOperationProfiles() []defaultModelOperationProfile {
 	return []defaultModelOperationProfile{
 		{
-			ModelType: "text",
-			Profile:   ModelOperationProfile{ProfileKey: "text.chat.basic", DisplayName: "通用文本对话", Description: "OpenAI 兼容文本对话的最低公共能力。"},
-			Version:   ModelOperationProfileVersion{Version: 3, Operation: "text.chat", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"temperature":{"type":"number","minimum":0,"maximum":2},"top_p":{"type":"number","minimum":0,"maximum":1},"max_tokens":{"type":"integer","minimum":1,"maximum":131072,"default":1024}},"required":["prompt"],"additionalProperties":true}`, UISchema: `{"order":["prompt","temperature","top_p","max_tokens"],"widgets":{"prompt":"textarea","temperature":"stepper","top_p":"stepper","max_tokens":"stepper"}}`, MaterialSchema: `{}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"prompt":"请只回复 OK","max_tokens":128}`, Status: ModelOperationProfileStatusPublished},
+			ModelType:        "text",
+			ModelNames:       []string{"deepwl/gemini-3.5-flash"},
+			BindingOverrides: `{"branding":{"icon_key":"gemini","description":"Gemini 3.5 Flash 已正式发布，适合智能体执行、编码和长任务。"},"ui_schema":{"placements":{"prompt":"prompt","temperature":"advanced","top_p":"advanced","max_tokens":"advanced"},"widgets":{"prompt":"textarea","temperature":"stepper","top_p":"stepper","max_tokens":"stepper"}},"request_contract":{"adapter":"openai-chat","field_map":{},"coercions":{}}}`,
+			Profile:          ModelOperationProfile{ProfileKey: "text.chat.basic", DisplayName: "通用文本对话", Description: "OpenAI 兼容文本对话的最低公共能力。"},
+			Version:          ModelOperationProfileVersion{Version: 3, Operation: "text.chat", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"temperature":{"type":"number","minimum":0,"maximum":2},"top_p":{"type":"number","minimum":0,"maximum":1},"max_tokens":{"type":"integer","minimum":1,"maximum":131072,"default":1024}},"required":["prompt"],"additionalProperties":true}`, UISchema: `{"order":["prompt","temperature","top_p","max_tokens"],"widgets":{"prompt":"textarea","temperature":"stepper","top_p":"stepper","max_tokens":"stepper"}}`, MaterialSchema: `{}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"prompt":"请只回复 OK","max_tokens":128}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelType: "image",
@@ -391,14 +414,17 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version:   ModelOperationProfileVersion{Version: 2, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"n":{"type":"integer","minimum":1,"maximum":4},"size":{"type":"string","minLength":1,"maxLength":32},"quality":{"type":"string","minLength":1,"maxLength":32},"response_format":{"type":"string","enum":["url","b64_json"]}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","quality","n","response_format"],"widgets":{"prompt":"textarea","size":"text","quality":"text","n":"stepper","response_format":"select"}}`, MaterialSchema: `{"image":{"max_items":4}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","n":1}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelNames: []string{"deepwl/gpt-image-2-all"},
-			Profile:    ModelOperationProfile{ProfileKey: "image.generate.chat", DisplayName: "Chat 图片生成", Description: "通过 OpenAI Chat Completions 返回 Markdown 图片链接的同步图片能力。"},
-			Version:    ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-chat-markdown-images-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形"}`, Status: ModelOperationProfileStatusPublished},
+			ModelNames:       []string{"deepwl/gpt-image-2-all"},
+			BindingOverrides: `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，当前发布合同仅开放已验证的文本生图能力。"},"ui_schema":{"placements":{"prompt":"prompt"},"widgets":{"prompt":"textarea"}},"request_contract":{"adapter":"openai-chat","field_map":{},"coercions":{}}}`,
+			Profile:          ModelOperationProfile{ProfileKey: "image.generate.chat", DisplayName: "Chat 图片生成", Description: "通过 OpenAI Chat Completions 返回 Markdown 图片链接的同步图片能力。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-chat-markdown-images-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelType: "video",
-			Profile:   ModelOperationProfile{ProfileKey: "video.generate.basic", DisplayName: "通用视频生成", Description: "通过 OpenAI 兼容接口调用视频模型的最低公共能力。"},
-			Version:   ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6"],"default":"6"},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"select","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒钟的简单镜头运动","seconds":"6"}`, Status: ModelOperationProfileStatusPublished},
+			ModelType:        "video",
+			ModelNames:       []string{"deepwl/grok-video-3"},
+			BindingOverrides: `{"branding":{"icon_key":"grok","description":"xAI Grok 视频生成模型；当前生产合同固定为已验证的 6 秒基础调用。"},"input_schema":{"properties":{"size":{"type":"string","enum":["720P"],"default":"720P"}}},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","size":"footer","image_url":"hidden"},"widgets":{"prompt":"textarea","seconds":"segmented","size":"segmented","image_url":"hidden"}},"material_schema":{"image":{"max_items":0},"video":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","size":"size"},"coercions":{}},"poll_path":"/v1/video/generations/{task_id}"}`,
+			Profile:          ModelOperationProfile{ProfileKey: "video.generate.basic", DisplayName: "通用视频生成", Description: "通过 OpenAI 兼容接口调用视频模型的最低公共能力。"},
+			Version:          ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6"],"default":"6"},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"select","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒钟的简单镜头运动","seconds":"6","size":"720P"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelType: "audio",
@@ -469,7 +495,7 @@ func SeedDefaultModelOperationProfiles() error {
 				Operation:      profile.Version.Operation,
 				ProfileKey:     profile.Profile.ProfileKey,
 				ProfileVersion: profile.Version.Version,
-				Overrides:      "{}",
+				Overrides:      profile.BindingOverrides,
 				Enabled:        true,
 				CreatedTime:    now,
 				UpdatedTime:    now,
@@ -513,7 +539,18 @@ func SeedDefaultModelOperationProfiles() error {
 				}).Error; err != nil {
 				return err
 			}
+			if profile.BindingOverrides != "" {
+				if err := DB.Model(&ModelOperationBinding{}).
+					Where("model_name IN ? AND operation = ?", profile.ModelNames, profile.Version.Operation).
+					Where("overrides = ? OR overrides = ?", "", "{}").
+					Updates(map[string]interface{}{
+						"overrides":    profile.BindingOverrides,
+						"updated_time": now,
+					}).Error; err != nil {
+					return err
+				}
+			}
 		}
 	}
-	return nil
+	return RefreshModelOperationBindingContracts()
 }

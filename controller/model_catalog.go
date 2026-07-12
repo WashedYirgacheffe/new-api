@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
@@ -17,22 +19,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const carLabPricingVersion = "a42d372ccf0b5dd13ecf71203521f9d2"
+const carLabPricingVersion = "3323acfc6c6c609ea47531e95cda90bc"
 
 type tokenCatalogProfileBinding struct {
-	Operation        string                 `json:"operation"`
-	ProfileKey       string                 `json:"profile_key"`
-	ProfileVersion   int                    `json:"profile_version"`
-	EndpointType     string                 `json:"endpoint_type"`
-	ExecutionMode    string                 `json:"execution_mode"`
-	ResponseContract string                 `json:"response_contract"`
-	Overrides        map[string]interface{} `json:"overrides"`
-	DispatchReady    bool                   `json:"dispatch_ready"`
+	Operation         string                                 `json:"operation"`
+	ProfileKey        string                                 `json:"profile_key"`
+	ProfileVersion    int                                    `json:"profile_version"`
+	ContractVersion   int                                    `json:"contract_version"`
+	ContractHash      string                                 `json:"contract_hash"`
+	EndpointType      string                                 `json:"endpoint_type"`
+	ExecutionMode     string                                 `json:"execution_mode"`
+	ResponseContract  string                                 `json:"response_contract"`
+	Overrides         map[string]interface{}                 `json:"overrides"`
+	EffectiveContract *model.ModelOperationEffectiveContract `json:"effective_contract"`
+	DispatchReady     bool                                   `json:"dispatch_ready"`
 }
 
 type tokenCatalogModel struct {
 	ModelId                string                       `json:"model_id"`
 	DisplayName            string                       `json:"display_name"`
+	Description            string                       `json:"description,omitempty"`
+	BrandIcon              string                       `json:"brand_icon,omitempty"`
 	ModelType              string                       `json:"model_type"`
 	ModelProvider          string                       `json:"model_provider"`
 	ChannelProviders       []string                     `json:"channel_providers"`
@@ -55,6 +62,49 @@ type modelQuoteRequest struct {
 	InputTokens  int                    `json:"input_tokens"`
 	OutputTokens int                    `json:"output_tokens"`
 	Parameters   map[string]interface{} `json:"parameters"`
+	Usage        *dto.Usage             `json:"usage,omitempty"`
+}
+
+func normalizeModelQuoteUsage(usage *dto.Usage) {
+	if usage == nil {
+		return
+	}
+	if usage.PromptTokens == 0 && usage.InputTokens > 0 {
+		usage.PromptTokens = usage.InputTokens
+	}
+	if usage.CompletionTokens == 0 && usage.OutputTokens > 0 {
+		usage.CompletionTokens = usage.OutputTokens
+	}
+	if usage.InputTokensDetails != nil && usage.PromptTokensDetails == (dto.InputTokenDetails{}) {
+		usage.PromptTokensDetails = *usage.InputTokensDetails
+	}
+	usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
+}
+
+func validateModelQuoteUsage(usage *dto.Usage) error {
+	if usage == nil {
+		return nil
+	}
+	counts := []struct {
+		name  string
+		value int
+	}{
+		{name: "prompt_tokens", value: usage.PromptTokens},
+		{name: "completion_tokens", value: usage.CompletionTokens},
+		{name: "cached_tokens", value: usage.PromptTokensDetails.CachedTokens},
+		{name: "cached_creation_tokens", value: usage.PromptTokensDetails.CachedCreationTokens},
+		{name: "text_tokens", value: usage.PromptTokensDetails.TextTokens},
+		{name: "audio_tokens", value: usage.PromptTokensDetails.AudioTokens},
+		{name: "image_tokens", value: usage.PromptTokensDetails.ImageTokens},
+		{name: "claude_cache_creation_5_m_tokens", value: usage.ClaudeCacheCreation5mTokens},
+		{name: "claude_cache_creation_1_h_tokens", value: usage.ClaudeCacheCreation1hTokens},
+	}
+	for _, count := range counts {
+		if count.value < 0 || count.value > relayhelper.MaxTokensLimit {
+			return fmt.Errorf("usage.%s must be between 0 and %d", count.name, relayhelper.MaxTokensLimit)
+		}
+	}
+	return nil
 }
 
 func effectiveBillingMode(pricing model.Pricing) string {
@@ -145,6 +195,7 @@ func profileDispatchReady(operation, endpointType, executionMode, responseContra
 
 func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperationBinding, supportedEndpointsByModel map[string][]constant.EndpointType) (map[string][]tokenCatalogProfileBinding, []modelOperationProfileContract) {
 	result := make(map[string][]tokenCatalogProfileBinding, len(bindingsByModel))
+	profileModels := make(map[string]*model.ModelOperationProfile)
 	profileVersions := make(map[string]*model.ModelOperationProfileVersion)
 	profileContracts := make(map[string]modelOperationProfileContract)
 	for modelName, bindings := range bindingsByModel {
@@ -157,19 +208,27 @@ func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperatio
 					continue
 				}
 				profileVersion = loadedVersion
+				profileModels[cacheKey] = profile
 				profileVersions[cacheKey] = loadedVersion
 				profileContracts[cacheKey] = buildModelOperationProfileContract(profile, loadedVersion)
 			}
 			dispatchReady := profileDispatchReady(binding.Operation, profileVersion.EndpointType, profileVersion.ExecutionMode, profileVersion.ResponseContract) && endpointSupported(supportedEndpointsByModel[modelName], profileVersion.EndpointType)
+			effectiveContract, err := model.BuildModelOperationEffectiveContract(binding, profileModels[cacheKey], profileVersion)
+			if err != nil {
+				continue
+			}
 			result[modelName] = append(result[modelName], tokenCatalogProfileBinding{
-				Operation:        binding.Operation,
-				ProfileKey:       binding.ProfileKey,
-				ProfileVersion:   binding.ProfileVersion,
-				EndpointType:     profileVersion.EndpointType,
-				ExecutionMode:    profileVersion.ExecutionMode,
-				ResponseContract: profileVersion.ResponseContract,
-				Overrides:        unmarshalContractObject(binding.Overrides),
-				DispatchReady:    dispatchReady,
+				Operation:         binding.Operation,
+				ProfileKey:        binding.ProfileKey,
+				ProfileVersion:    binding.ProfileVersion,
+				ContractVersion:   binding.ContractVersion,
+				ContractHash:      binding.ContractHash,
+				EndpointType:      profileVersion.EndpointType,
+				ExecutionMode:     profileVersion.ExecutionMode,
+				ResponseContract:  profileVersion.ResponseContract,
+				Overrides:         unmarshalContractObject(binding.Overrides),
+				EffectiveContract: effectiveContract,
+				DispatchReady:     dispatchReady,
 			})
 		}
 	}
@@ -184,6 +243,36 @@ func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperatio
 		return profiles[i].ProfileKey < profiles[j].ProfileKey
 	})
 	return result, profiles
+}
+
+func catalogBrandIcon(item model.Pricing) string {
+	candidate := strings.ToLower(strings.TrimSpace(item.Icon + " " + item.ModelProvider + " " + item.ModelName))
+	switch {
+	case strings.Contains(candidate, "gemini") || strings.Contains(candidate, "google"):
+		return "gemini"
+	case strings.Contains(candidate, "openai") || strings.Contains(candidate, "gpt"):
+		return "openai"
+	case strings.Contains(candidate, "grok") || strings.Contains(candidate, "xai"):
+		return "grok"
+	case strings.Contains(candidate, "qwen") || strings.Contains(candidate, "alibaba") || strings.Contains(candidate, "阿里"):
+		return "qwen"
+	case strings.Contains(candidate, "wan"):
+		return "wan"
+	case strings.Contains(candidate, "doubao") || strings.Contains(candidate, "豆包"):
+		return "doubao"
+	case strings.Contains(candidate, "kling") || strings.Contains(candidate, "可灵"):
+		return "kling"
+	case strings.Contains(candidate, "flux"):
+		return "flux"
+	case strings.Contains(candidate, "kimi") || strings.Contains(candidate, "moonshot"):
+		return "kimi"
+	case strings.Contains(candidate, "zhipu") || strings.Contains(candidate, "chatglm") || strings.Contains(candidate, "智谱"):
+		return "zhipu"
+	case strings.Contains(candidate, "tencent") || strings.Contains(candidate, "hunyuan") || strings.Contains(candidate, "腾讯"):
+		return "tencent"
+	default:
+		return ""
+	}
 }
 
 func GetTokenModelCatalog(c *gin.Context) {
@@ -213,15 +302,26 @@ func GetTokenModelCatalog(c *gin.Context) {
 			displayName = item.ModelName
 		}
 		ready := false
+		description := strings.TrimSpace(item.Description)
+		brandIcon := catalogBrandIcon(item)
 		for _, binding := range profileBindings[item.ModelName] {
 			if binding.DispatchReady {
 				ready = true
-				break
+			}
+			if binding.EffectiveContract != nil {
+				if binding.EffectiveContract.Branding.Description != "" {
+					description = binding.EffectiveContract.Branding.Description
+				}
+				if binding.EffectiveContract.Branding.IconKey != "" {
+					brandIcon = binding.EffectiveContract.Branding.IconKey
+				}
 			}
 		}
 		items = append(items, tokenCatalogModel{
 			ModelId:                item.ModelName,
 			DisplayName:            displayName,
+			Description:            description,
+			BrandIcon:              brandIcon,
 			ModelType:              item.ModelType,
 			ModelProvider:          item.ModelProvider,
 			ChannelProviders:       item.ChannelProviders,
@@ -262,22 +362,12 @@ func findTokenScopedPricing(c *gin.Context, modelName string) (*model.Pricing, m
 	return nil, groups, fmt.Errorf("model %s is not available to this token", modelName)
 }
 
-func findModelOperationBinding(modelName string, operation string) (*model.ModelOperationBinding, *model.ModelOperationProfile, *model.ModelOperationProfileVersion, error) {
-	bindingsByModel, err := model.GetModelOperationBindings([]string{modelName}, true)
-	if err != nil {
-		return nil, nil, nil, err
+func findModelOperationBinding(modelName string, operation string) (*model.ModelOperationBinding, *model.ModelOperationProfile, *model.ModelOperationProfileVersion, *model.ModelOperationEffectiveContract, error) {
+	binding, profile, profileVersion, contract, err := model.GetEnabledModelOperationContract(modelName, operation)
+	if errors.Is(err, model.ErrModelOperationBindingNotFound) {
+		return nil, nil, nil, nil, fmt.Errorf("operation %s is not enabled for model %s", operation, modelName)
 	}
-	for _, binding := range bindingsByModel[modelName] {
-		if binding.Operation != operation {
-			continue
-		}
-		profile, profileVersion, err := model.GetModelOperationProfileVersion(binding.ProfileKey, binding.ProfileVersion, true)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		return &binding, profile, profileVersion, nil
-	}
-	return nil, nil, nil, fmt.Errorf("operation %s is not enabled for model %s", operation, modelName)
+	return binding, profile, profileVersion, contract, err
 }
 
 func GetTokenModelProfile(c *gin.Context) {
@@ -292,15 +382,21 @@ func GetTokenModelProfile(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	binding, profile, profileVersion, err := findModelOperationBinding(modelName, operation)
+	binding, profile, profileVersion, effectiveContract, err := findModelOperationBinding(modelName, operation)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	bindingContract, err := buildModelOperationBindingContract(*binding, profile, profileVersion)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
 	common.ApiSuccess(c, gin.H{
-		"model_id": modelName,
-		"profile":  buildModelOperationProfileContract(profile, profileVersion),
-		"binding":  buildModelOperationBindingContract(*binding),
+		"model_id":          modelName,
+		"profile":           buildModelOperationProfileContract(profile, profileVersion),
+		"binding":           bindingContract,
+		"effective_contract": effectiveContract,
 		"dispatch_ready": profileDispatchReady(operation, profileVersion.EndpointType, profileVersion.ExecutionMode, profileVersion.ResponseContract) && endpointSupported(pricing.SupportedEndpointTypes, profileVersion.EndpointType),
 	})
 }
@@ -343,12 +439,21 @@ func QuoteTokenModel(c *gin.Context) {
 		common.ApiErrorMsg(c, fmt.Sprintf("input_tokens and output_tokens must be between 0 and %d", relayhelper.MaxTokensLimit))
 		return
 	}
+	normalizeModelQuoteUsage(request.Usage)
+	if err := validateModelQuoteUsage(request.Usage); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if request.Usage != nil && request.Operation != "text.chat" {
+		common.ApiErrorMsg(c, "usage settlement quote is only supported for text.chat")
+		return
+	}
 	pricing, groups, err := findTokenScopedPricing(c, request.Model)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	_, _, profileVersion, err := findModelOperationBinding(request.Model, request.Operation)
+	_, _, profileVersion, effectiveContract, err := findModelOperationBinding(request.Model, request.Operation)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -384,49 +489,75 @@ func QuoteTokenModel(c *gin.Context) {
 	billingMode := effectiveBillingMode(*pricing)
 	estimatedQuota := 0
 	estimateKind := "base_fixed_price"
-	parameterAdjustmentsApplied := false
 	if pricing.QuotaType == 1 && billingMode != "tiered_expr" {
 		priceData, err := relayhelper.ModelPriceHelperPerCall(c, relayInfo)
 		if err != nil {
 			common.ApiError(c, err)
 			return
 		}
+		parameterRatios, err := model.CalculateModelOperationParameterRatios(effectiveContract, request.Parameters)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		for key, ratio := range parameterRatios {
+			priceData.AddOtherRatio(key, ratio)
+		}
+		estimatedQuota, relayInfo.QuotaClamp = common.QuotaFromFloatChecked(priceData.ApplyOtherRatiosToFloat(float64(priceData.Quota)))
+		priceData.Quota = estimatedQuota
 		relayInfo.PriceData = priceData
-		estimatedQuota = priceData.Quota
 	} else {
 		priceData, err := relayhelper.ModelPriceHelper(c, relayInfo, request.InputTokens, &types.TokenCountMeta{MaxTokens: request.OutputTokens})
 		if err != nil {
 			common.ApiError(c, err)
 			return
 		}
+		parameterRatios, err := model.CalculateModelOperationParameterRatios(effectiveContract, request.Parameters)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		for key, ratio := range parameterRatios {
+			priceData.AddOtherRatio(key, ratio)
+		}
+		if request.Usage != nil {
+			relayInfo.PriceData = priceData
+			estimatedQuota = service.CalculateTextQuotaForQuote(c, relayInfo, request.Usage)
+			estimateKind = "settlement_quote"
+		} else {
+			estimatedQuota, relayInfo.QuotaClamp = common.QuotaFromFloatChecked(priceData.ApplyOtherRatiosToFloat(float64(priceData.QuotaToPreConsume)))
+		}
+		priceData.QuotaToPreConsume = estimatedQuota
 		relayInfo.PriceData = priceData
-		estimatedQuota = priceData.QuotaToPreConsume
-		estimateKind = "preconsume_estimate"
+		if request.Usage == nil {
+			estimateKind = "preconsume_estimate"
+		}
 	}
 	matchedTier := ""
 	if relayInfo.TieredBillingSnapshot != nil {
 		matchedTier = relayInfo.TieredBillingSnapshot.EstimatedTier
 	}
-	parameterAdjustmentsApplied = len(relayInfo.PriceData.OtherRatios()) > 0
 	common.ApiSuccess(c, gin.H{
 		"model_id":                      request.Model,
 		"operation":                     request.Operation,
 		"effective_group":               selectedGroup,
 		"billing_mode":                  billingMode,
 		"pricing_version":               carLabPricingVersion,
+		"contract_version":              effectiveContract.ContractVersion,
+		"contract_hash":                 effectiveContract.ContractHash,
 		"base_price":                    pricing.ModelPrice,
 		"model_ratio":                   pricing.ModelRatio,
 		"completion_ratio":              pricing.CompletionRatio,
 		"group_ratio":                   relayInfo.PriceData.GroupRatioInfo.GroupRatio,
 		"matched_tier":                  matchedTier,
 		"parameter_multipliers":         relayInfo.PriceData.OtherRatios(),
-		"parameter_adjustments_applied": parameterAdjustmentsApplied,
+		"parameter_adjustments_applied": len(relayInfo.PriceData.OtherRatios()) > 0,
 		"estimated_quota":               estimatedQuota,
 		"estimated_amount":              float64(estimatedQuota) / common.QuotaPerUnit,
 		"estimate_kind":                 estimateKind,
 		"assumptions": []string{
-			"Estimate uses the gateway's current billing helper and effective group ratio.",
-			"Provider-side or post-submit parameter adjustments are excluded until the operation uses a verified task adapter.",
+			"Estimate uses the gateway's current billing helper, effective group ratio, and versioned model-contract multipliers.",
+			"Provider-side post-submit adjustments remain authoritative only for parameters not priced by the model contract.",
 		},
 	})
 }

@@ -323,6 +323,10 @@ func calculateTextQuotaSummary(ctx *gin.Context, relayInfo *relaycommon.RelayInf
 	return summary
 }
 
+func CalculateTextQuotaForQuote(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage) int {
+	return calculateTextQuotaSummary(ctx, relayInfo, usage).Quota
+}
+
 func usageSemanticFromUsage(relayInfo *relaycommon.RelayInfo, usage *dto.Usage) string {
 	if usage != nil && usage.UsageSemantic != "" {
 		return usage.UsageSemantic

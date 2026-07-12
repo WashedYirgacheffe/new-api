@@ -193,6 +193,22 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 			info.PriceData.AddOtherRatio(k, v)
 		}
 	}
+	taskRequest, err := relaycommon.GetTaskRequest(c)
+	if err != nil {
+		return nil, service.TaskErrorWrapperLocal(err, "task_request_missing", http.StatusBadRequest)
+	}
+	contractParameters, err := helper.ModelOperationParameters(taskRequest)
+	if err != nil {
+		return nil, service.TaskErrorWrapperLocal(err, "invalid_contract_parameters", http.StatusBadRequest)
+	}
+	for key, value := range taskRequest.Metadata {
+		if _, exists := contractParameters[key]; !exists {
+			contractParameters[key] = value
+		}
+	}
+	if _, err := helper.ApplyModelOperationContractPricing(info, "video.generate", contractParameters); err != nil {
+		return nil, service.TaskErrorWrapperLocal(err, "model_contract_pricing_failed", http.StatusBadRequest)
+	}
 
 	// 6. 将 OtherRatios 应用到基础额度（饱和转换，防止溢出成负数）
 	if !common.StringsContains(constant.TaskPricePatches, modelName) {
