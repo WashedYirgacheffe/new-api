@@ -25,7 +25,7 @@ The implementation covers:
 ## Implementation Plan
 
 1. CarLab capability contracts
-   - Update `model/model_operation_profile.go` with standard text controls and endpoint-correct image/video contracts.
+   - Update `model/model_operation_profile.go` with text Profile v3, including a 1024-token generation default and a 128-token smoke-test ceiling that accommodates reasoning-token models, plus endpoint-correct image/video v2 contracts.
    - Update `controller/model_catalog.go` so catalog bindings expose only compatible endpoint contracts and Quote returns route and retail-relevant metadata.
    - Verify through Railway deployment and token-scoped `/api/user/models/catalog`, `/profile`, and `/quote` requests.
 2. Generation BFF
