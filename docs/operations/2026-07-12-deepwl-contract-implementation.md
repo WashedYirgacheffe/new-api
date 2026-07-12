@@ -27,7 +27,7 @@ Implement the approved contract-driven model control path for DeepWL-backed mode
 - `service/text_quota_test.go`: protect usage-based settlement from the conservative pre-consume token floor while retaining contract multipliers such as resolution.
 - Superseed `CarLab/TapDash/api/ai-app-models.js`: pin contract fingerprints, force unverified auto-pins back to Draft, dispatch contract-shaped smoke tests, poll asynchronous tasks, and compare Quote with CarLab consume logs.
 - Superseed `CarLab/TapLater/packages/taplater/api/_generationBilling.js`: send final upstream usage to the settlement Quote so reserved credits can be reconciled with actual cost.
-- Superseed model-node and contract files from branch `codex/ai-service-migration`: render native schema controls and model-brand icons without exposing channel-provider labels.
+- Superseed model-node and contract files from branch `codex/ai-service-migration`: render native schema controls and model-brand icons without exposing channel-provider labels; reconcile persisted legacy model IDs to the first enabled dynamic-catalog model so the displayed brand, submitted model, and parameter schema cannot diverge.
 
 ## Cloud Resources
 
@@ -36,6 +36,7 @@ Implement the approved contract-driven model control path for DeepWL-backed mode
 - Railway deployment: `a1ac0436-f80f-442e-bd9d-a29445f2a4e4` (`SUCCESS`)
 - Public gateway: `api.carlab.top`
 - TapDash production deployment: `3JZ5A9ksBaso59ZoRrcXT2DE66yq`, aliased to `superseed-dash.vercel.app`
+- Superseed Preview deployment: `dpl_8PzGH8ZjVfCZfTqjwJBmWnZ1UD7V` (`Ready`), URL `superseed-eawmtsqql-washedyirgacheffe-4517s-projects.vercel.app`, built from branch `codex/ai-service-migration` commit `77b784f`
 - Superseed Vercel project: production and branch-specific Preview variables prepared for Git deployment from `codex/ai-service-migration`
 - Supabase project: `ctlirbtjzychneuaruci`, storing application-model pins and contract verification evidence
 
@@ -56,6 +57,9 @@ Implement the approved contract-driven model control path for DeepWL-backed mode
 - `deepwl/gpt-image-2-all`: contract v1 `3e096716...`, real image response succeeded; Quote and consume log both charged `0.08` in `gold`.
 - `deepwl/grok-video-3`: contract v2 `ea1121b2...`, the verified `6 seconds + 720P` request completed through asynchronous polling; Quote and consume log both charged `0.4` in `gold`.
 - TapDash records `smoke=success`, `fields=success`, and `pricing=success` for all three current contract hashes before setting each application model to `production + enabled`.
+- Browser acceptance on the latest Superseed Preview confirmed that text, image, and video model lists show only the model-brand icon, model name, and description; no `DeepWL` channel-provider label is rendered.
+- A newly created video node initially persisted a retired Seedance model ID while displaying the dynamic Grok label. Commit `77b784f` now reconciles missing IDs after catalog load; the resulting node submits `deepwl/grok-video-3` and displays only contract-authorized `6s` duration and `720P` resolution controls.
+- The expanded video parameter menu contains no aspect-ratio selector, `480P`/`1080P`, legacy `4`/`5`/`8`/`10`/`12`/`15` second choices, audio toggle, person material, or reference-frame modes. Visual inspection at the Preview desktop viewport found no control overlap.
 - Railway and TapDash cloud builds completed successfully. Per operator instruction, no local test suite was run; correctness evidence comes from cloud compilation, health checks, and real upstream calls.
 
 ## Rollback
