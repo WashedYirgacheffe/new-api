@@ -27,6 +27,7 @@ type tokenCatalogProfileBinding struct {
 	ExecutionMode    string                 `json:"execution_mode"`
 	ResponseContract string                 `json:"response_contract"`
 	Overrides        map[string]interface{} `json:"overrides"`
+	DispatchReady    bool                   `json:"dispatch_ready"`
 }
 
 type tokenCatalogModel struct {
@@ -42,6 +43,7 @@ type tokenCatalogModel struct {
 	CompletionRatio        float64                      `json:"completion_ratio,omitempty"`
 	PricingVersion         string                       `json:"pricing_version"`
 	ProfileBindings        []tokenCatalogProfileBinding `json:"profile_bindings"`
+	ProfileReady           bool                         `json:"profile_ready"`
 	RoutingGroups          []string                     `json:"routing_groups"`
 	Routable               bool                         `json:"routable"`
 	PriceReady             bool                         `json:"price_ready"`
@@ -112,7 +114,35 @@ func intersectRoutingGroups(enabledGroups []string, ownerGroups []string) []stri
 	return groups
 }
 
-func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperationBinding) (map[string][]tokenCatalogProfileBinding, []modelOperationProfileContract) {
+func endpointSupported(supported []constant.EndpointType, endpoint string) bool {
+	for _, item := range supported {
+		if string(item) == endpoint {
+			return true
+		}
+	}
+	return false
+}
+
+func profileDispatchReady(operation, endpointType, executionMode, responseContract string) bool {
+	switch operation {
+	case "text.chat":
+		return endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync" && responseContract == "openai-chat-completion-v1"
+	case "image.generate":
+		return endpointType == string(constant.EndpointTypeImageGeneration) && executionMode == "sync" && responseContract == "openai-image-generation-v1"
+	case "video.generate":
+		return endpointType == string(constant.EndpointTypeOpenAIVideo) && executionMode == "async" && responseContract == "openai-video-task-v1"
+	case "audio.generate":
+		return endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync"
+	case "embedding.create":
+		return endpointType == string(constant.EndpointTypeEmbeddings) && executionMode == "sync"
+	case "rerank.create":
+		return endpointType == string(constant.EndpointTypeJinaRerank) && executionMode == "sync"
+	default:
+		return false
+	}
+}
+
+func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperationBinding, supportedEndpointsByModel map[string][]constant.EndpointType) (map[string][]tokenCatalogProfileBinding, []modelOperationProfileContract) {
 	result := make(map[string][]tokenCatalogProfileBinding, len(bindingsByModel))
 	profileVersions := make(map[string]*model.ModelOperationProfileVersion)
 	profileContracts := make(map[string]modelOperationProfileContract)
@@ -129,6 +159,7 @@ func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperatio
 				profileVersions[cacheKey] = loadedVersion
 				profileContracts[cacheKey] = buildModelOperationProfileContract(profile, loadedVersion)
 			}
+			dispatchReady := profileDispatchReady(binding.Operation, profileVersion.EndpointType, profileVersion.ExecutionMode, profileVersion.ResponseContract) && endpointSupported(supportedEndpointsByModel[modelName], profileVersion.EndpointType)
 			result[modelName] = append(result[modelName], tokenCatalogProfileBinding{
 				Operation:        binding.Operation,
 				ProfileKey:       binding.ProfileKey,
@@ -137,6 +168,7 @@ func loadCatalogProfileBindings(bindingsByModel map[string][]model.ModelOperatio
 				ExecutionMode:    profileVersion.ExecutionMode,
 				ResponseContract: profileVersion.ResponseContract,
 				Overrides:        unmarshalContractObject(binding.Overrides),
+				DispatchReady:    dispatchReady,
 			})
 		}
 	}
@@ -168,12 +200,23 @@ func GetTokenModelCatalog(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	profileBindings, profiles := loadCatalogProfileBindings(bindingsByModel)
+	supportedEndpointsByModel := make(map[string][]constant.EndpointType, len(pricing))
+	for _, item := range pricing {
+		supportedEndpointsByModel[item.ModelName] = item.SupportedEndpointTypes
+	}
+	profileBindings, profiles := loadCatalogProfileBindings(bindingsByModel, supportedEndpointsByModel)
 	items := make([]tokenCatalogModel, 0, len(pricing))
 	for _, item := range pricing {
 		displayName := strings.TrimSpace(item.DisplayName)
 		if displayName == "" {
 			displayName = item.ModelName
+		}
+		ready := false
+		for _, binding := range profileBindings[item.ModelName] {
+			if binding.DispatchReady {
+				ready = true
+				break
+			}
 		}
 		items = append(items, tokenCatalogModel{
 			ModelId:                item.ModelName,
@@ -188,6 +231,7 @@ func GetTokenModelCatalog(c *gin.Context) {
 			CompletionRatio:        item.CompletionRatio,
 			PricingVersion:         carLabPricingVersion,
 			ProfileBindings:        profileBindings[item.ModelName],
+			ProfileReady:           ready,
 			RoutingGroups:          intersectRoutingGroups(item.EnableGroup, groups.ownerGroups),
 			Routable:               true,
 			PriceReady:             relayhelper.HasModelBillingConfig(item.ModelName),
@@ -242,7 +286,8 @@ func GetTokenModelProfile(c *gin.Context) {
 		common.ApiErrorMsg(c, "model and operation are required")
 		return
 	}
-	if _, _, err := findTokenScopedPricing(c, modelName); err != nil {
+	pricing, _, err := findTokenScopedPricing(c, modelName)
+	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
@@ -255,6 +300,7 @@ func GetTokenModelProfile(c *gin.Context) {
 		"model_id": modelName,
 		"profile":  buildModelOperationProfileContract(profile, profileVersion),
 		"binding":  buildModelOperationBindingContract(*binding),
+		"dispatch_ready": profileDispatchReady(operation, profileVersion.EndpointType, profileVersion.ExecutionMode, profileVersion.ResponseContract) && endpointSupported(pricing.SupportedEndpointTypes, profileVersion.EndpointType),
 	})
 }
 
@@ -304,6 +350,10 @@ func QuoteTokenModel(c *gin.Context) {
 	_, _, profileVersion, err := findModelOperationBinding(request.Model, request.Operation)
 	if err != nil {
 		common.ApiError(c, err)
+		return
+	}
+	if !profileDispatchReady(request.Operation, profileVersion.EndpointType, profileVersion.ExecutionMode, profileVersion.ResponseContract) || !endpointSupported(pricing.SupportedEndpointTypes, profileVersion.EndpointType) {
+		common.ApiErrorMsg(c, fmt.Sprintf("operation %s is not dispatch-ready for model %s", request.Operation, request.Model))
 		return
 	}
 	selectedGroup, err := resolveQuoteGroup(c, groups, request.Model, profileVersion.EndpointType)
@@ -356,6 +406,7 @@ func QuoteTokenModel(c *gin.Context) {
 	if relayInfo.TieredBillingSnapshot != nil {
 		matchedTier = relayInfo.TieredBillingSnapshot.EstimatedTier
 	}
+	parameterAdjustmentsApplied = len(relayInfo.PriceData.OtherRatios()) > 0
 	common.ApiSuccess(c, gin.H{
 		"model_id":                      request.Model,
 		"operation":                     request.Operation,

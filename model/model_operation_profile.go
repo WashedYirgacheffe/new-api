@@ -382,17 +382,17 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 		{
 			ModelType: "text",
 			Profile:   ModelOperationProfile{ProfileKey: "text.chat.basic", DisplayName: "通用文本对话", Description: "OpenAI 兼容文本对话的最低公共能力。"},
-			Version:   ModelOperationProfileVersion{Version: 1, Operation: "text.chat", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":true}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"prompt":"请只回复 OK"}`, Status: ModelOperationProfileStatusPublished},
+			Version:   ModelOperationProfileVersion{Version: 2, Operation: "text.chat", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"temperature":{"type":"number","minimum":0,"maximum":2},"top_p":{"type":"number","minimum":0,"maximum":1},"max_tokens":{"type":"integer","minimum":1,"maximum":131072,"default":1024}},"required":["prompt"],"additionalProperties":true}`, UISchema: `{"order":["prompt","temperature","top_p","max_tokens"],"widgets":{"prompt":"textarea","temperature":"stepper","top_p":"stepper","max_tokens":"stepper"}}`, MaterialSchema: `{}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"prompt":"请只回复 OK","max_tokens":16}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelType: "image",
 			Profile:   ModelOperationProfile{ProfileKey: "image.generate.basic", DisplayName: "通用图片生成", Description: "通过 OpenAI 兼容接口调用图片模型的最低公共能力。"},
-			Version:   ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":true}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形"}`, Status: ModelOperationProfileStatusPublished},
+			Version:   ModelOperationProfileVersion{Version: 2, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"n":{"type":"integer","minimum":1,"maximum":4},"size":{"type":"string","minLength":1,"maxLength":32},"quality":{"type":"string","minLength":1,"maxLength":32},"response_format":{"type":"string","enum":["url","b64_json"]}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","quality","n","response_format"],"widgets":{"prompt":"textarea","size":"text","quality":"text","n":"stepper","response_format":"select"}}`, MaterialSchema: `{"image":{"max_items":4}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","n":1}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelType: "video",
 			Profile:   ModelOperationProfile{ProfileKey: "video.generate.basic", DisplayName: "通用视频生成", Description: "通过 OpenAI 兼容接口调用视频模型的最低公共能力。"},
-			Version:   ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":true}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"prompt":"生成一个四秒钟的简单镜头运动"}`, Status: ModelOperationProfileStatusPublished},
+			Version:   ModelOperationProfileVersion{Version: 2, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","minimum":1,"maximum":60},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"stepper","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个四秒钟的简单镜头运动","seconds":4}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelType: "audio",
@@ -465,5 +465,24 @@ func SeedDefaultModelOperationProfiles() error {
 		}
 		return bindings[i].ModelName < bindings[j].ModelName
 	})
-	return DB.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(bindings, 200).Error
+	if err := DB.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(bindings, 200).Error; err != nil {
+		return err
+	}
+	for _, profile := range profiles {
+		modelNames := make([]string, 0)
+		for _, modelItem := range models {
+			if strings.EqualFold(strings.TrimSpace(modelItem.ModelType), profile.ModelType) {
+				modelNames = append(modelNames, modelItem.ModelName)
+			}
+		}
+		if len(modelNames) == 0 {
+			continue
+		}
+		if err := DB.Model(&ModelOperationBinding{}).
+			Where("model_name IN ? AND operation = ? AND profile_key = ?", modelNames, profile.Version.Operation, profile.Profile.ProfileKey).
+			Updates(map[string]interface{}{"profile_version": profile.Version.Version, "updated_time": now}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
