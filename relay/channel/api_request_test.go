@@ -10,6 +10,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSetupApiRequestHeaderForwardsIdempotencyKey(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1beta/models/test:generateContent", nil)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+	ctx.Request.Header.Set("Idempotency-Key", "generation-run-001")
+	header := http.Header{}
+
+	SetupApiRequestHeader(&relaycommon.RelayInfo{}, ctx, &header)
+
+	require.Equal(t, "generation-run-001", header.Get("Idempotency-Key"))
+}
+
 func TestProcessHeaderOverride_ChannelTestSkipsPassthroughRules(t *testing.T) {
 	t.Parallel()
 

@@ -54,6 +54,9 @@ func SetupApiRequestHeader(info *common.RelayInfo, c *gin.Context, req *http.Hea
 			req.Set("Accept", "text/event-stream")
 		}
 	}
+	if idempotencyKey := strings.TrimSpace(c.Request.Header.Get("Idempotency-Key")); idempotencyKey != "" {
+		req.Set("Idempotency-Key", idempotencyKey)
+	}
 }
 
 const clientHeaderPlaceholderPrefix = "{client_header:"
