@@ -50,7 +50,7 @@
 - nanoBanana2 首次 BFF 调用因 DeepWL 返回 `parts[].text` 纯 Base64 而解析失败；CarLab 已产生 0.25 元采购成本，超级种子预扣 7 积分完整退款。修复文本图片解析后复测成功。
 - Omni Fast 的 4 秒、720p、16:9 报价和消费日志均为 750000 quota，即 1.50 元；异步任务提交、六次轮询和视频 URL 回收成功，超级种子实扣 41 积分。
 - 隔离验收账号从 200 积分降至 151，净消耗 `1 + 7 + 41 = 49`；三条成功运行和对应 `ai_tasks` 均已写入生产 Supabase。
-- Superseed Preview `https://superseed-6wk5nfekw-washedyirgacheffe-4517s-projects.vercel.app` 云端构建通过，文字、图片、视频开关和动态目录生效；主站生产开关没有变更。
+- Superseed 付费验收 Preview `https://superseed-6wk5nfekw-washedyirgacheffe-4517s-projects.vercel.app` 通过；提交 `cd4be2c` 的 Git Preview `https://superseed-lqw8omrzh-washedyirgacheffe-4517s-projects.vercel.app` 和固定分支别名均为 Ready，6 个核心模型全部可用，品牌图标存在且不显示 DeepWL 渠道标签。文字、图片、视频开关和动态目录生效，主站生产开关没有变更。
 - nanoBananaPRO 两次真实请求均由上游返回 429 且净扣费为 0，继续保持 Draft 和停用；nanoBanana 仍会出现空结果但上游扣 0.10 元，不进入本轮新增生产范围。
 
 ## 回滚
