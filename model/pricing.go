@@ -123,6 +123,34 @@ func GetModelType(modelName string) string {
 	return modelTypeMap[modelName]
 }
 
+func parseConfiguredEndpointTypes(value string) []string {
+	var raw interface{}
+	if err := common.Unmarshal([]byte(value), &raw); err != nil {
+		return nil
+	}
+	endpoints := make([]string, 0)
+	switch configured := raw.(type) {
+	case []interface{}:
+		for _, item := range configured {
+			endpoint, ok := item.(string)
+			endpoint = strings.TrimSpace(endpoint)
+			if ok && endpoint != "" && !common.StringsContains(endpoints, endpoint) {
+				endpoints = append(endpoints, endpoint)
+			}
+		}
+	case map[string]interface{}:
+		for endpoint, definition := range configured {
+			switch definition.(type) {
+			case string, map[string]interface{}:
+				if !common.StringsContains(endpoints, endpoint) {
+					endpoints = append(endpoints, endpoint)
+				}
+			}
+		}
+	}
+	return endpoints
+}
+
 func updatePricing() {
 	//modelRatios := common.GetModelRatios()
 	enableAbilities, err := GetAllEnableAbilityWithChannels()
@@ -244,20 +272,8 @@ func updatePricing() {
 		if strings.TrimSpace(meta.Endpoints) == "" {
 			continue
 		}
-		var raw map[string]interface{}
-		if err := json.Unmarshal([]byte(meta.Endpoints), &raw); err == nil {
-			endpoints := make([]string, 0, len(raw))
-			for k, v := range raw {
-				switch v.(type) {
-				case string, map[string]interface{}:
-					if !common.StringsContains(endpoints, k) {
-						endpoints = append(endpoints, k)
-					}
-				}
-			}
-			if len(endpoints) > 0 {
-				modelSupportEndpointsStr[modelName] = endpoints
-			}
+		if endpoints := parseConfiguredEndpointTypes(meta.Endpoints); len(endpoints) > 0 {
+			modelSupportEndpointsStr[modelName] = endpoints
 		}
 	}
 

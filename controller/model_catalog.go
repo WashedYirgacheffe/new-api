@@ -179,7 +179,8 @@ func profileDispatchReady(operation, endpointType, executionMode, responseContra
 		return endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync" && responseContract == "openai-chat-completion-v1"
 	case "image.generate":
 		return (endpointType == string(constant.EndpointTypeImageGeneration) && executionMode == "sync" && responseContract == "openai-image-generation-v1") ||
-			(endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync" && responseContract == "openai-chat-markdown-images-v1")
+			(endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync" && responseContract == "openai-chat-markdown-images-v1") ||
+			(endpointType == string(constant.EndpointTypeGemini) && executionMode == "sync" && responseContract == "gemini-image-generation-v1")
 	case "video.generate":
 		return endpointType == string(constant.EndpointTypeOpenAIVideo) && executionMode == "async" && responseContract == "openai-video-task-v1"
 	case "audio.generate":
@@ -393,11 +394,11 @@ func GetTokenModelProfile(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, gin.H{
-		"model_id":          modelName,
-		"profile":           buildModelOperationProfileContract(profile, profileVersion),
-		"binding":           bindingContract,
+		"model_id":           modelName,
+		"profile":            buildModelOperationProfileContract(profile, profileVersion),
+		"binding":            bindingContract,
 		"effective_contract": effectiveContract,
-		"dispatch_ready": profileDispatchReady(operation, profileVersion.EndpointType, profileVersion.ExecutionMode, profileVersion.ResponseContract) && endpointSupported(pricing.SupportedEndpointTypes, profileVersion.EndpointType),
+		"dispatch_ready":     profileDispatchReady(operation, profileVersion.EndpointType, profileVersion.ExecutionMode, profileVersion.ResponseContract) && endpointSupported(pricing.SupportedEndpointTypes, profileVersion.EndpointType),
 	})
 }
 

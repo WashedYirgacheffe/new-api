@@ -106,6 +106,30 @@ func TestModelOperationContractIncludesValidatedPollPath(t *testing.T) {
 	assert.Equal(t, "/v1/video/generations/{task_id}", contract.PollPath)
 }
 
+func TestModelOperationContractAcceptsGeminiImageAdapterAndPath(t *testing.T) {
+	profile := &ModelOperationProfile{ProfileKey: "image.generate.gemini-native", DisplayName: "Gemini image"}
+	version := &ModelOperationProfileVersion{
+		Version:          1,
+		Operation:        "image.generate",
+		EndpointType:     "gemini",
+		ExecutionMode:    "sync",
+		InputSchema:      `{"type":"object","properties":{"prompt":{"type":"string"}},"required":["prompt"],"additionalProperties":false}`,
+		UISchema:         `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`,
+		MaterialSchema:   `{}`,
+		ResponseContract: "gemini-image-generation-v1",
+	}
+
+	normalized, _, err := normalizeModelOperationBindingOverrides(
+		`{"request_contract":{"adapter":"gemini-image","field_map":{},"coercions":{}},"dispatch_path":"/v1beta/models/{model}:generateContent"}`,
+		profile,
+		version,
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, normalized, `"adapter":"gemini-image"`)
+	assert.Contains(t, normalized, `/v1beta/models/{model}:generateContent`)
+}
+
 func TestModelOperationContractHashIsCanonical(t *testing.T) {
 	first := `{"branding":{"description":"Image model","icon_key":"openai"},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","quantity_field":"n","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.5,"4K":2}}]}}`
 	second := `{"pricing_rule":{"multipliers":[{"values":{"4K":2,"2K":1.5,"1K":1},"field":"resolution"}],"quantity_field":"n","mode":"newapi-base-with-parameter-multipliers"},"branding":{"icon_key":"openai","description":"Image model"}}`

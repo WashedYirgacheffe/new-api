@@ -30,6 +30,7 @@ import { listDeployments } from './api'
 import { DeploymentAccessGuard } from './components/deployment-access-guard'
 import { DeploymentsTable } from './components/deployments-table'
 import { CreateDeploymentDrawer } from './components/dialogs/create-deployment-drawer'
+import { ModelContracts } from './components/model-contracts'
 import { ModelsDialogs } from './components/models-dialogs'
 import { ModelsPrimaryButtons } from './components/models-primary-buttons'
 import { ModelsProvider, useModels } from './components/models-provider'
@@ -51,6 +52,9 @@ const SECTION_META: Record<ModelsSectionId, { titleKey: string }> = {
   deployments: {
     titleKey: 'Deployments',
   },
+  contracts: {
+    titleKey: 'Model Contracts',
+  },
 }
 
 function ModelsContent() {
@@ -66,7 +70,7 @@ function ModelsContent() {
 
   // keep context state in sync (for components that rely on it)
   useEffect(() => {
-    if (tabCategory !== activeSection) {
+    if (activeSection !== 'contracts' && tabCategory !== activeSection) {
       setTabCategory(activeSection)
     }
   }, [activeSection, setTabCategory, tabCategory])
@@ -82,21 +86,23 @@ function ModelsContent() {
   )
 
   const meta = SECTION_META[activeSection] ?? SECTION_META.metadata
+  let primaryAction = null
+  if (activeSection === 'metadata') {
+    primaryAction = <ModelsPrimaryButtons />
+  } else if (activeSection === 'deployments') {
+    primaryAction = (
+      <Button onClick={() => setCreateDeploymentOpen(true)} size='sm'>
+        <Plus className='h-4 w-4' />
+        {t('Create deployment')}
+      </Button>
+    )
+  }
 
   return (
     <>
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
-        <SectionPageLayout.Actions>
-          {activeSection === 'metadata' ? (
-            <ModelsPrimaryButtons />
-          ) : (
-            <Button onClick={() => setCreateDeploymentOpen(true)} size='sm'>
-              <Plus className='h-4 w-4' />
-              {t('Create deployment')}
-            </Button>
-          )}
-        </SectionPageLayout.Actions>
+        <SectionPageLayout.Actions>{primaryAction}</SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           <div className='flex h-full min-h-0 flex-col gap-4'>
             <Tabs value={activeSection} onValueChange={handleSectionChange}>
@@ -109,11 +115,9 @@ function ModelsContent() {
               </TabsList>
             </Tabs>
             <div className='min-h-0 flex-1'>
-              {activeSection === 'metadata' ? (
-                <ModelsTable />
-              ) : (
-                <DeploymentsSection />
-              )}
+              {activeSection === 'metadata' && <ModelsTable />}
+              {activeSection === 'deployments' && <DeploymentsSection />}
+              {activeSection === 'contracts' && <ModelContracts />}
             </div>
           </div>
         </SectionPageLayout.Content>

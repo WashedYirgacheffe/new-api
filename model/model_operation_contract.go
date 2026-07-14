@@ -41,36 +41,36 @@ type ModelOperationPricingRule struct {
 
 type ModelOperationBindingOverrides struct {
 	Branding           *ModelOperationBranding        `json:"branding,omitempty"`
-	InputSchema        map[string]interface{}          `json:"input_schema,omitempty"`
-	UISchema           map[string]interface{}          `json:"ui_schema,omitempty"`
-	MaterialSchema     map[string]interface{}          `json:"material_schema,omitempty"`
-	RequestContract    *ModelOperationRequestContract  `json:"request_contract,omitempty"`
-	PricingRule        *ModelOperationPricingRule      `json:"pricing_rule,omitempty"`
-	ParameterDefaults  map[string]interface{}          `json:"parameter_defaults,omitempty"`
-	ParameterOverrides map[string]interface{}          `json:"parameter_overrides,omitempty"`
-	DispatchPath       string                          `json:"dispatch_path,omitempty"`
-	PollPath           string                          `json:"poll_path,omitempty"`
+	InputSchema        map[string]interface{}         `json:"input_schema,omitempty"`
+	UISchema           map[string]interface{}         `json:"ui_schema,omitempty"`
+	MaterialSchema     map[string]interface{}         `json:"material_schema,omitempty"`
+	RequestContract    *ModelOperationRequestContract `json:"request_contract,omitempty"`
+	PricingRule        *ModelOperationPricingRule     `json:"pricing_rule,omitempty"`
+	ParameterDefaults  map[string]interface{}         `json:"parameter_defaults,omitempty"`
+	ParameterOverrides map[string]interface{}         `json:"parameter_overrides,omitempty"`
+	DispatchPath       string                         `json:"dispatch_path,omitempty"`
+	PollPath           string                         `json:"poll_path,omitempty"`
 }
 
 type ModelOperationEffectiveContract struct {
-	ProfileKey         string                         `json:"profile_key"`
-	ProfileVersion     int                            `json:"profile_version"`
-	Operation          string                         `json:"operation"`
-	EndpointType       string                         `json:"endpoint_type"`
-	ExecutionMode      string                         `json:"execution_mode"`
-	Branding           ModelOperationBranding         `json:"branding"`
-	InputSchema        map[string]interface{}          `json:"input_schema"`
-	UISchema           map[string]interface{}          `json:"ui_schema"`
-	MaterialSchema     map[string]interface{}          `json:"material_schema"`
-	RequestContract    ModelOperationRequestContract  `json:"request_contract"`
-	PricingRule        ModelOperationPricingRule      `json:"pricing_rule"`
-	ParameterDefaults  map[string]interface{}          `json:"parameter_defaults"`
-	ParameterOverrides map[string]interface{}          `json:"parameter_overrides"`
-	DispatchPath       string                         `json:"dispatch_path,omitempty"`
-	PollPath           string                         `json:"poll_path,omitempty"`
-	ResponseContract   string                         `json:"response_contract"`
-	ContractVersion    int                            `json:"contract_version"`
-	ContractHash       string                         `json:"contract_hash"`
+	ProfileKey         string                        `json:"profile_key"`
+	ProfileVersion     int                           `json:"profile_version"`
+	Operation          string                        `json:"operation"`
+	EndpointType       string                        `json:"endpoint_type"`
+	ExecutionMode      string                        `json:"execution_mode"`
+	Branding           ModelOperationBranding        `json:"branding"`
+	InputSchema        map[string]interface{}        `json:"input_schema"`
+	UISchema           map[string]interface{}        `json:"ui_schema"`
+	MaterialSchema     map[string]interface{}        `json:"material_schema"`
+	RequestContract    ModelOperationRequestContract `json:"request_contract"`
+	PricingRule        ModelOperationPricingRule     `json:"pricing_rule"`
+	ParameterDefaults  map[string]interface{}        `json:"parameter_defaults"`
+	ParameterOverrides map[string]interface{}        `json:"parameter_overrides"`
+	DispatchPath       string                        `json:"dispatch_path,omitempty"`
+	PollPath           string                        `json:"poll_path,omitempty"`
+	ResponseContract   string                        `json:"response_contract"`
+	ContractVersion    int                           `json:"contract_version"`
+	ContractHash       string                        `json:"contract_hash"`
 }
 
 func validateContractObjectKeys(field string, object map[string]interface{}, allowed ...string) error {
@@ -252,8 +252,9 @@ func normalizeModelOperationRelayPath(field string, value string, requireTaskPla
 	if value == "" {
 		return "", nil
 	}
-	if !strings.HasPrefix(value, "/v1/") || strings.ContainsAny(value, "?#") || strings.Contains(value, "..") || len(value) > 255 {
-		return "", fmt.Errorf("%s must be a /v1/ path without query or traversal segments", field)
+	validPrefix := strings.HasPrefix(value, "/v1/") || strings.HasPrefix(value, "/v1beta/")
+	if !validPrefix || strings.ContainsAny(value, "?#") || strings.Contains(value, "..") || len(value) > 255 {
+		return "", fmt.Errorf("%s must be a /v1/ or /v1beta/ path without query or traversal segments", field)
 	}
 	if requireTaskPlaceholder && !strings.Contains(value, "{task_id}") {
 		return "", fmt.Errorf("%s must contain {task_id}", field)
@@ -366,7 +367,7 @@ func normalizeModelOperationBindingOverrides(value string, profile *ModelOperati
 		return "", ModelOperationBindingOverrides{}, err
 	}
 	for field, allowed := range map[string][]string{
-		"branding":        {"icon_key", "description"},
+		"branding":         {"icon_key", "description"},
 		"request_contract": {"adapter", "field_map", "coercions"},
 		"pricing_rule":     {"mode", "multipliers", "quantity_field"},
 	} {
@@ -420,6 +421,10 @@ func normalizeModelOperationBindingOverrides(value string, profile *ModelOperati
 		case "openai-image":
 			if version.EndpointType != "image-generation" {
 				return "", ModelOperationBindingOverrides{}, errors.New("openai-image request adapter requires image-generation endpoint_type")
+			}
+		case "gemini-image":
+			if version.EndpointType != "gemini" {
+				return "", ModelOperationBindingOverrides{}, errors.New("gemini-image request adapter requires gemini endpoint_type")
 			}
 		case "openai-video":
 			if version.EndpointType != "openai-video" {

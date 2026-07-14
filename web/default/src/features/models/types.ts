@@ -83,6 +83,55 @@ export interface PrefillGroup {
   description?: string
 }
 
+export type ModelContractObject = Record<string, unknown>
+
+export interface ModelOperationProfile {
+  profile_key: string
+  display_name: string
+  description?: string
+  version: number
+  operation: string
+  endpoint_type: string
+  execution_mode: string
+  input_schema: ModelContractObject
+  ui_schema: ModelContractObject
+  material_schema: ModelContractObject
+  response_contract: string
+  smoke_test: ModelContractObject
+  status: 'draft' | 'published' | 'archived'
+  created_time?: number
+  updated_time?: number
+}
+
+export interface ModelOperationBinding {
+  model_name: string
+  operation: string
+  profile_key: string
+  profile_version: number
+  contract_version: number
+  contract_hash: string
+  overrides: ModelContractObject
+  effective_contract?: ModelContractObject
+  enabled: boolean
+}
+
+export interface ModelOperationProfilesResponse {
+  success: boolean
+  message?: string
+  data?: {
+    items: ModelOperationProfile[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+export interface ModelOperationBindingsResponse {
+  success: boolean
+  message?: string
+  data?: ModelOperationBinding[]
+}
+
 // ============================================================================
 // API Request/Response Types
 // ============================================================================
@@ -278,6 +327,50 @@ export const prefillGroupFormSchema = z.object({
 })
 
 export type PrefillGroupFormValues = z.infer<typeof prefillGroupFormSchema>
+
+const jsonObjectString = z.string().refine((value) => {
+  try {
+    const parsed = JSON.parse(value || '{}')
+    return (
+      parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+    )
+  } catch {
+    return false
+  }
+}, 'Must be a JSON object')
+
+export const modelOperationProfileFormSchema = z.object({
+  profile_key: z.string().min(1, 'Profile key is required'),
+  display_name: z.string().min(1, 'Display name is required'),
+  description: z.string(),
+  version: z.number().int().positive(),
+  operation: z.string().min(1, 'Operation is required'),
+  endpoint_type: z.string().min(1, 'Endpoint type is required'),
+  execution_mode: z.enum(['sync', 'async']),
+  response_contract: z.string().min(1, 'Response contract is required'),
+  status: z.enum(['draft', 'published', 'archived']),
+  input_schema: jsonObjectString,
+  ui_schema: jsonObjectString,
+  material_schema: jsonObjectString,
+  smoke_test: jsonObjectString,
+})
+
+export type ModelOperationProfileFormValues = z.infer<
+  typeof modelOperationProfileFormSchema
+>
+
+export const modelOperationBindingFormSchema = z.object({
+  model_name: z.string().min(1, 'Model name is required'),
+  operation: z.string().min(1, 'Operation is required'),
+  profile_key: z.string().min(1, 'Profile key is required'),
+  profile_version: z.number().int().positive(),
+  overrides: jsonObjectString,
+  enabled: z.boolean(),
+})
+
+export type ModelOperationBindingFormValues = z.infer<
+  typeof modelOperationBindingFormSchema
+>
 
 // ============================================================================
 // Utility Types

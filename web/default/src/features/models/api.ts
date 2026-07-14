@@ -36,6 +36,10 @@ import type {
   SyncOverwritePayload,
   DeploymentSettingsResponse,
   ListDeploymentsResponse,
+  ModelOperationBinding,
+  ModelOperationBindingsResponse,
+  ModelOperationProfile,
+  ModelOperationProfilesResponse,
 } from './types'
 
 // ============================================================================
@@ -108,6 +112,52 @@ export async function deleteModel(
   id: number
 ): Promise<{ success: boolean; message?: string }> {
   const res = await api.delete(`/api/models/${id}`)
+  return res.data
+}
+
+export async function getModelOperationProfiles(): Promise<ModelOperationProfilesResponse> {
+  const res = await api.get('/api/model-profiles/', {
+    params: { p: 1, page_size: 100 },
+  })
+  return res.data
+}
+
+export async function saveModelOperationProfile(
+  data: ModelOperationProfile
+): Promise<{
+  success: boolean
+  message?: string
+  data?: ModelOperationProfile
+}> {
+  const res = await api.post('/api/model-profiles/', data)
+  return res.data
+}
+
+export async function getModelOperationBindings(
+  modelName: string
+): Promise<ModelOperationBindingsResponse> {
+  const res = await api.get('/api/model-profiles/bindings', {
+    params: { model: modelName },
+  })
+  return res.data
+}
+
+export async function saveModelOperationBinding(
+  data: Pick<
+    ModelOperationBinding,
+    | 'model_name'
+    | 'operation'
+    | 'profile_key'
+    | 'profile_version'
+    | 'overrides'
+    | 'enabled'
+  >
+): Promise<{
+  success: boolean
+  message?: string
+  data?: ModelOperationBinding
+}> {
+  const res = await api.post('/api/model-profiles/bindings', data)
   return res.data
 }
 
