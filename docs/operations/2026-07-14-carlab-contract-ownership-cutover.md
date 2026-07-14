@@ -99,6 +99,8 @@
 - 真实 Gemini 图片生成返回 HTTP 200；本地 Generation dispatch 从 CarLab 实际的 `parts[].text` Data URI 中规范化出 1 个 `image/png` 输出，Base64 长度 1,227,772，且 legacy `media` 与 `outputs[0]` 一致。
 - 对应 CarLab 消费日志记录 `quota=50000`、`model_price=0.1`、`group_ratio=1`，实际结算 `0.100000` 与 Quote 完全一致。
 - 三类 dispatch fixture 共 4 项断言通过；TapLater `vue-tsc --noEmit` 与 Vite 生产构建通过，构建转换 2,155 个模块。
+- TapDash Vercel production deployment `HcZj4bQPm8X4R9w4sMRktfHPtjnv` 构建通过并别名到 `https://superseed-dash.vercel.app`。
+- Superseed Git Preview `superseed-jgnagj84a-washedyirgacheffe-4517s-projects.vercel.app` 对应 commit `05652af9a8eef2ca6bddb555f5ec50208b36c044`，状态为 `READY`；分支别名为 `superseed-git-codex-ai-fb260c-washedyirgacheffe-4517s-projects.vercel.app`。
 
 全量 `go test ./model ./controller` 仍有两个当前分支既有失败：旧合同测试期望 `unsupported override field`，而基线代码返回 `overrides contains unsupported field`；`TestListModelsTokenLimitIncludesTieredBillingModel` 的 tiered-billing 可见性断言失败。本轮没有修改这两条行为，定向测试与云构建用于隔离本轮回归。
 
