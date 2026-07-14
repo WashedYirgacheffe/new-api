@@ -40,6 +40,8 @@ import type {
   ModelOperationBindingsResponse,
   ModelOperationProfile,
   ModelOperationProfilesResponse,
+  ModelTokenProfileResponse,
+  ModelTokenQuoteResponse,
 } from './types'
 
 // ============================================================================
@@ -159,6 +161,92 @@ export async function saveModelOperationBinding(
 }> {
   const res = await api.post('/api/model-profiles/bindings', data)
   return res.data
+}
+
+async function tokenScopedRequest<T>(
+  path: string,
+  token: string,
+  options: {
+    method?: 'GET' | 'POST'
+    body?: unknown
+    headers?: Record<string, string>
+  } = {}
+): Promise<T> {
+  const response = await fetch(path, {
+    method: options.method || 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token.trim()}`,
+      ...(options.body === undefined
+        ? {}
+        : { 'Content-Type': 'application/json' }),
+      ...options.headers,
+    },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  })
+  const payload = (await response.json().catch(() => null)) as unknown
+  const record =
+    payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>)
+      : null
+  const nestedError =
+    record?.error && typeof record.error === 'object'
+      ? (record.error as Record<string, unknown>)
+      : null
+  if (!response.ok || record?.success === false || record?.error) {
+    const message =
+      record?.message ||
+      nestedError?.message ||
+      record?.error ||
+      response.statusText
+    throw new Error(String(message || 'Request failed'))
+  }
+  return payload as T
+}
+
+export async function getTokenModelProfile(
+  token: string,
+  model: string,
+  operation: string
+): Promise<ModelTokenProfileResponse> {
+  const params = new URLSearchParams({ model, operation })
+  return tokenScopedRequest<ModelTokenProfileResponse>(
+    `/api/user/models/profile?${params.toString()}`,
+    token
+  )
+}
+
+export async function quoteTokenModel(
+  token: string,
+  model: string,
+  operation: string,
+  parameters: Record<string, unknown>
+): Promise<ModelTokenQuoteResponse> {
+  return tokenScopedRequest<ModelTokenQuoteResponse>(
+    '/api/user/models/quote',
+    token,
+    {
+      method: 'POST',
+      body: { model, operation, parameters },
+    }
+  )
+}
+
+export async function runTokenModelRequest(
+  token: string,
+  path: string,
+  operation: string,
+  idempotencyKey: string,
+  body: unknown
+): Promise<unknown> {
+  return tokenScopedRequest<unknown>(path, token, {
+    method: 'POST',
+    headers: {
+      'Idempotency-Key': idempotencyKey,
+      'X-CarLab-Operation': operation,
+    },
+    body,
+  })
 }
 
 // ============================================================================

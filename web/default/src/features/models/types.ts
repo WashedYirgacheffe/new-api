@@ -132,6 +132,58 @@ export interface ModelOperationBindingsResponse {
   data?: ModelOperationBinding[]
 }
 
+export interface ModelOperationRequestContract {
+  adapter?: string
+  field_map?: Record<string, string>
+  coercions?: Record<string, string>
+}
+
+export interface ModelOperationEffectiveContract extends ModelContractObject {
+  contract_version?: number
+  contract_hash?: string
+  response_contract?: string
+  request_contract?: ModelOperationRequestContract
+  dispatch_path?: string
+}
+
+export interface ModelTokenProfileData {
+  model_id: string
+  dispatch_ready: boolean
+  profile: ModelOperationProfile
+  binding: ModelOperationBinding
+  effective_contract: ModelOperationEffectiveContract
+}
+
+export interface ModelTokenProfileResponse {
+  success: boolean
+  message?: string
+  data?: ModelTokenProfileData
+}
+
+export interface ModelTokenQuoteData {
+  model_id: string
+  operation: string
+  effective_group: string
+  billing_mode: string
+  pricing_version: string
+  contract_version: number
+  contract_hash: string
+  base_price: number
+  model_ratio: number
+  completion_ratio: number
+  group_ratio: number
+  parameter_multipliers?: Record<string, number> | null
+  estimated_quota: number
+  estimated_amount: number
+  estimate_kind: string
+}
+
+export interface ModelTokenQuoteResponse {
+  success: boolean
+  message?: string
+  data?: ModelTokenQuoteData
+}
+
 // ============================================================================
 // API Request/Response Types
 // ============================================================================

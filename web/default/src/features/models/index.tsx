@@ -53,7 +53,7 @@ const SECTION_META: Record<ModelsSectionId, { titleKey: string }> = {
     titleKey: 'Deployments',
   },
   contracts: {
-    titleKey: 'Model Contracts',
+    titleKey: 'Model Contracts & Test',
   },
 }
 

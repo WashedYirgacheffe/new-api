@@ -68,6 +68,7 @@ import {
   type ModelOperationProfile,
   type ModelOperationProfileFormValues,
 } from '../types'
+import { ModelContractTestConsole } from './model-contract-test-console'
 
 const emptyProfile: ModelOperationProfileFormValues = {
   profile_key: '',
@@ -332,6 +333,11 @@ export function ModelContracts() {
           </a>
         </AlertDescription>
       </Alert>
+
+      <ModelContractTestConsole
+        modelName={modelQuery}
+        onModelNameChange={setModelQuery}
+      />
 
       <section className='rounded-lg border'>
         <header className='flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between'>
