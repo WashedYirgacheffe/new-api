@@ -1,7 +1,7 @@
 # CarLab 模型合同职责切换维护记录
 
 - 日期：2026-07-14
-- 状态：代码、数据库与配置已完成，等待云端部署验收
+- 状态：已完成代码、数据库、配置、Railway 发布和 Gemini 图片端到端验收
 - CarLab API 分支：`codex/oem-api-hub`
 - Superseed 分支：`codex/ai-service-migration`
 - 公网入口：`https://api.carlab.top`
@@ -32,7 +32,9 @@
 - `controller/model_catalog.go`：将同步 Gemini 图片合同标记为可调度。
 - `model/pricing.go`：同时解析模型元数据中对象和数组两种 `endpoints` 格式，避免数组形式静默丢失端点能力。
 - `model/model_operation_profile.go`：新增 GPT Image 2、Gemini 原生图片、Gemini OpenAI 图片、Omni Video 和 Seedance 2.0 文档模板。Seedance 模板没有 `ModelNames`，不会产生 Binding 或上架候选。
+- `model/model_operation_profile.go`、`model_operation_profile_test.go`：精确识别旧版 Gemini 2.5 默认 Overrides，将其迁移到 Gemini Native Profile；管理员自定义 Overrides 不会被覆盖。
 - `model/model_operation_contract_test.go`、`model/pricing_test.go`：覆盖 Gemini 适配器、`/v1beta/` 路径和数组端点解析。
+- `relay/channel/api_request.go`、`api_request_test.go`：将客户端 `Idempotency-Key` 显式转发到上游渠道，并锁定该请求头合同。
 
 ### Superseed
 
@@ -41,6 +43,8 @@
 - `ModelContractLabDrawer.vue`：移除字段、倍率、Quote 和 Binding 编辑表单，改为只读合同、计价和验证记录；保留应用级合同采用。
 - `AppModelsView.vue`、`ModelApiGuideView.vue`、`guide.ts`、`docs/MODEL_API_WORKFLOW.md`：统一职责说明与操作顺序。
 - `CarLab/TapLater/packages/taplater/api/_generationDispatch.js`：支持 Gemini 原生图片请求、`{model}` 路径替换、Gemini 图片响应和根级视频 URL。
+- 同一 dispatch 边界将 Generation Run 的稳定幂等键写入 `Idempotency-Key`，保留全部媒体 `outputs[]`，同时以 `media` 兼容既有单结果消费者；Gemini 解析兼容原生 `inlineData/fileData` 及 CarLab 转换后的 `parts[].text` Data URI。
+- `tests/fixtures/generation-dispatch/`、`generation-dispatch.test.mjs`：提供同步文本、同步 Gemini 图片、异步视频提交/处理中轮询/成功回收三类规范化 fixture。
 
 ## 云端数据与配置
 
@@ -87,6 +91,14 @@
 - PostgreSQL 验证：三条 canonical Banana 各有 4 条启用 ability，映射、渠道商、`["gemini"]` 端点和固定价格均正确。
 - DeepWL Text Key `/v1/models` 实际返回三条 canonical 上游模型，不依赖 `-c` 兼容模型。
 - 首次公网 Quote 验证发现 `gemini-2.5-flash-image` 被默认绑定到 OpenAI Images Profile，而模型元数据只声明 Gemini 端点。DeepWL 官方 Markdown 明确 Gemini 图片统一使用 `/v1beta/models/{model}:generateContent`，因此修正为 Gemini Native Profile，未放宽端点门禁。
+- Railway deployment `95df4280-58ae-49c7-8536-2caad3b4f6ba` 因数据库仍保留旧 `openai-image` Overrides 而健康检查失败；修复后的精确兼容迁移由定向测试覆盖。
+- Railway deployment `880bd8ff-837f-4605-b5d9-cc043a12582d` 成功，启动日志确认旧 Binding 已迁移，数据库迁移与 `/api/status` 健康检查通过。
+- Railway deployment `22720e37-0637-4664-9b76-65af71e88817` 成功，加入标准 `Idempotency-Key` 上游透传后再次通过启动和健康检查。
+- 公网 Profile 返回 `image.generate.gemini-native@1`、`endpoint_type=gemini`、`adapter=gemini-image`、`dispatch_ready=true`，合同版本为 2。
+- 公网 Quote 对 `deepwl/gemini-2.5-flash-image`、`1K`、`1:1` 返回 `effective_group=gold`、`base_price=0.1`、`group_ratio=1`、`estimated_quota=50000`、`estimated_amount=0.1`。
+- 真实 Gemini 图片生成返回 HTTP 200；本地 Generation dispatch 从 CarLab 实际的 `parts[].text` Data URI 中规范化出 1 个 `image/png` 输出，Base64 长度 1,227,772，且 legacy `media` 与 `outputs[0]` 一致。
+- 对应 CarLab 消费日志记录 `quota=50000`、`model_price=0.1`、`group_ratio=1`，实际结算 `0.100000` 与 Quote 完全一致。
+- 三类 dispatch fixture 共 4 项断言通过；TapLater `vue-tsc --noEmit` 与 Vite 生产构建通过，构建转换 2,155 个模块。
 
 全量 `go test ./model ./controller` 仍有两个当前分支既有失败：旧合同测试期望 `unsupported override field`，而基线代码返回 `overrides contains unsupported field`；`TestListModelsTokenLimitIncludesTieredBillingModel` 的 tiered-billing 可见性断言失败。本轮没有修改这两条行为，定向测试与云构建用于隔离本轮回归。
 
@@ -100,9 +112,9 @@
 
 ## 剩余风险与权限
 
-- 云端部署 ID、运行实例和浏览器验收将在部署完成后补入本文档。
-- 三条 canonical Banana 尚需在新版本上执行最低成本真实生成、Quote 与消费日志对账；在此之前不应进入 Production 模型集合。
+- 本轮只对最低成本 `nanoBanana` 完成真实生成和对账；`nanoBananaPRO`、`nanoBanana2` 仍只有目录、Profile、Quote 与路由合同证据，进入 Production 集合前应分别完成一次真实调用。
 - `gpt-image-2` 的实际上游结算可能按 usage 而不是公开固定价，既有审计结论仍有效，不能承诺完全透传成本。
 - Omni 两档只完成按次计费保护和合同建立，尚未为本轮支付高成本真实视频测试。
 - Seedance 2.0 当前 Key 未授权，仅有未绑定模板，不能宣称已开通或加入生产集合。
 - TapDash 仍保留应用合同“采用”操作，这是 Superseed 发布状态变更，不是合同编辑旁路。
+- CarLab 已把 `Idempotency-Key` 传到上游，但 DeepWL 文档没有承诺该头的去重语义，CarLab 也尚未提供完整响应级幂等存储。画布状态机不得仅凭请求头宣称 exactly-once；在上游能力得到确认前，应将“已提交但 task_id 未落库”保留为可人工核查的未知状态，避免自动重复采购。
