@@ -163,6 +163,7 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 
 | Document | Contents | Corresponding code and resources |
 | --- | --- | --- |
+| `docs/operations/2026-07-15-core-model-production-readiness.md` | DeepWL core text/image/video production readiness, Banana resolution multipliers, approved live calls, full Chinese billing records, Preview gate, and rollback | CarLab model metadata/Profile/Binding/pricing, TapDash generation ledger, Railway `new-api`, Vercel `superseed-dash`/`superseed`, Supabase generation tables |
 | `docs/operations/2026-07-10-railway-cloudflare-deployment.md` | Railway PostgreSQL/Redis/application deployment, secure administrator initialization, health checks, and Cloudflare edge rollout | `Dockerfile`, `.dockerignore`, `railway.json`, `cloudflare/edge-gateway/`, Railway project `carlab-api`, Cloudflare zone `carlab.top` |
 | `docs/operations/2026-07-11-provider-channel-migration.md` | Existing Superseed provider credentials migrated into compatible New API channels, service token issuance, cloud verification, and unsupported protocol boundaries | New API channel/token configuration, `api.carlab.top`, Vercel project `superseed`, macOS Keychain service `carlab-api-superseed-token` |
 | `docs/operations/2026-07-11-model-catalog-foundation.md` | Model-provider/API-channel-provider separation, sourced catalog foundation, CarLab API console naming, OEM boundary, and cloud verification | `model/channel.go`, `model/model_meta.go`, model/channel frontend, `docs/architecture/`, Railway service `new-api` |

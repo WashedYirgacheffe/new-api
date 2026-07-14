@@ -401,8 +401,19 @@ type defaultModelOperationProfile struct {
 
 const (
 	gemini25FlashImageModelName = "deepwl/gemini-2.5-flash-image"
+	geminiProImageModelName     = "deepwl/gemini-3-pro-image"
+	gemini31FlashImageModelName = "deepwl/gemini-3.1-flash-image-preview"
+	gptImage2AllModelName       = "deepwl/gpt-image-2-all"
+	omniFastModelName           = "deepwl/omni-fast"
+	omniFastV2VModelName        = "deepwl/omni-fast-v2v"
 	geminiNativeOverrides       = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
+	geminiProImageOverrides     = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.25,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
+	gemini31FlashImageOverrides = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.2,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
 	geminiOpenAIOverrides       = `{"branding":{"icon_key":"gemini","description":"Gemini 2.5 Flash Image 快速图片生成，使用 OpenAI Images 兼容入口。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","n":"batch"},"widgets":{"prompt":"textarea","size":"select","n":"segmented"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","n":"n"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","n":1}}`
+	gptImage2AllLegacyOverrides = `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，当前发布合同仅开放已验证的文本生图能力。"},"ui_schema":{"placements":{"prompt":"prompt"},"widgets":{"prompt":"textarea"}},"request_contract":{"adapter":"openai-chat","field_map":{},"coercions":{}}}`
+	gptImage2Overrides          = `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，支持六种已记录尺寸和 URL/Base64 返回。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","n":"batch","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","n":"segmented","response_format":"hidden"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","n":1,"response_format":"url"}}`
+	omniFastOverrides           = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图，当前按独立模型固定采购价结算。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
+	omniFastV2VOverrides        = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个公网 MP4 参考视频的编辑、延长或重新生成。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":0},"video":{"min_items":1,"max_items":1,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
 )
 
 func defaultModelOperationProfiles() []defaultModelOperationProfile {
@@ -420,19 +431,29 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version:   ModelOperationProfileVersion{Version: 2, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"n":{"type":"integer","minimum":1,"maximum":4},"size":{"type":"string","minLength":1,"maxLength":32},"quality":{"type":"string","minLength":1,"maxLength":32},"response_format":{"type":"string","enum":["url","b64_json"]}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","quality","n","response_format"],"widgets":{"prompt":"textarea","size":"text","quality":"text","n":"stepper","response_format":"select"}}`, MaterialSchema: `{"image":{"max_items":4}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","n":1}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelNames:       []string{"deepwl/gpt-image-2-all"},
-			BindingOverrides: `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，当前发布合同仅开放已验证的文本生图能力。"},"ui_schema":{"placements":{"prompt":"prompt"},"widgets":{"prompt":"textarea"}},"request_contract":{"adapter":"openai-chat","field_map":{},"coercions":{}}}`,
-			Profile:          ModelOperationProfile{ProfileKey: "image.generate.chat", DisplayName: "Chat 图片生成", Description: "通过 OpenAI Chat Completions 返回 Markdown 图片链接的同步图片能力。"},
-			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-chat-markdown-images-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形"}`, Status: ModelOperationProfileStatusPublished},
+			Profile: ModelOperationProfile{ProfileKey: "image.generate.chat", DisplayName: "Chat 图片生成", Description: "通过 OpenAI Chat Completions 返回 Markdown 图片链接的同步图片能力。"},
+			Version: ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-chat-markdown-images-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelNames:       []string{"deepwl/gpt-image-2"},
-			BindingOverrides: `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，支持六种已记录尺寸和 URL/Base64 返回。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","n":"batch","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","n":"segmented","response_format":"hidden"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","n":1,"response_format":"url"}}`,
+			ModelNames:       []string{"deepwl/gpt-image-2", gptImage2AllModelName},
+			BindingOverrides: gptImage2Overrides,
 			Profile:          ModelOperationProfile{ProfileKey: "image.generate.gpt-image-2", DisplayName: "GPT Image 2 图片生成", Description: "DeepWL GPT Image 2 的 OpenAI Images 标准能力。"},
 			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"size":{"type":"string","enum":["1024x1024","1536x1152","1536x1024","1024x1536","1920x1080","1080x1920"],"default":"1024x1024"},"n":{"type":"integer","enum":[1],"default":1,"maximum":1},"response_format":{"type":"string","enum":["url","b64_json"],"default":"url"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","n","response_format"],"widgets":{"prompt":"textarea","size":"select","n":"segmented","response_format":"select"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","n":1,"response_format":"url"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelNames:       []string{"deepwl/gemini-3-pro-image", "deepwl/gemini-3.1-flash-image-preview", gemini25FlashImageModelName},
+			ModelNames:       []string{geminiProImageModelName},
+			BindingOverrides: geminiProImageOverrides,
+			Profile:          ModelOperationProfile{ProfileKey: "image.generate.gemini-native", DisplayName: "Gemini 原生图片生成", Description: "DeepWL Gemini generateContent 图片生成能力。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "gemini", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"aspect_ratio":{"type":"string","enum":["1:1","16:9","9:16","4:3","3:4","3:2","2:3","21:9"],"default":"1:1"},"resolution":{"type":"string","enum":["1K","2K","4K"],"default":"1K"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "gemini-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","aspect_ratio":"1:1","resolution":"1K"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{gemini31FlashImageModelName},
+			BindingOverrides: gemini31FlashImageOverrides,
+			Profile:          ModelOperationProfile{ProfileKey: "image.generate.gemini-native", DisplayName: "Gemini 原生图片生成", Description: "DeepWL Gemini generateContent 图片生成能力。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "gemini", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"aspect_ratio":{"type":"string","enum":["1:1","16:9","9:16","4:3","3:4","3:2","2:3","21:9"],"default":"1:1"},"resolution":{"type":"string","enum":["1K","2K","4K"],"default":"1K"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "gemini-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","aspect_ratio":"1:1","resolution":"1K"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{gemini25FlashImageModelName},
 			BindingOverrides: geminiNativeOverrides,
 			Profile:          ModelOperationProfile{ProfileKey: "image.generate.gemini-native", DisplayName: "Gemini 原生图片生成", Description: "DeepWL Gemini generateContent 图片生成能力。"},
 			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "gemini", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"aspect_ratio":{"type":"string","enum":["1:1","16:9","9:16","4:3","3:4","3:2","2:3","21:9"],"default":"1:1"},"resolution":{"type":"string","enum":["1K","2K","4K"],"default":"1K"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "gemini-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","aspect_ratio":"1:1","resolution":"1K"}`, Status: ModelOperationProfileStatusPublished},
@@ -450,10 +471,16 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version:          ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6"],"default":"6"},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"select","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒钟的简单镜头运动","seconds":"6","size":"720P"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelNames:       []string{"deepwl/omni-fast"},
-			BindingOverrides: `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图，当前按独立模型固定采购价结算。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`,
+			ModelNames:       []string{omniFastModelName},
+			BindingOverrides: omniFastOverrides,
 			Profile:          ModelOperationProfile{ProfileKey: "video.generate.omni", DisplayName: "Omni 视频生成", Description: "DeepWL Omni Fast 的 JSON 视频生成能力。"},
 			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","minimum":4,"maximum":30,"default":8},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p","1080p","2k","4k"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个简洁的海浪镜头","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{omniFastV2VModelName},
+			BindingOverrides: omniFastV2VOverrides,
+			Profile:          ModelOperationProfile{ProfileKey: "video.generate.omni-v2v", DisplayName: "Omni 参考视频生成", Description: "DeepWL Omni Fast V2V 的参考视频编辑与重新生成能力。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","minimum":4,"maximum":30,"default":8},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p","1080p","2k","4k"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":0},"video":{"min_items":1,"max_items":1,"request_field":"video","transport":"url"},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"将参考视频重新生成成夜景风格","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			Profile: ModelOperationProfile{ProfileKey: "video.generate.seedance-2", DisplayName: "Seedance 2.0 视频生成", Description: "DeepWL Seedance 2.0 多模态视频能力模板；当前 Key 未授权模型，仅保存文档合同。"},
@@ -475,6 +502,78 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version:   ModelOperationProfileVersion{Version: 1, Operation: "rerank.create", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"query":{"type":"string","minLength":1},"documents":{"type":"array","minItems":1}},"required":["query","documents"],"additionalProperties":true}`, UISchema: `{"order":["query","documents"],"widgets":{"query":"textarea","documents":"string-list"}}`, MaterialSchema: `{}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"query":"测试","documents":["测试文档","无关文档"]}`, Status: ModelOperationProfileStatusPublished},
 		},
 	}
+}
+
+func migrateReservedModelOperationBinding(modelName, operation, legacyProfileKey string, legacyProfileVersion int, legacyOverrides, nextProfileKey string, nextProfileVersion int, nextOverrides string) error {
+	legacyProfile, legacyVersion, err := GetModelOperationProfileVersion(legacyProfileKey, legacyProfileVersion, false)
+	if err != nil {
+		return err
+	}
+	legacyNormalized, _, err := normalizeModelOperationBindingOverrides(legacyOverrides, legacyProfile, legacyVersion)
+	if err != nil {
+		return err
+	}
+	nextProfile, nextVersion, err := GetModelOperationProfileVersion(nextProfileKey, nextProfileVersion, false)
+	if err != nil {
+		return err
+	}
+	nextNormalized, _, err := normalizeModelOperationBindingOverrides(nextOverrides, nextProfile, nextVersion)
+	if err != nil {
+		return err
+	}
+	return DB.Model(&ModelOperationBinding{}).
+		Where("model_name = ? AND operation = ?", modelName, operation).
+		Where("profile_key = ? AND profile_version = ?", legacyProfileKey, legacyProfileVersion).
+		Where("overrides = ? OR overrides = ?", legacyOverrides, legacyNormalized).
+		Updates(map[string]interface{}{
+			"profile_key":     nextProfileKey,
+			"profile_version": nextProfileVersion,
+			"overrides":       nextNormalized,
+			"enabled":         true,
+			"updated_time":    common.GetTimestamp(),
+		}).Error
+}
+
+func ensureCoreModelEndpointTypes() error {
+	required := map[string][]string{
+		gptImage2AllModelName: {"image-generation"},
+		omniFastModelName:     {"openai-video"},
+		omniFastV2VModelName:  {"openai-video"},
+	}
+	modelNames := make([]string, 0, len(required))
+	for modelName := range required {
+		modelNames = append(modelNames, modelName)
+	}
+	var models []Model
+	if err := DB.Select("id", "model_name", "endpoints").Where("model_name IN ?", modelNames).Find(&models).Error; err != nil {
+		return err
+	}
+	for _, item := range models {
+		endpoints := parseConfiguredEndpointTypes(item.Endpoints)
+		changed := false
+		for _, endpoint := range required[item.ModelName] {
+			if common.StringsContains(endpoints, endpoint) {
+				continue
+			}
+			endpoints = append(endpoints, endpoint)
+			changed = true
+		}
+		if !changed {
+			continue
+		}
+		sort.Strings(endpoints)
+		payload, err := common.Marshal(endpoints)
+		if err != nil {
+			return err
+		}
+		if err := DB.Model(&Model{}).Where("id = ?", item.Id).Updates(map[string]interface{}{
+			"endpoints":    string(payload),
+			"updated_time": common.GetTimestamp(),
+		}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func SeedDefaultModelOperationProfiles() error {
@@ -532,6 +631,41 @@ func SeedDefaultModelOperationProfiles() error {
 			"updated_time":    now,
 		}).Error; err != nil {
 		return fmt.Errorf("migrate legacy Gemini image binding: %w", err)
+	}
+	if err := migrateReservedModelOperationBinding(
+		gptImage2AllModelName,
+		"image.generate",
+		"image.generate.chat",
+		1,
+		gptImage2AllLegacyOverrides,
+		"image.generate.gpt-image-2",
+		1,
+		gptImage2Overrides,
+	); err != nil {
+		return fmt.Errorf("migrate GPT Image 2 All binding: %w", err)
+	}
+	for _, migration := range []struct {
+		modelName string
+		overrides string
+	}{
+		{modelName: geminiProImageModelName, overrides: geminiProImageOverrides},
+		{modelName: gemini31FlashImageModelName, overrides: gemini31FlashImageOverrides},
+	} {
+		if err := migrateReservedModelOperationBinding(
+			migration.modelName,
+			"image.generate",
+			"image.generate.gemini-native",
+			1,
+			geminiNativeOverrides,
+			"image.generate.gemini-native",
+			1,
+			migration.overrides,
+		); err != nil {
+			return fmt.Errorf("migrate Gemini image pricing binding %s: %w", migration.modelName, err)
+		}
+	}
+	if err := ensureCoreModelEndpointTypes(); err != nil {
+		return fmt.Errorf("ensure core model endpoint types: %w", err)
 	}
 
 	var models []Model

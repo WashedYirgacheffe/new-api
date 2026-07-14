@@ -24,6 +24,46 @@ func ModelOperationParameters(request interface{}) (map[string]interface{}, erro
 	return parameters, nil
 }
 
+func modelOperationMappedParameter(value interface{}, mappedName string) (interface{}, bool) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if matched, ok := typed[mappedName]; ok {
+			return matched, true
+		}
+		for _, nested := range typed {
+			if matched, ok := modelOperationMappedParameter(nested, mappedName); ok {
+				return matched, true
+			}
+		}
+	case []interface{}:
+		for _, nested := range typed {
+			if matched, ok := modelOperationMappedParameter(nested, mappedName); ok {
+				return matched, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func modelOperationContractParameters(contract *model.ModelOperationEffectiveContract, parameters map[string]interface{}) map[string]interface{} {
+	if contract == nil || len(contract.RequestContract.FieldMap) == 0 {
+		return parameters
+	}
+	resolved := make(map[string]interface{}, len(parameters)+len(contract.RequestContract.FieldMap))
+	for key, value := range parameters {
+		resolved[key] = value
+	}
+	for field, mappedName := range contract.RequestContract.FieldMap {
+		if _, exists := resolved[field]; exists {
+			continue
+		}
+		if value, ok := modelOperationMappedParameter(parameters, mappedName); ok {
+			resolved[field] = value
+		}
+	}
+	return resolved
+}
+
 func ApplyModelOperationContractPricing(info *relaycommon.RelayInfo, operation string, parameters map[string]interface{}) (*model.ModelOperationEffectiveContract, error) {
 	if info == nil {
 		return nil, errors.New("relay info is required")
@@ -35,7 +75,7 @@ func ApplyModelOperationContractPricing(info *relaycommon.RelayInfo, operation s
 	if err != nil {
 		return nil, err
 	}
-	ratios, err := model.CalculateModelOperationParameterRatios(contract, parameters)
+	ratios, err := model.CalculateModelOperationParameterRatios(contract, modelOperationContractParameters(contract, parameters))
 	if err != nil {
 		return nil, err
 	}
