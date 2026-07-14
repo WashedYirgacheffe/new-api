@@ -86,6 +86,7 @@
 - `_generationDispatch.js` 与 `ai-profiles.js`：`node --check` 通过。
 - PostgreSQL 验证：三条 canonical Banana 各有 4 条启用 ability，映射、渠道商、`["gemini"]` 端点和固定价格均正确。
 - DeepWL Text Key `/v1/models` 实际返回三条 canonical 上游模型，不依赖 `-c` 兼容模型。
+- 首次公网 Quote 验证发现 `gemini-2.5-flash-image` 被默认绑定到 OpenAI Images Profile，而模型元数据只声明 Gemini 端点。DeepWL 官方 Markdown 明确 Gemini 图片统一使用 `/v1beta/models/{model}:generateContent`，因此修正为 Gemini Native Profile，未放宽端点门禁。
 
 全量 `go test ./model ./controller` 仍有两个当前分支既有失败：旧合同测试期望 `unsupported override field`，而基线代码返回 `overrides contains unsupported field`；`TestListModelsTokenLimitIncludesTieredBillingModel` 的 tiered-billing 可见性断言失败。本轮没有修改这两条行为，定向测试与云构建用于隔离本轮回归。
 
