@@ -1,7 +1,7 @@
 # CarLab 模型合同测试台维护记录
 
 - 日期：2026-07-14
-- 状态：代码验证完成，待 Railway 发布
+- 状态：已发布
 - 分支：`codex/oem-api-hub`
 - 公网入口：`https://api.carlab.top`
 
@@ -43,6 +43,7 @@
 - Railway 项目 `carlab-api`，服务 `new-api`、PostgreSQL、Redis。
 - Cloudflare 入口 `api.carlab.top`；本轮不修改 DNS、Worker 或源站密钥。
 - 不新增环境变量；测试 Token 不进入 Railway 或 GitHub 配置。
+- Railway deployment：`b7f6c066-ad57-4946-82f7-cc67e2b4c496`，状态 `SUCCESS`。
 
 ## 验证证据
 
@@ -51,7 +52,8 @@
 - `deepwl/gemini-3-pro-image`：Profile `image.generate.gemini-native@1`，`dispatch_ready=true`，当前 Key 生效分组 `default`、倍率 `1`、基础价与预计金额均为 `0.6`。
 - `deepwl/gemini-3.1-flash-image-preview`：Profile `image.generate.gemini-native@1`，`dispatch_ready=true`，当前 Key 生效分组 `default`、倍率 `1`、基础价与预计金额均为 `0.25`。
 - 按管理员自行在测试台触发真实生成的操作边界，本轮未执行两款高价模型的实际生成，因此没有新增媒体消费或结算日志。
-- 待补：Railway deployment、生产路由和界面验收。
+- Railway deployment `b7f6c066-ad57-4946-82f7-cc67e2b4c496` 发布成功；`https://api.carlab.top/api/status` 与 `/models/contracts` 均返回 HTTP 200。
+- 从生产域名下载的新哈希前端资源中已确认包含 `Model Contracts & Test`，证明 Cloudflare 生产入口已加载本轮侧栏与测试台构建。
 
 ## 回滚
 
@@ -64,3 +66,4 @@
 - 浏览器插件当前初始化失败，错误为 `Cannot redefine property: process`；完成代码后需用可用的浏览器会话或用户侧生产页面补充交互验收。
 - DeepWL 未公开承诺 `Idempotency-Key` 去重语义，真实测试不得用自动重试推断 exactly-once。
 - 当前测试 Key 的有效分组是 `default`，不是 Superseed 专属金牌组；页面展示的是 Token 的实际分组结果，不会替管理员隐式改组。
+- Railway 原始服务域名不提供与 Cloudflare 入口相同的 SPA 深链接回退；管理员应使用 `https://api.carlab.top/models/contracts`，不要把 Railway 原始域名作为前端入口。
