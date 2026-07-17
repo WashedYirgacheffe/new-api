@@ -397,6 +397,15 @@ export function isPlaygroundBindingDispatchReady(
   }
 }
 
+export function buildQuoteParameters(
+  prompt: string,
+  parameters: ContractObject
+): ContractObject {
+  const normalizedPrompt = prompt.trim()
+  if (!normalizedPrompt) throw new Error('Enter a prompt first.')
+  return { ...parameters, prompt: normalizedPrompt }
+}
+
 export function missingRequiredParameter(
   descriptors: ParameterDescriptor[],
   parameters: ContractObject

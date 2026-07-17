@@ -56,6 +56,7 @@ import {
   buildMediaRequest,
   buildMaterialRules,
   buildParameterDescriptors,
+  buildQuoteParameters,
   coerceParameterValue,
   extractImageOutputs,
   extractVideoTask,
@@ -443,11 +444,12 @@ export function MediaPlayground(props: {
           })
         )
       }
+      const quoteParameters = buildQuoteParameters(prompt, parameters)
       const response = await quotePlaygroundModel(
         group,
         modelId,
         props.operation,
-        parameters,
+        quoteParameters,
         signal
       )
       if (
@@ -475,6 +477,7 @@ export function MediaPlayground(props: {
       group,
       modelId,
       parameters,
+      prompt,
       props.operation,
       t,
     ]

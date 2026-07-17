@@ -3,6 +3,7 @@ import { describe, test } from 'node:test'
 
 import type { PlaygroundCatalogBinding } from '../types'
 import {
+  buildQuoteParameters,
   extractImageOutputs,
   extractVideoTask,
   isPlaygroundBindingDispatchReady,
@@ -72,6 +73,21 @@ describe('media playground dispatch contract', () => {
 })
 
 describe('media playground contract validation', () => {
+  test('includes the normalized prompt in quote parameters', () => {
+    assert.deepEqual(
+      buildQuoteParameters('  a red circle  ', {
+        size: '1024x1024',
+        quality: 'high',
+      }),
+      {
+        prompt: 'a red circle',
+        size: '1024x1024',
+        quality: 'high',
+      }
+    )
+    assert.throws(() => buildQuoteParameters('   ', {}), /Enter a prompt first/)
+  })
+
   test('rejects a missing required rendered parameter', () => {
     const descriptors: ParameterDescriptor[] = [
       {
