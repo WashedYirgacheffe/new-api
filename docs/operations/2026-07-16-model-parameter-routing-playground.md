@@ -1,9 +1,10 @@
 # 模型参数、路由与 Playground 维护记录
 
 - 日期：2026-07-16
-- 状态：本地实现与发布门禁完成，待提交、部署和云端验收
+- 状态：已部署并完成云端合同、参数与报价验收
 - 分支：`codex/oem-api-hub`
 - 基线提交：`eacf9b91e92de8981994d2315d78df190968b9d1`
+- 发布提交：`003f994e`、`97243328`、`df675dc5`、`41b45add`
 
 ## 范围
 
@@ -38,6 +39,7 @@
 - 初始化幂等创建一个禁用的 GPT Image 别名管理候选组（`gpt-image-2-all` → `gpt-image-2-c` → `gpt-image-2`）；它仅用于关系展示，不进入 Relay 兜底。
 - 新增 Session Playground 目录、报价、OpenAI Images、Gemini generateContent、异步视频提交与轮询路由；网关 `group` 查询参数不会转发给上游。
 - Playground 的报价、图片/视频生成和视频轮询统一发送 `X-CarLab-Operation`；视频成功任务同时规范化返回 `video_url`，失败原因不会再被误判为媒体地址。
+- 图片与视频 Playground 的报价参数会携带当前提示词。修复前页面只发送尺寸、质量、时长等控件值，服务端会按有效合同拒绝为 `required parameter prompt is missing`，导致报价和生成在调用上游前中断。
 - 修正 Relay 重试选路路径：保留 Playground 规范化路径，同时排除普通请求 query，避免 Advanced Custom 首次选路与重试选路不一致。
 - 参数 Binding、证据、修订、模型路由和 Playground 的异步读取按模型、operation 与运行代次隔离；快速切换模型或卸载页面后，迟到响应不能覆盖新上下文。
 - 参数证据 Seed 只创建缺失记录，命中既有记录时保留管理员设置的验证状态、验证时间和备注。
@@ -59,7 +61,8 @@
 
 - 目标运行资源仍为 Railway 项目 `carlab-api` 的 `new-api`、PostgreSQL 和 Redis，以及 Cloudflare 入口 `https://api.carlab.top`。
 - 新表由既有 GORM 迁移流程创建：`model_operation_binding_revisions`、`model_operation_parameter_evidences`、`model_route_groups`、`model_route_targets`、`model_route_operation_locks`。
-- 本轮不新增环境变量。部署仍应由该仓库既有 Git/Railway 流程触发，不能在未提交工作区上宣称云端已更新。
+- 本轮不新增环境变量。代码在提交并推送后通过 Railway 既有部署流程发布；当前成功部署为 `3b12065c-326b-4255-b2c7-d10c7b9bd6fe`。
+- 首次部署 `ebe6aeb5-fda8-4871-b658-13f304a0f8ea` 因生产库缺少 Omni V2V 保留合同版本而失败，旧实例保持健康；提交 `df675dc5` 后部署 `44e82a53-0eb1-4a7a-b0f0-bd1127c06e1f` 成功，随后由 `41b45add` 的 Playground 报价修复部署替代。
 - Superseed Preview 可消费 CarLab 目录与合同，但其 Vercel/Supabase 配置和验收属于 Superseed 仓库，不在本记录中伪报完成。
 
 ## 验证证据
@@ -72,10 +75,14 @@
 - `go test ./middleware ./relay/common -count=1` 通过；`go test ./router -count=1` 通过。
 - controller 除仓库既有 `TestListModelsTokenLimitIncludesTieredBillingModel` 外全部通过；该失败可在未修改的测试与实现上单独复现，测试 fixture 没有创建可路由 Ability，和本轮合同/Playground 改动无关。
 - `web/default` 的五个相关测试文件逐文件执行为 40/40，通过 TypeScript typecheck、所有本轮 TS/TSX 文件定向 oxlint/oxfmt 和 Rsbuild 生产构建（5.87 秒）；中英文静态键与新增动态素材校验键均无缺失。一次性 `bun test` 只发现一个文件，不能作为本轮全量前端证据。
+- 报价提示词回归补丁定向测试 8/8，通过 TypeScript typecheck、3 个改动文件的 oxlint/oxfmt 与 Rsbuild 生产构建（6.08 秒）。
 - 全仓 oxlint 与全仓 format check 仍会命中未修改文件的既有规则债务；本轮没有借机格式化或修改订阅、钱包、系统设置等无关模块。
 - `go test ./... -count=1` 还被缺失的 `web/classic/dist` 阻塞根包 `go:embed`；本轮没有伪造或提交前端构建产物。除根包与上述 controller 基线失败外，命令输出中的其他包全部通过。
 - `go vet ./...` 同样先被缺失的 `web/classic/dist` 阻塞。本轮涉及的 `controller`、`middleware`、`model`、`service`、`relay/helper`、`relay/common`、`router` vet 通过。
-- 尚未执行 Railway 部署、生产数据库迁移、真实付费调用或浏览器验收，因此不存在对应云端成功证据。
+- Railway 部署 `3b12065c-326b-4255-b2c7-d10c7b9bd6fe` 为 `SUCCESS`；`https://api.carlab.top/api/status` 与 Railway 服务域名均返回成功，部署日志没有 error、`FATAL`、panic 或初始化失败。
+- 登录态浏览器验收确认模型详情可读取 GPT Image All、Omni 和 Omni V2V 的参数、合同 hash、证据、修订记录及候选路由边界；候选路由明确标注不会改变线上流量。
+- 多模态 Playground 云端验收确认 GPT Image All 可切换 `1024x1536`、`low` 并报价 `US$0.08`；Omni 可切换 10 秒、9:16、720p 并报价 `US$1.50`；Omni V2V 可切换 6 秒、3:4、720p 并报价 `US$2.00`，缺少必填 MP4 时生成按钮保持禁用。三条交互均未产生 console error/warn，也未发起付费上游生成。
+- in-app Browser 的整页截图连续返回 `Page.captureScreenshot` 超时，因此本轮视觉证据使用页面身份、DOM 状态、控件交互、报价结果和 console 日志；没有伪报截图成功。
 
 ## 回滚
 
@@ -91,8 +98,8 @@
 - 公网 URL 素材会在 Relay 提交前执行严格 HEAD/Range 与内容指纹探测，但源站仍可能在探测后、上游拉取前替换内容；彻底消除该 TOCTOU 风险需要 CarLab 托管素材并向上游发送不可变对象地址。
 - `roles` 只有类型化 `{url, role}` 输入才能验证；`max_total_duration` 在没有服务端媒体解析时一律关闭失败。启用时长限制前必须增加可信容器解析或托管转码链路，不能依赖客户端声明。
 - 参数证据更新和删除目前只有行锁与归属保护，没有 `expected_updated_time`/hash CAS；并发管理员可能发生后写覆盖前写或删除刚更新记录。前端应避免并行写入，后续需为 Evidence CRUD 增加版本令牌和 HTTP 409 冲突语义。
-- 证据 seed 已写入代码并在有表环境幂等执行；尚未执行生产数据库迁移，因此不能把本地记录当作云端完成证据。
+- 证据 seed 与新增治理表已随 Railway 启动流程在生产 PostgreSQL 完成幂等初始化；生产详情页已读取到五个核心模型的证据和合同修订。
 - 素材数量和 15MB 限制属于有效合同，实际上传/转发仍需每个消费端和适配器执行同等校验，不能只依赖 UI。
-- 本地测试使用 SQLite；新增表和事务通过 GORM 保持跨库写法，但仍需在 Railway PostgreSQL Preview/部署阶段验证迁移、索引和 CAS 并发行为。
+- 本地测试使用 SQLite；Railway PostgreSQL 已通过启动迁移和详情读取验收，但 PostgreSQL/MySQL 下的高并发 CAS 与 operation 锁仍未做专门压力测试。
 - 多模态 Playground 尚未执行真实 DeepWL 图片/视频请求；生产验收必须使用隔离低额度账号、单次调用并核对 Quote、消费日志、轮询与结果解析，禁止自动重试。
 - `web/classic/dist` 缺失与既有 controller/vet 告警需要独立修复；本轮为避免扩面没有修改这些无关基线问题。
