@@ -580,17 +580,17 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 }
 
 func migrateReservedModelOperationBinding(modelName, operation, legacyProfileKey string, legacyProfileVersion int, legacyOverrides, nextProfileKey string, nextProfileVersion int, nextOverrides string) error {
-	legacyProfile, legacyVersion, err := GetModelOperationProfileVersion(legacyProfileKey, legacyProfileVersion, false)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil
-		}
-		return err
+	var binding ModelOperationBinding
+	result := DB.Where("model_name = ? AND operation = ?", modelName, operation).
+		Where("profile_key = ? AND profile_version = ?", legacyProfileKey, legacyProfileVersion).
+		Limit(1).Find(&binding)
+	if result.Error != nil {
+		return result.Error
 	}
-	legacyNormalized, _, err := normalizeModelOperationBindingOverrides(legacyOverrides, legacyProfile, legacyVersion)
-	if err != nil {
-		return err
+	if result.RowsAffected == 0 {
+		return nil
 	}
+
 	nextProfile, nextVersion, err := GetModelOperationProfileVersion(nextProfileKey, nextProfileVersion, false)
 	if err != nil {
 		return err
@@ -599,17 +599,60 @@ func migrateReservedModelOperationBinding(modelName, operation, legacyProfileKey
 	if err != nil {
 		return err
 	}
-	return DB.Model(&ModelOperationBinding{}).
-		Where("model_name = ? AND operation = ?", modelName, operation).
-		Where("profile_key = ? AND profile_version = ?", legacyProfileKey, legacyProfileVersion).
-		Where("enabled = ?", true).
-		Where("overrides = ? OR overrides = ?", legacyOverrides, legacyNormalized).
-		Updates(map[string]interface{}{
-			"profile_key":     nextProfileKey,
-			"profile_version": nextProfileVersion,
-			"overrides":       nextNormalized,
-			"updated_time":    common.GetTimestamp(),
-		}).Error
+
+	migratedOverrides := nextNormalized
+	legacyProfile, legacyVersion, err := GetModelOperationProfileVersion(legacyProfileKey, legacyProfileVersion, false)
+	switch {
+	case err == nil:
+		if !binding.Enabled {
+			return nil
+		}
+		legacyNormalized, _, err := normalizeModelOperationBindingOverrides(legacyOverrides, legacyProfile, legacyVersion)
+		if err != nil {
+			return err
+		}
+		if binding.Overrides != legacyOverrides && binding.Overrides != legacyNormalized {
+			return nil
+		}
+		return DB.Model(&ModelOperationBinding{}).
+			Where("id = ?", binding.Id).
+			Where("profile_key = ? AND profile_version = ?", legacyProfileKey, legacyProfileVersion).
+			Where("enabled = ? AND overrides = ?", true, binding.Overrides).
+			Updates(map[string]interface{}{
+				"profile_key":     nextProfile.ProfileKey,
+				"profile_version": nextVersion.Version,
+				"overrides":       nextNormalized,
+				"updated_time":    common.GetTimestamp(),
+			}).Error
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		if legacyProfileKey != nextProfile.ProfileKey {
+			return fmt.Errorf("reserved binding %s/%s points to missing profile %s version %d and cannot be recovered across profile keys", modelName, operation, legacyProfileKey, legacyProfileVersion)
+		}
+		legacyCanonical, err := normalizeContractJSONObject("legacy overrides", legacyOverrides)
+		if err != nil {
+			return err
+		}
+		bindingCanonical, err := normalizeContractJSONObject("binding overrides", binding.Overrides)
+		if err != nil {
+			return fmt.Errorf("reserved binding %s/%s points to missing profile %s version %d: %w", modelName, operation, legacyProfileKey, legacyProfileVersion, err)
+		}
+		if bindingCanonical != legacyCanonical {
+			migratedOverrides, _, err = normalizeModelOperationBindingOverrides(binding.Overrides, nextProfile, nextVersion)
+			if err != nil {
+				return fmt.Errorf("reserved binding %s/%s points to missing profile %s version %d and is incompatible with version %d: %w", modelName, operation, legacyProfileKey, legacyProfileVersion, nextProfileVersion, err)
+			}
+		}
+	case err != nil:
+		return err
+	}
+
+	binding.ProfileKey = nextProfile.ProfileKey
+	binding.ProfileVersion = nextVersion.Version
+	binding.Overrides = migratedOverrides
+	if strings.TrimSpace(binding.ContractHash) == "" {
+		return SaveModelOperationBinding(&binding)
+	}
+	return SaveModelOperationBindingWithExpectedHash(&binding, binding.ContractHash)
 }
 
 func ensureCoreModelEndpointTypes() error {
@@ -761,7 +804,7 @@ func SeedDefaultModelOperationProfiles() error {
 		{
 			modelName: omniFastV2VModelName, profileKey: "video.generate.omni-v2v",
 			legacyVersion: 1, legacy: omniFastV2VLegacyOverrides,
-			nextVersion: 2, next: omniFastV2VVersion2Overrides,
+			nextVersion: 3, next: omniFastV2VOverrides,
 		},
 	} {
 		if err := migrateReservedModelOperationBinding(

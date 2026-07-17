@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -285,6 +286,89 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 		var item Model
 		require.NoError(t, DB.Where("model_name = ?", modelName).First(&item).Error)
 		assert.Contains(t, parseConfiguredEndpointTypes(item.Endpoints), "openai-video")
+	}
+}
+
+func TestSeedDefaultModelOperationProfilesRecoversMissingReservedProfileVersion(t *testing.T) {
+	for _, test := range []struct {
+		name            string
+		customize       bool
+		expectedEnabled bool
+		expectedSeconds float64
+	}{
+		{name: "built-in binding", expectedEnabled: true, expectedSeconds: 4},
+		{name: "administrator overrides", customize: true, expectedEnabled: false, expectedSeconds: 6},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			require.NoError(t, DB.AutoMigrate(
+				&Model{},
+				&ModelOperationProfile{},
+				&ModelOperationProfileVersion{},
+				&ModelOperationBinding{},
+				&ModelOperationBindingRevision{},
+			))
+			for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+				require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table).Error)
+			}
+			t.Cleanup(func() {
+				for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+					DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table)
+				}
+			})
+
+			require.NoError(t, DB.Create(&Model{
+				ModelName: omniFastV2VModelName, DisplayName: "Omni Fast V2V", ModelType: "video", Status: 1,
+			}).Error)
+			require.NoError(t, SeedDefaultModelOperationProfiles())
+
+			profile, currentVersion, err := GetModelOperationProfileVersion("video.generate.omni-v2v", 3, false)
+			require.NoError(t, err)
+			version2 := *currentVersion
+			version2.Id = 0
+			version2.Version = 2
+			version2.MaterialSchema = `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"min_items":1,"max_items":1,"max_size_mb":15,"request_field":"video","transport":"url"},"audio":{"max_items":0}}`
+			require.NoError(t, DB.Create(&version2).Error)
+			version1 := version2
+			version1.Id = 0
+			version1.Version = 1
+			require.NoError(t, DB.Create(&version1).Error)
+
+			legacyOverrides := omniFastV2VVersion2Overrides
+			if test.customize {
+				legacyOverrides = strings.Replace(omniFastV2VOverrides, `"parameter_defaults":{"seconds":4`, `"parameter_defaults":{"seconds":6`, 1)
+			}
+			normalizedLegacy, _, err := normalizeModelOperationBindingOverrides(legacyOverrides, profile, &version2)
+			require.NoError(t, err)
+			var legacyBinding ModelOperationBinding
+			require.NoError(t, DB.Where("model_name = ? AND operation = ?", omniFastV2VModelName, "video.generate").First(&legacyBinding).Error)
+			legacyBinding.ProfileKey = profile.ProfileKey
+			legacyBinding.ProfileVersion = version2.Version
+			legacyBinding.Overrides = normalizedLegacy
+			legacyBinding.Enabled = test.expectedEnabled
+			require.NoError(t, SaveModelOperationBindingWithExpectedHash(&legacyBinding, legacyBinding.ContractHash))
+			require.NoError(t, DB.Delete(&version2).Error)
+
+			require.NoError(t, SeedDefaultModelOperationProfiles())
+
+			var binding ModelOperationBinding
+			require.NoError(t, DB.Where("model_name = ? AND operation = ?", omniFastV2VModelName, "video.generate").First(&binding).Error)
+			assert.Equal(t, profile.ProfileKey, binding.ProfileKey)
+			assert.Equal(t, currentVersion.Version, binding.ProfileVersion)
+			assert.Equal(t, test.expectedEnabled, binding.Enabled)
+			_, overrides, err := normalizeModelOperationBindingOverrides(binding.Overrides, profile, currentVersion)
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedSeconds, overrides.ParameterDefaults["seconds"])
+			expectedHash, err := computeModelOperationContractHash(binding, profile, currentVersion)
+			require.NoError(t, err)
+			assert.Equal(t, expectedHash, binding.ContractHash)
+			var latestRevision ModelOperationBindingRevision
+			require.NoError(t, DB.Where("model_name = ? AND operation = ?", omniFastV2VModelName, "video.generate").
+				Order("revision DESC").First(&latestRevision).Error)
+			assert.Equal(t, binding.ProfileVersion, latestRevision.ProfileVersion)
+			assert.Equal(t, binding.ContractVersion, latestRevision.ContractVersion)
+			assert.Equal(t, binding.ContractHash, latestRevision.ContractHash)
+			assert.Equal(t, binding.Enabled, latestRevision.Enabled)
+		})
 	}
 }
 
