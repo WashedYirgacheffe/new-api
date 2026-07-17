@@ -592,6 +592,10 @@ export function extractVideoTask(payload: unknown): VideoTaskState {
     error = value.error
   } else if (typeof errorValue?.message === 'string') {
     error = errorValue.message
+  } else if (typeof value.fail_reason === 'string') {
+    error = value.fail_reason
+  } else if (typeof value.failReason === 'string') {
+    error = value.failReason
   }
   return {
     taskId,

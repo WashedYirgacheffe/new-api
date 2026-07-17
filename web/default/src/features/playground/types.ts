@@ -251,3 +251,80 @@ export interface PlaygroundMaterialItem {
   size_mb?: number
   duration_seconds?: number
 }
+
+export type PlaygroundMediaOperation = 'image' | 'video'
+
+export type PlaygroundGenerationStatus = 'pending' | 'succeeded' | 'failed'
+
+export interface PlaygroundGeneration {
+  id: string
+  operation: PlaygroundMediaOperation
+  model: string
+  group: string
+  prompt: string
+  parameters: ContractObject
+  outputs: string[]
+  task_id: string
+  status: PlaygroundGenerationStatus
+  error: string
+  contract_hash: string
+  contract_version: number
+  pricing_version: string
+  quoted_quota: number
+  amount: number
+  created_at: number
+  updated_at: number
+  completed_at: number
+}
+
+export interface PlaygroundGenerationCreateRequest {
+  operation: PlaygroundMediaOperation
+  model: string
+  group: string
+  prompt: string
+  parameters: ContractObject
+  contract_hash: string
+  contract_version: number
+  pricing_version: string
+  quoted_quota: number
+  amount: number
+}
+
+export interface PlaygroundGenerationUpdateRequest {
+  status?: PlaygroundGenerationStatus
+  outputs?: string[]
+  task_id?: string
+  error?: string
+}
+
+export interface PlaygroundGenerationListData {
+  items: PlaygroundGeneration[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface PlaygroundGenerationResponse {
+  success: boolean
+  message?: string
+  data?: PlaygroundGeneration
+}
+
+export interface PlaygroundGenerationListResponse {
+  success: boolean
+  message?: string
+  data?: PlaygroundGenerationListData
+}
+
+export interface PlaygroundGenerationAsset {
+  ordinal: number
+  url: string
+  mime_type: string
+  size_bytes: number
+}
+
+export interface PlaygroundGenerationAssetResponse {
+  success: boolean
+  message?: string
+  data?: PlaygroundGenerationAsset
+}

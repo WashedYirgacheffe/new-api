@@ -26,9 +26,30 @@ import type {
   ModelOption,
   GroupOption,
   PlaygroundCatalogResponse,
+  PlaygroundGeneration,
+  PlaygroundGenerationAsset,
+  PlaygroundGenerationAssetResponse,
+  PlaygroundGenerationCreateRequest,
+  PlaygroundGenerationListData,
+  PlaygroundGenerationListResponse,
+  PlaygroundGenerationResponse,
+  PlaygroundGenerationUpdateRequest,
+  PlaygroundMediaOperation,
   PlaygroundOperation,
   PlaygroundQuoteResponse,
 } from './types'
+
+const PLAYGROUND_GENERATIONS_PATH = '/pg/generations'
+
+function requireGenerationData(
+  response: PlaygroundGenerationResponse,
+  fallbackMessage: string
+): PlaygroundGeneration {
+  if (!response.success || !response.data) {
+    throw new Error(response.message || fallbackMessage)
+  }
+  return response.data
+}
 
 /**
  * Send chat completion request (non-streaming)
@@ -120,11 +141,18 @@ export async function runPlaygroundMedia(
   group: string,
   operation: PlaygroundOperation,
   body: ContractObject,
+  idempotencyKey?: string,
   signal?: AbortSignal
 ): Promise<unknown> {
+  const headers: Record<string, string> = {
+    'X-CarLab-Operation': operation,
+  }
+  if (idempotencyKey?.trim()) {
+    headers['Idempotency-Key'] = idempotencyKey.trim()
+  }
   const res = await api.post(path, body, {
     params: { group },
-    headers: { 'X-CarLab-Operation': operation },
+    headers,
     signal,
     skipErrorHandler: true,
   } as Record<string, unknown>)
@@ -145,4 +173,106 @@ export async function getPlaygroundVideo(
     skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
+}
+
+export async function getPlaygroundGenerations(
+  operation: PlaygroundMediaOperation,
+  page = 1,
+  pageSize = 20,
+  signal?: AbortSignal
+): Promise<PlaygroundGenerationListData> {
+  const res = await api.get<PlaygroundGenerationListResponse>(
+    PLAYGROUND_GENERATIONS_PATH,
+    {
+      params: { operation, p: page, page_size: pageSize },
+      signal,
+      skipErrorHandler: true,
+    } as Record<string, unknown>
+  )
+  if (!res.data.success || !res.data.data) {
+    throw new Error(res.data.message || 'Failed to load generation history.')
+  }
+  return res.data.data
+}
+
+export async function createPlaygroundGeneration(
+  payload: PlaygroundGenerationCreateRequest,
+  signal?: AbortSignal
+): Promise<PlaygroundGeneration> {
+  const res = await api.post<PlaygroundGenerationResponse>(
+    PLAYGROUND_GENERATIONS_PATH,
+    payload,
+    {
+      signal,
+      skipErrorHandler: true,
+    } as Record<string, unknown>
+  )
+  return requireGenerationData(res.data, 'Failed to create generation history.')
+}
+
+export async function updatePlaygroundGeneration(
+  id: string,
+  payload: PlaygroundGenerationUpdateRequest,
+  signal?: AbortSignal
+): Promise<PlaygroundGeneration> {
+  const res = await api.patch<PlaygroundGenerationResponse>(
+    `${PLAYGROUND_GENERATIONS_PATH}/${encodeURIComponent(id)}`,
+    payload,
+    {
+      signal,
+      skipErrorHandler: true,
+    } as Record<string, unknown>
+  )
+  return requireGenerationData(res.data, 'Failed to update generation history.')
+}
+
+export async function deletePlaygroundGeneration(id: string): Promise<void> {
+  const res = await api.delete<{
+    success: boolean
+    message?: string
+    data?: null
+  }>(`${PLAYGROUND_GENERATIONS_PATH}/${encodeURIComponent(id)}`, {
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  if (!res.data.success) {
+    throw new Error(res.data.message || 'Failed to delete generation history.')
+  }
+}
+
+export async function uploadPlaygroundGenerationAsset(
+  id: string,
+  ordinal: number,
+  dataURL: string,
+  signal?: AbortSignal
+): Promise<PlaygroundGenerationAsset> {
+  const res = await api.post<PlaygroundGenerationAssetResponse>(
+    `${PLAYGROUND_GENERATIONS_PATH}/${encodeURIComponent(id)}/assets`,
+    { ordinal, data_url: dataURL },
+    {
+      signal,
+      skipErrorHandler: true,
+    } as Record<string, unknown>
+  )
+  if (!res.data.success || !res.data.data) {
+    throw new Error(res.data.message || 'Failed to persist generated media.')
+  }
+  return res.data.data
+}
+
+export function persistableMediaSources(sources: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const source of sources) {
+    try {
+      const url = new URL(source)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') continue
+      if (seen.has(url.href)) continue
+      seen.add(url.href)
+      result.push(url.href)
+      if (result.length === 16) break
+    } catch {
+      continue
+    }
+  }
+  return result
 }

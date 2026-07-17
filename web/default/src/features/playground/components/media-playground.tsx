@@ -16,12 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CircleDollarSign,
   ImageIcon,
   Link2,
   Loader2,
+  Maximize2,
   Play,
   Plus,
   RefreshCw,
@@ -45,11 +46,17 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 
 import {
+  createPlaygroundGeneration,
+  deletePlaygroundGeneration,
   getPlaygroundCatalog,
+  getPlaygroundGenerations,
   getPlaygroundVideo,
   getUserGroups,
+  persistableMediaSources,
   quotePlaygroundModel,
   runPlaygroundMedia,
+  updatePlaygroundGeneration,
+  uploadPlaygroundGenerationAsset,
 } from '../api'
 import {
   buildInitialParameters,
@@ -74,10 +81,15 @@ import {
 import type {
   ContractObject,
   GroupOption,
+  PlaygroundGeneration,
+  PlaygroundGenerationListData,
   PlaygroundMaterialItem,
   PlaygroundMaterials,
+  PlaygroundMediaOperation,
   PlaygroundQuoteData,
 } from '../types'
+import { MediaGenerationHistory } from './media-generation-history'
+import { MediaPreviewDialog, type MediaPreview } from './media-preview-dialog'
 
 const EMPTY_MATERIALS: PlaygroundMaterials = { image: [], video: [], audio: [] }
 const COMPLETE_STATUSES = new Set([
@@ -86,7 +98,19 @@ const COMPLETE_STATUSES = new Set([
   'succeeded',
   'success',
 ])
-const FAILED_STATUSES = new Set(['failed', 'error', 'cancelled', 'canceled'])
+const FAILED_STATUSES = new Set([
+  'failed',
+  'failure',
+  'error',
+  'cancelled',
+  'canceled',
+])
+const HISTORY_UPDATE_RETRY_DELAYS_MS = [0, 250, 750] as const
+
+type VideoPollOutcome = {
+  kind: 'succeeded' | 'failed' | 'pending' | 'aborted'
+  task: VideoTaskState
+}
 
 function numberLabel(value: number | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '-'
@@ -328,6 +352,13 @@ export function MediaPlayground(props: {
   operation: 'image.generate' | 'video.generate'
 }) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const historyOperation: PlaygroundMediaOperation =
+    props.operation === 'image.generate' ? 'image' : 'video'
+  const historyQueryKey = useMemo(
+    () => ['playground-generations', historyOperation] as const,
+    [historyOperation]
+  )
   const [group, setGroup] = useState('')
   const [modelId, setModelId] = useState('')
   const [prompt, setPrompt] = useState('')
@@ -337,11 +368,17 @@ export function MediaPlayground(props: {
   const [quote, setQuote] = useState<PlaygroundQuoteData | null>(null)
   const [outputs, setOutputs] = useState<MediaOutput[]>([])
   const [videoTask, setVideoTask] = useState<VideoTaskState | null>(null)
+  const [preview, setPreview] = useState<MediaPreview | null>(null)
+  const [deletingGenerationId, setDeletingGenerationId] = useState<
+    string | null
+  >(null)
   const [loadingAction, setLoadingAction] = useState<
     'quote' | 'generate' | null
   >(null)
   const generationAbortRef = useRef<AbortController | null>(null)
   const generationRunIdRef = useRef(0)
+  const activeGenerationIdRef = useRef<string | null>(null)
+  const resumeControllersRef = useRef(new Map<string, AbortController>())
 
   const groupsQuery = useQuery({
     queryKey: ['playground-groups'],
@@ -352,6 +389,12 @@ export function MediaPlayground(props: {
     queryFn: () => getPlaygroundCatalog(group),
     enabled: group !== '',
     staleTime: 15_000,
+  })
+  const historyQuery = useQuery({
+    queryKey: historyQueryKey,
+    queryFn: ({ signal }) =>
+      getPlaygroundGenerations(historyOperation, 1, 20, signal),
+    staleTime: 5_000,
   })
 
   const groups: GroupOption[] = useMemo(
@@ -400,6 +443,108 @@ export function MediaPlayground(props: {
     return t(issue.key, values)
   }
 
+  const upsertHistoryRecord = useCallback(
+    (record: PlaygroundGeneration) => {
+      queryClient.setQueryData<PlaygroundGenerationListData>(
+        historyQueryKey,
+        (current) => {
+          if (!current) {
+            return {
+              items: [record],
+              total: 1,
+              page: 1,
+              page_size: 20,
+            }
+          }
+          const exists = current.items.some((item) => item.id === record.id)
+          return {
+            ...current,
+            items: [
+              record,
+              ...current.items.filter((item) => item.id !== record.id),
+            ].slice(0, current.page_size),
+            total: exists ? current.total : current.total + 1,
+          }
+        }
+      )
+    },
+    [historyQueryKey, queryClient]
+  )
+
+  const saveGenerationUpdate = useCallback(
+    async (
+      id: string,
+      update: Parameters<typeof updatePlaygroundGeneration>[1]
+    ): Promise<PlaygroundGeneration | null> => {
+      let lastError: unknown
+      for (
+        let attempt = 0;
+        attempt < HISTORY_UPDATE_RETRY_DELAYS_MS.length;
+        attempt += 1
+      ) {
+        const delay = HISTORY_UPDATE_RETRY_DELAYS_MS[attempt]
+        if (delay > 0) {
+          await new Promise<void>((resolve) =>
+            window.setTimeout(resolve, delay)
+          )
+        }
+        try {
+          const record = await updatePlaygroundGeneration(id, update)
+          upsertHistoryRecord(record)
+          return record
+        } catch (error) {
+          lastError = error
+        }
+      }
+      toast.error(
+        t('History update failed. The generation request was not repeated.'),
+        {
+          description:
+            lastError instanceof Error
+              ? t(lastError.message)
+              : t('Request failed'),
+        }
+      )
+      return null
+    },
+    [t, upsertHistoryRecord]
+  )
+
+  const handleDeleteGeneration = useCallback(
+    async (id: string) => {
+      if (id === activeGenerationIdRef.current) {
+        toast.error(
+          t('Wait for the active generation to finish before deleting it.')
+        )
+        return
+      }
+      setDeletingGenerationId(id)
+      try {
+        resumeControllersRef.current.get(id)?.abort()
+        await deletePlaygroundGeneration(id)
+        queryClient.setQueryData<PlaygroundGenerationListData>(
+          historyQueryKey,
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  items: current.items.filter((item) => item.id !== id),
+                  total: Math.max(0, current.total - 1),
+                }
+              : current
+        )
+        toast.success(t('Generation deleted.'))
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? t(error.message) : t('Delete failed')
+        )
+      } finally {
+        setDeletingGenerationId(null)
+      }
+    },
+    [historyQueryKey, queryClient, t]
+  )
+
   useEffect(() => {
     if (!group && groups.length > 0) setGroup(groups[0].value)
   }, [group, groups])
@@ -427,6 +572,10 @@ export function MediaPlayground(props: {
     () => () => {
       generationAbortRef.current?.abort()
       generationRunIdRef.current += 1
+      for (const controller of resumeControllersRef.current.values()) {
+        controller.abort()
+      }
+      resumeControllersRef.current.clear()
     },
     []
   )
@@ -500,45 +649,147 @@ export function MediaPlayground(props: {
     }
   }
 
-  const pollVideo = async (
-    task: VideoTaskState,
-    controller: AbortController,
-    runId: number,
-    requestedGroup: string
-  ): Promise<boolean> => {
-    if (!task.taskId) {
-      throw new Error(t('The video API returned no task ID.'))
-    }
-    const isCurrentRun = () =>
-      !controller.signal.aborted && runId === generationRunIdRef.current
-    let current = task
-    for (let attempt = 0; attempt < 150; attempt += 1) {
-      if (!isCurrentRun()) return false
-      const status = current.status.toLowerCase()
-      if (COMPLETE_STATUSES.has(status) && current.source) {
-        setVideoTask(current)
-        return true
+  const pollVideo = useCallback(
+    async (
+      task: VideoTaskState,
+      requestedGroup: string,
+      signal: AbortSignal,
+      onProgress?: (current: VideoTaskState) => void
+    ): Promise<VideoPollOutcome> => {
+      if (!task.taskId) {
+        throw new Error(t('The video API returned no task ID.'))
       }
-      if (FAILED_STATUSES.has(status)) {
-        throw new Error(current.error || t('Video generation failed.'))
+      let current = task
+      let completedWithoutSource = false
+      for (let attempt = 0; attempt < 150; attempt += 1) {
+        if (signal.aborted) return { kind: 'aborted', task: current }
+        const status = current.status.toLowerCase()
+        if (COMPLETE_STATUSES.has(status) && current.source) {
+          return { kind: 'succeeded', task: current }
+        }
+        if (COMPLETE_STATUSES.has(status)) completedWithoutSource = true
+        if (FAILED_STATUSES.has(status)) {
+          return { kind: 'failed', task: current }
+        }
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 2_000))
+        if (signal.aborted) return { kind: 'aborted', task: current }
+        const payload = await getPlaygroundVideo(
+          current.taskId,
+          requestedGroup,
+          'video.generate',
+          signal
+        )
+        current = extractVideoTask(payload)
+        if (!current.taskId) current.taskId = task.taskId
+        onProgress?.(current)
       }
-      await new Promise<void>((resolve) => window.setTimeout(resolve, 2_000))
-      if (!isCurrentRun()) return false
-      const payload = await getPlaygroundVideo(
-        current.taskId,
-        requestedGroup,
-        props.operation,
-        controller.signal
-      )
-      current = extractVideoTask(payload)
-      if (!current.taskId) current.taskId = task.taskId
-      if (isCurrentRun()) setVideoTask(current)
+      if (completedWithoutSource) {
+        return {
+          kind: 'failed',
+          task: {
+            ...current,
+            error: t('Video generation completed without a video output.'),
+          },
+        }
+      }
+      return { kind: 'pending', task: current }
+    },
+    [t]
+  )
+
+  useEffect(() => {
+    if (historyOperation !== 'video') return
+    const pending = historyQuery.data?.items
+      .filter((item) => item.status === 'pending' && item.task_id)
+      .slice(0, 3)
+    if (!pending) return
+
+    for (const record of pending) {
+      if (
+        record.id === activeGenerationIdRef.current ||
+        resumeControllersRef.current.has(record.id)
+      ) {
+        continue
+      }
+      const controller = new AbortController()
+      resumeControllersRef.current.set(record.id, controller)
+      void (async () => {
+        try {
+          const outcome = await pollVideo(
+            {
+              taskId: record.task_id,
+              status: 'pending',
+              source: record.outputs[0],
+            },
+            record.group,
+            controller.signal
+          )
+          if (outcome.kind === 'aborted') return
+          if (outcome.kind === 'pending') {
+            toast.warning(t('Video is still processing.'), {
+              description: t('Refresh history later to resume status checks.'),
+            })
+            return
+          }
+          if (outcome.kind === 'failed') {
+            await saveGenerationUpdate(record.id, {
+              status: 'failed',
+              task_id: outcome.task.taskId,
+              error: outcome.task.error || t('Video generation failed.'),
+            })
+            return
+          }
+          const persistedOutputs = persistableMediaSources(
+            outcome.task.source ? [outcome.task.source] : []
+          )
+          await saveGenerationUpdate(record.id, {
+            status: 'succeeded',
+            task_id: outcome.task.taskId,
+            outputs: persistedOutputs,
+          })
+          if (outcome.task.source && persistedOutputs.length === 0) {
+            toast.warning(
+              t(
+                'Generation succeeded, but this result address cannot be persisted.'
+              )
+            )
+          }
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            toast.error(t('Video polling paused. Refresh history to resume.'), {
+              description:
+                error instanceof Error ? t(error.message) : t('Request failed'),
+            })
+          }
+        } finally {
+          resumeControllersRef.current.delete(record.id)
+        }
+      })()
     }
-    throw new Error(t('Video generation polling timed out.'))
-  }
+  }, [
+    historyOperation,
+    historyQuery.data?.items,
+    pollVideo,
+    saveGenerationUpdate,
+    t,
+  ])
 
   const handleGenerate = async () => {
     if (!binding || !selectedModel) return
+    if (historyQuery.isLoading || historyQuery.isError) return
+    const unresolvedGeneration = historyQuery.data?.items.find(
+      (item) =>
+        item.status === 'pending' &&
+        (item.operation === 'image' || item.task_id.length === 0)
+    )
+    if (unresolvedGeneration) {
+      toast.error(t('A previous paid generation has an unresolved status.'), {
+        description: t(
+          'Check billing records or delete it after confirming the outcome before generating again.'
+        ),
+      })
+      return
+    }
     if (!prompt.trim()) {
       toast.error(t('Enter a prompt first.'))
       return
@@ -554,11 +805,32 @@ export function MediaPlayground(props: {
     generationRunIdRef.current = runId
     generationAbortRef.current = controller
     const requestedGroup = group
+    let historyRecord: PlaygroundGeneration | null = null
+    let keepHistoryPending = false
+    let failureSaved = false
+    let historySaved = true
     setLoadingAction('generate')
     setOutputs([])
     setVideoTask(null)
     try {
-      await requestQuote(controller.signal, runId)
+      const quoteSnapshot = await requestQuote(controller.signal, runId)
+      historyRecord = await createPlaygroundGeneration(
+        {
+          operation: historyOperation,
+          model: selectedModel.model_id,
+          group: requestedGroup,
+          prompt: prompt.trim(),
+          parameters,
+          contract_hash: quoteSnapshot.contract_hash,
+          contract_version: quoteSnapshot.contract_version,
+          pricing_version: quoteSnapshot.pricing_version,
+          quoted_quota: quoteSnapshot.estimated_quota,
+          amount: quoteSnapshot.estimated_amount,
+        },
+        controller.signal
+      )
+      activeGenerationIdRef.current = historyRecord.id
+      upsertHistoryRecord(historyRecord)
       const body = buildMediaRequest(
         selectedModel.model_id,
         binding,
@@ -572,47 +844,163 @@ export function MediaPlayground(props: {
         requestedGroup,
         props.operation,
         body,
+        `playground-generation-${historyRecord.id}`,
         controller.signal
       )
-      if (controller.signal.aborted || runId !== generationRunIdRef.current) {
-        return
-      }
+      const isCurrentRun =
+        !controller.signal.aborted && runId === generationRunIdRef.current
       if (props.operation === 'image.generate') {
         const nextOutputs = extractImageOutputs(payload)
         if (nextOutputs.length === 0) {
           throw new Error(t('The request returned no image output.'))
         }
-        setOutputs(nextOutputs)
+        if (isCurrentRun) setOutputs(nextOutputs)
+        const persistedOutputs: string[] = []
+        let archiveFailed = false
+        for (const [index, output] of nextOutputs.entries()) {
+          const directSource = persistableMediaSources([output.source])[0]
+          if (directSource) {
+            persistedOutputs.push(directSource)
+            continue
+          }
+          if (!output.source.toLowerCase().startsWith('data:image/')) {
+            archiveFailed = true
+            continue
+          }
+          try {
+            const asset = await uploadPlaygroundGenerationAsset(
+              historyRecord.id,
+              index,
+              output.source,
+              controller.signal
+            )
+            persistedOutputs.push(
+              new URL(asset.url, window.location.origin).href
+            )
+          } catch {
+            archiveFailed = true
+          }
+        }
+        const savedRecord = await saveGenerationUpdate(historyRecord.id, {
+          status: 'succeeded',
+          outputs: persistedOutputs,
+        })
+        historySaved = savedRecord !== null && !archiveFailed
       } else {
         const task = extractVideoTask(payload)
-        setVideoTask(task)
-        if (!task.source || !COMPLETE_STATUSES.has(task.status.toLowerCase())) {
-          const completed = await pollVideo(
+        if (isCurrentRun) setVideoTask(task)
+        keepHistoryPending = Boolean(task.taskId)
+        if (task.taskId) {
+          await saveGenerationUpdate(historyRecord.id, {
+            status: 'pending',
+            task_id: task.taskId,
+          })
+        }
+
+        let outcome: VideoPollOutcome
+        const taskStatus = task.status.toLowerCase()
+        if (COMPLETE_STATUSES.has(taskStatus) && task.source) {
+          outcome = { kind: 'succeeded', task }
+        } else if (FAILED_STATUSES.has(taskStatus)) {
+          outcome = { kind: 'failed', task }
+        } else {
+          outcome = await pollVideo(
             task,
-            controller,
-            runId,
-            requestedGroup
+            requestedGroup,
+            controller.signal,
+            (current) => {
+              if (runId === generationRunIdRef.current) setVideoTask(current)
+            }
           )
-          if (!completed) return
+        }
+
+        if (outcome.kind === 'aborted') return
+        if (outcome.kind === 'pending') {
+          toast.warning(t('Video is still processing.'), {
+            description: t('Refresh history later to resume status checks.'),
+          })
+          return
+        }
+        if (outcome.kind === 'failed') {
+          keepHistoryPending = false
+          const message = outcome.task.error || t('Video generation failed.')
+          const failedRecord = await saveGenerationUpdate(historyRecord.id, {
+            status: 'failed',
+            task_id: outcome.task.taskId,
+            error: message,
+          })
+          failureSaved = failedRecord !== null
+          throw new Error(message)
+        }
+        if (isCurrentRun) setVideoTask(outcome.task)
+        const persistedOutputs = persistableMediaSources(
+          outcome.task.source ? [outcome.task.source] : []
+        )
+        const savedRecord = await saveGenerationUpdate(historyRecord.id, {
+          status: 'succeeded',
+          task_id: outcome.task.taskId,
+          outputs: persistedOutputs,
+        })
+        historySaved = savedRecord !== null
+        keepHistoryPending = false
+        if (outcome.task.source && persistedOutputs.length === 0) {
+          toast.warning(
+            t(
+              'Generation succeeded, but this result address cannot be persisted.'
+            )
+          )
         }
       }
       if (runId === generationRunIdRef.current) {
-        toast.success(t('Generation completed.'))
+        if (historySaved) {
+          toast.success(t('Generation completed.'))
+        } else {
+          toast.warning(
+            t(
+              'Generation completed, but the result history could not be saved.'
+            )
+          )
+        }
       }
     } catch (error) {
-      if (
-        (error as { name?: string })?.name !== 'AbortError' &&
-        !controller.signal.aborted &&
-        runId === generationRunIdRef.current
-      ) {
-        toast.error(
-          error instanceof Error ? t(error.message) : t('Request failed')
-        )
+      const isAbortError =
+        (error as { name?: string })?.name === 'AbortError' ||
+        controller.signal.aborted
+      const isUncertainNetworkError =
+        Boolean((error as { isAxiosError?: boolean })?.isAxiosError) &&
+        !(error as { response?: unknown })?.response
+      if (!isAbortError && runId === generationRunIdRef.current) {
+        if (
+          historyRecord &&
+          !keepHistoryPending &&
+          !failureSaved &&
+          !isUncertainNetworkError
+        ) {
+          await saveGenerationUpdate(historyRecord.id, {
+            status: 'failed',
+            error:
+              error instanceof Error ? error.message : t('Generation failed.'),
+          })
+        }
+        if (isUncertainNetworkError) {
+          toast.error(
+            t(
+              'Generation status is uncertain. Check billing records before retrying.'
+            )
+          )
+        } else {
+          toast.error(
+            error instanceof Error ? t(error.message) : t('Request failed')
+          )
+        }
       }
     } finally {
       if (runId === generationRunIdRef.current) {
         generationAbortRef.current = null
         setLoadingAction(null)
+      }
+      if (historyRecord?.id === activeGenerationIdRef.current) {
+        activeGenerationIdRef.current = null
       }
     }
   }
@@ -620,274 +1008,346 @@ export function MediaPlayground(props: {
   const noCatalog = !catalogQuery.isLoading && group && models.length === 0
   const ResultIcon = props.operation === 'image.generate' ? ImageIcon : Video
   const GenerateIcon = props.operation === 'image.generate' ? Send : Play
+  const currentVideoSource = videoTask?.source
+  let historyError = ''
+  if (historyQuery.error instanceof Error) {
+    historyError = t(historyQuery.error.message)
+  } else if (historyQuery.error) {
+    historyError = t('Failed to load generation history.')
+  }
 
   return (
-    <div className='grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]'>
-      <aside className='min-h-0 overflow-y-auto border-r p-4'>
-        <div className='space-y-5'>
-          <div className='space-y-3'>
-            <label className='space-y-1.5'>
-              <Label className='text-xs'>{t('Group')}</Label>
-              <NativeSelect
-                className='h-8 w-full text-xs'
-                value={group}
-                disabled={groupsQuery.isLoading || controlsLocked}
-                onChange={(event) => setGroup(event.target.value)}
-              >
-                {groups.map((item) => (
-                  <NativeSelectOption key={item.value} value={item.value}>
-                    {item.label} · x{item.ratio}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </label>
-            <label className='space-y-1.5'>
-              <Label className='text-xs'>{t('Model')}</Label>
-              <NativeSelect
-                className='h-8 w-full text-xs'
-                value={modelId}
-                disabled={
-                  catalogQuery.isLoading ||
-                  models.length === 0 ||
-                  controlsLocked
-                }
-                onChange={(event) => setModelId(event.target.value)}
-              >
-                {models.map((model) => (
-                  <NativeSelectOption
-                    key={model.model_id}
-                    value={model.model_id}
-                  >
-                    {model.display_name || model.model_id}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </label>
-            {selectedModel && binding && (
-              <div className='bg-muted/30 rounded-md border p-2.5'>
-                <p className='truncate font-mono text-xs'>
-                  {selectedModel.model_id}
-                </p>
-                <div className='mt-2 flex flex-wrap gap-1.5'>
-                  <Badge variant='outline'>v{binding.contract_version}</Badge>
-                  <Badge variant='outline'>{binding.execution_mode}</Badge>
-                  {selectedModel.routable && (
-                    <Badge variant='secondary'>{t('Routable')}</Badge>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {noCatalog && (
-            <Alert variant='destructive'>
-              <AlertTitle>{t('No available models')}</AlertTitle>
-              <AlertDescription>
-                {t(
-                  'No dispatch-ready contract is published for this mode and group.'
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {descriptors.length > 0 && (
-            <section className='space-y-3 border-t pt-4'>
-              <h3 className='text-sm font-medium'>{t('Parameters')}</h3>
-              {descriptors.map((descriptor) => (
-                <ParameterControl
-                  key={descriptor.name}
-                  descriptor={descriptor}
-                  value={parameters[descriptor.name]}
-                  disabled={controlsLocked}
-                  onChange={(value) => {
-                    setQuote(null)
-                    setParameters((current) => ({
-                      ...current,
-                      [descriptor.name]: value,
-                    }))
-                  }}
-                />
-              ))}
-            </section>
-          )}
-
-          {hasMaterialControls && (
-            <section className='space-y-4 border-t pt-4'>
-              <h3 className='text-sm font-medium'>{t('Materials')}</h3>
-              {(['image', 'video', 'audio'] as const).map((kind) => (
-                <MaterialEditor
-                  key={kind}
-                  rule={materialRules[kind]}
-                  values={materials[kind]}
-                  disabled={controlsLocked}
-                  onChange={(values) =>
-                    setMaterials((current) => ({ ...current, [kind]: values }))
+    <>
+      <div className='grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]'>
+        <aside className='min-h-0 overflow-y-auto border-r p-4'>
+          <div className='space-y-5'>
+            <div className='space-y-3'>
+              <label className='space-y-1.5'>
+                <Label className='text-xs'>{t('Group')}</Label>
+                <NativeSelect
+                  className='h-8 w-full text-xs'
+                  value={group}
+                  disabled={groupsQuery.isLoading || controlsLocked}
+                  onChange={(event) => setGroup(event.target.value)}
+                >
+                  {groups.map((item) => (
+                    <NativeSelectOption key={item.value} value={item.value}>
+                      {item.label} · x{item.ratio}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </label>
+              <label className='space-y-1.5'>
+                <Label className='text-xs'>{t('Model')}</Label>
+                <NativeSelect
+                  className='h-8 w-full text-xs'
+                  value={modelId}
+                  disabled={
+                    catalogQuery.isLoading ||
+                    models.length === 0 ||
+                    controlsLocked
                   }
-                />
-              ))}
-              {materialIssues.length > 0 && (
-                <Alert variant='destructive'>
-                  <AlertTitle>{t('Material requirements not met')}</AlertTitle>
-                  <AlertDescription>
-                    {materialIssueMessage(materialIssues[0])}
-                  </AlertDescription>
-                </Alert>
+                  onChange={(event) => setModelId(event.target.value)}
+                >
+                  {models.map((model) => (
+                    <NativeSelectOption
+                      key={model.model_id}
+                      value={model.model_id}
+                    >
+                      {model.display_name || model.model_id}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </label>
+              {selectedModel && binding && (
+                <div className='bg-muted/30 rounded-md border p-2.5'>
+                  <p className='truncate font-mono text-xs'>
+                    {selectedModel.model_id}
+                  </p>
+                  <div className='mt-2 flex flex-wrap gap-1.5'>
+                    <Badge variant='outline'>v{binding.contract_version}</Badge>
+                    <Badge variant='outline'>{binding.execution_mode}</Badge>
+                    {selectedModel.routable && (
+                      <Badge variant='secondary'>{t('Routable')}</Badge>
+                    )}
+                  </div>
+                </div>
               )}
-            </section>
-          )}
-
-          <section className='space-y-3 border-t pt-4'>
-            <div className='flex items-center justify-between'>
-              <h3 className='flex items-center gap-1.5 text-sm font-medium'>
-                <CircleDollarSign className='size-4' />
-                {t('Quote')}
-              </h3>
-              <Button
-                size='icon-sm'
-                variant='ghost'
-                disabled={!binding || loadingAction !== null}
-                aria-label={t('Refresh quote')}
-                onClick={() => void handleQuote()}
-              >
-                {loadingAction === 'quote' ? (
-                  <Loader2 className='size-4 animate-spin' />
-                ) : (
-                  <RefreshCw className='size-4' />
-                )}
-              </Button>
             </div>
-            {quote ? (
-              <div className='grid grid-cols-2 gap-2 text-xs'>
-                <div className='rounded-md border p-2'>
-                  <p className='text-muted-foreground'>
-                    {t('Estimated amount')}
-                  </p>
-                  <p className='mt-1 font-medium'>
-                    {usdLabel(quote.estimated_amount)}
-                  </p>
-                </div>
-                <div className='rounded-md border p-2'>
-                  <p className='text-muted-foreground'>
-                    {t('Estimated quota')}
-                  </p>
-                  <p className='mt-1 font-medium'>
-                    {numberLabel(quote.estimated_quota)}
-                  </p>
-                </div>
-                <p className='text-muted-foreground col-span-2 text-[10px]'>
-                  {quote.effective_group} · {quote.estimate_kind}
-                </p>
-              </div>
-            ) : (
-              <p className='text-muted-foreground text-xs'>
-                {t('Quote is calculated before every generation.')}
-              </p>
+
+            {noCatalog && (
+              <Alert variant='destructive'>
+                <AlertTitle>{t('No available models')}</AlertTitle>
+                <AlertDescription>
+                  {t(
+                    'No dispatch-ready contract is published for this mode and group.'
+                  )}
+                </AlertDescription>
+              </Alert>
             )}
-          </section>
-        </div>
-      </aside>
 
-      <section className='flex min-h-0 flex-col'>
-        <div className='flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-5'>
-          {outputs.length > 0 && (
-            <div className='grid w-full max-w-5xl gap-3 sm:grid-cols-2 xl:grid-cols-3'>
-              {outputs.map((output, index) => (
-                <img
-                  key={output.source}
-                  src={output.source}
-                  alt={t('Generated output {{number}}', { number: index + 1 })}
-                  className='max-h-[70vh] w-full rounded-md border object-contain'
-                />
-              ))}
-            </div>
-          )}
-          {outputs.length === 0 && videoTask?.source && (
-            <video
-              src={videoTask.source}
-              className='max-h-[70vh] max-w-full rounded-md border'
-              controls
-              autoPlay
-            />
-          )}
-          {outputs.length === 0 &&
-            !videoTask?.source &&
-            loadingAction === 'generate' && (
-              <div className='w-full max-w-md space-y-4 text-center'>
-                <Loader2 className='mx-auto size-7 animate-spin' />
-                <div>
-                  <p className='font-medium'>
-                    {videoTask ? t('Generating video') : t('Generating')}
-                  </p>
-                  <p className='text-muted-foreground mt-1 text-sm'>
-                    {videoTask?.status || t('Waiting for upstream response')}
-                  </p>
-                </div>
-                {videoTask?.progress !== undefined && (
-                  <Progress
-                    value={
-                      videoTask.progress > 1
-                        ? videoTask.progress
-                        : videoTask.progress * 100
+            {descriptors.length > 0 && (
+              <section className='space-y-3 border-t pt-4'>
+                <h3 className='text-sm font-medium'>{t('Parameters')}</h3>
+                {descriptors.map((descriptor) => (
+                  <ParameterControl
+                    key={descriptor.name}
+                    descriptor={descriptor}
+                    value={parameters[descriptor.name]}
+                    disabled={controlsLocked}
+                    onChange={(value) => {
+                      setQuote(null)
+                      setParameters((current) => ({
+                        ...current,
+                        [descriptor.name]: value,
+                      }))
+                    }}
+                  />
+                ))}
+              </section>
+            )}
+
+            {hasMaterialControls && (
+              <section className='space-y-4 border-t pt-4'>
+                <h3 className='text-sm font-medium'>{t('Materials')}</h3>
+                {(['image', 'video', 'audio'] as const).map((kind) => (
+                  <MaterialEditor
+                    key={kind}
+                    rule={materialRules[kind]}
+                    values={materials[kind]}
+                    disabled={controlsLocked}
+                    onChange={(values) =>
+                      setMaterials((current) => ({
+                        ...current,
+                        [kind]: values,
+                      }))
                     }
                   />
+                ))}
+                {materialIssues.length > 0 && (
+                  <Alert variant='destructive'>
+                    <AlertTitle>
+                      {t('Material requirements not met')}
+                    </AlertTitle>
+                    <AlertDescription>
+                      {materialIssueMessage(materialIssues[0])}
+                    </AlertDescription>
+                  </Alert>
                 )}
-              </div>
+              </section>
             )}
-          {outputs.length === 0 &&
-            !videoTask?.source &&
-            loadingAction !== 'generate' && (
-              <div className='text-muted-foreground text-center'>
-                <ResultIcon className='mx-auto size-10 opacity-40' />
-                <p className='mt-3 text-sm'>
-                  {t('Generated results appear here.')}
-                </p>
-              </div>
-            )}
-        </div>
 
-        <div className='border-t p-4'>
-          <div className='bg-background mx-auto max-w-4xl rounded-lg border p-3 shadow-sm'>
-            <Textarea
-              className='min-h-24 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0'
-              placeholder={
-                props.operation === 'image.generate'
-                  ? t('Describe the image you want to create')
-                  : t('Describe the video you want to create')
-              }
-              value={prompt}
-              disabled={generationLocked}
-              onChange={(event) => setPrompt(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                  void handleGenerate()
+            <section className='space-y-3 border-t pt-4'>
+              <div className='flex items-center justify-between'>
+                <h3 className='flex items-center gap-1.5 text-sm font-medium'>
+                  <CircleDollarSign className='size-4' />
+                  {t('Quote')}
+                </h3>
+                <Button
+                  size='icon-sm'
+                  variant='ghost'
+                  disabled={!binding || loadingAction !== null}
+                  aria-label={t('Refresh quote')}
+                  onClick={() => void handleQuote()}
+                >
+                  {loadingAction === 'quote' ? (
+                    <Loader2 className='size-4 animate-spin' />
+                  ) : (
+                    <RefreshCw className='size-4' />
+                  )}
+                </Button>
+              </div>
+              {quote ? (
+                <div className='grid grid-cols-2 gap-2 text-xs'>
+                  <div className='rounded-md border p-2'>
+                    <p className='text-muted-foreground'>
+                      {t('Estimated amount')}
+                    </p>
+                    <p className='mt-1 font-medium'>
+                      {usdLabel(quote.estimated_amount)}
+                    </p>
+                  </div>
+                  <div className='rounded-md border p-2'>
+                    <p className='text-muted-foreground'>
+                      {t('Estimated quota')}
+                    </p>
+                    <p className='mt-1 font-medium'>
+                      {numberLabel(quote.estimated_quota)}
+                    </p>
+                  </div>
+                  <p className='text-muted-foreground col-span-2 text-[10px]'>
+                    {quote.effective_group} · {quote.estimate_kind}
+                  </p>
+                </div>
+              ) : (
+                <p className='text-muted-foreground text-xs'>
+                  {t('Quote is calculated before every generation.')}
+                </p>
+              )}
+            </section>
+          </div>
+        </aside>
+
+        <section className='flex min-h-0 flex-col'>
+          <MediaGenerationHistory
+            items={historyQuery.data?.items || []}
+            total={historyQuery.data?.total || 0}
+            isLoading={historyQuery.isLoading}
+            isFetching={historyQuery.isFetching}
+            error={historyError}
+            deletingId={deletingGenerationId}
+            onRefresh={() => void historyQuery.refetch()}
+            onDelete={handleDeleteGeneration}
+            onPreview={setPreview}
+          />
+          <div className='flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-5'>
+            {outputs.length > 0 && (
+              <div className='grid w-full max-w-5xl gap-3 sm:grid-cols-2 xl:grid-cols-3'>
+                {outputs.map((output, index) => (
+                  <button
+                    key={output.source}
+                    type='button'
+                    className='group relative overflow-hidden rounded-md border'
+                    onClick={() =>
+                      setPreview({ source: output.source, operation: 'image' })
+                    }
+                    aria-label={t('Open generated output {{number}}', {
+                      number: index + 1,
+                    })}
+                  >
+                    <img
+                      src={output.source}
+                      alt={t('Generated output {{number}}', {
+                        number: index + 1,
+                      })}
+                      className='max-h-[70vh] w-full object-contain'
+                      referrerPolicy='no-referrer'
+                    />
+                    <span className='bg-background/90 absolute top-2 right-2 flex size-8 items-center justify-center rounded-md border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100'>
+                      <Maximize2 className='size-4' />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {outputs.length === 0 && currentVideoSource && (
+              <div className='relative max-h-[70vh] max-w-full'>
+                <video
+                  src={currentVideoSource}
+                  className='max-h-[70vh] max-w-full rounded-md border'
+                  controls
+                  autoPlay
+                  playsInline
+                  aria-label={t('Generated video')}
+                />
+                <Button
+                  type='button'
+                  size='icon-sm'
+                  variant='secondary'
+                  className='absolute top-2 right-2 shadow-sm'
+                  onClick={() =>
+                    setPreview({
+                      source: currentVideoSource,
+                      operation: 'video',
+                    })
+                  }
+                  aria-label={t('Open generated video')}
+                >
+                  <Maximize2 className='size-4' />
+                </Button>
+              </div>
+            )}
+            {outputs.length === 0 &&
+              !videoTask?.source &&
+              loadingAction === 'generate' && (
+                <div className='w-full max-w-md space-y-4 text-center'>
+                  <Loader2 className='mx-auto size-7 animate-spin' />
+                  <div>
+                    <p className='font-medium'>
+                      {videoTask ? t('Generating video') : t('Generating')}
+                    </p>
+                    <p className='text-muted-foreground mt-1 text-sm'>
+                      {videoTask?.status || t('Waiting for upstream response')}
+                    </p>
+                  </div>
+                  {videoTask?.progress !== undefined && (
+                    <Progress
+                      value={
+                        videoTask.progress > 1
+                          ? videoTask.progress
+                          : videoTask.progress * 100
+                      }
+                    />
+                  )}
+                </div>
+              )}
+            {outputs.length === 0 &&
+              !videoTask?.source &&
+              loadingAction !== 'generate' && (
+                <div className='text-muted-foreground text-center'>
+                  <ResultIcon className='mx-auto size-10 opacity-40' />
+                  <p className='mt-3 text-sm'>
+                    {t('Generated results appear here.')}
+                  </p>
+                </div>
+              )}
+          </div>
+
+          <div className='border-t p-4'>
+            <div className='bg-background mx-auto max-w-4xl rounded-lg border p-3 shadow-sm'>
+              <Textarea
+                className='min-h-24 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0'
+                placeholder={
+                  props.operation === 'image.generate'
+                    ? t('Describe the image you want to create')
+                    : t('Describe the video you want to create')
                 }
-              }}
-            />
-            <div className='mt-3 flex items-center justify-between gap-3 border-t pt-3'>
-              <p className='text-muted-foreground truncate font-mono text-[10px]'>
-                {binding?.contract_hash || t('No active contract')}
-              </p>
-              <Button
-                size='sm'
-                disabled={
-                  !binding ||
-                  !prompt.trim() ||
-                  materialIssues.length > 0 ||
-                  loadingAction !== null
-                }
-                onClick={() => void handleGenerate()}
-              >
-                {loadingAction === 'generate' ? (
-                  <Loader2 className='size-4 animate-spin' />
-                ) : (
-                  <GenerateIcon className='size-4' />
-                )}
-                {t('Generate')}
-              </Button>
+                value={prompt}
+                disabled={generationLocked}
+                onChange={(event) => setPrompt(event.target.value)}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === 'Enter' &&
+                    (event.metaKey || event.ctrlKey)
+                  ) {
+                    void handleGenerate()
+                  }
+                }}
+              />
+              <div className='mt-3 flex items-center justify-between gap-3 border-t pt-3'>
+                <p className='text-muted-foreground truncate font-mono text-[10px]'>
+                  {binding?.contract_hash || t('No active contract')}
+                </p>
+                <Button
+                  size='sm'
+                  disabled={
+                    !binding ||
+                    !prompt.trim() ||
+                    materialIssues.length > 0 ||
+                    historyQuery.isLoading ||
+                    historyQuery.isError ||
+                    loadingAction !== null
+                  }
+                  onClick={() => void handleGenerate()}
+                >
+                  {loadingAction === 'generate' ? (
+                    <Loader2 className='size-4 animate-spin' />
+                  ) : (
+                    <GenerateIcon className='size-4' />
+                  )}
+                  {t('Generate')}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+      <MediaPreviewDialog
+        preview={preview}
+        onOpenChange={(open) => {
+          if (!open) setPreview(null)
+        }}
+      />
+    </>
   )
 }

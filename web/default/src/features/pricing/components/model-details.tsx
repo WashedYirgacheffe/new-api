@@ -27,10 +27,12 @@ import {
   Info,
   Layers,
   Maximize2,
+  Route,
+  SlidersHorizontal,
   Sparkles,
   Timer,
 } from 'lucide-react'
-import { useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
@@ -55,6 +57,7 @@ import {
   formatUptimePct,
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
+import { useIsAdmin } from '@/hooks/use-admin'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 
@@ -78,6 +81,19 @@ import type {
 import { DynamicPricingBreakdown } from './dynamic-pricing-breakdown'
 import { ModelDetailsApi } from './model-details-api'
 import { ModelDetailsPerformance } from './model-details-performance'
+
+const ModelParameterWorkspace = lazy(() =>
+  import('@/features/models/components/model-parameter-workspace').then(
+    (module) => ({ default: module.ModelParameterWorkspace })
+  )
+)
+const ModelRouteWorkspace = lazy(() =>
+  import('@/features/models/components/model-route-workspace').then(
+    (module) => ({
+      default: module.ModelRouteWorkspace,
+    })
+  )
+)
 
 // ----------------------------------------------------------------------------
 // Local UI helpers
@@ -850,13 +866,13 @@ function getDynamicPriceFields(
   tiers: DynamicPricingTier[],
   options: DynamicPriceOptions
 ) {
-  return Array.from(
-    new Map(
+  return [
+    ...new Map(
       tiers
         .flatMap((tier) => getDynamicPriceEntries(tier, options))
         .map((entry) => [entry.field, entry])
-    ).values()
-  )
+    ).values(),
+  ]
 }
 
 function getDynamicFormattedPricesByTier(
@@ -903,19 +919,24 @@ function GroupPricingSection(props: {
 
   const extraPriceTypes = useMemo(() => {
     const types: { label: string; type: PriceType }[] = []
-    if (props.model.cache_ratio != null)
+    if (props.model.cache_ratio != null) {
       types.push({ label: t('Cache'), type: 'cache' })
-    if (props.model.create_cache_ratio != null)
+    }
+    if (props.model.create_cache_ratio != null) {
       types.push({ label: t('Cache Write'), type: 'create_cache' })
-    if (props.model.image_ratio != null)
+    }
+    if (props.model.image_ratio != null) {
       types.push({ label: t('Image'), type: 'image' })
-    if (props.model.audio_ratio != null)
+    }
+    if (props.model.audio_ratio != null) {
       types.push({ label: t('Audio In'), type: 'audio_input' })
+    }
     if (
       props.model.audio_ratio != null &&
       props.model.audio_completion_ratio != null
-    )
+    ) {
       types.push({ label: t('Audio Out'), type: 'audio_output' })
+    }
     return types
   }, [props.model, t])
 
@@ -1139,7 +1160,162 @@ function GroupPricingSection(props: {
   )
 }
 
-const TAB_VALUES = ['overview', 'performance', 'api'] as const
+function ModelParameterSummary(props: { model: PricingModel }) {
+  const { t } = useTranslation()
+  const inputModalities = normalizeCatalogItems(props.model.input_modalities)
+  const outputModalities = normalizeCatalogItems(props.model.output_modalities)
+  const endpoints = normalizeCatalogItems(props.model.supported_endpoint_types)
+  const contextLength = props.model.context_length ?? 0
+  const maxOutput = props.model.max_output_tokens ?? 0
+  const cells: React.ReactNode[] = []
+
+  if (inputModalities.length > 0) {
+    cells.push(
+      <CatalogInfoCell key='parameter-input' label={t('Input modalities')}>
+        <CatalogPillList
+          items={inputModalities.map((modality) =>
+            t(MODALITY_LABEL_KEYS[modality] ?? modality)
+          )}
+        />
+      </CatalogInfoCell>
+    )
+  }
+
+  if (outputModalities.length > 0) {
+    cells.push(
+      <CatalogInfoCell key='parameter-output' label={t('Output modalities')}>
+        <CatalogPillList
+          items={outputModalities.map((modality) =>
+            t(MODALITY_LABEL_KEYS[modality] ?? modality)
+          )}
+        />
+      </CatalogInfoCell>
+    )
+  }
+
+  if (contextLength > 0) {
+    cells.push(
+      <CatalogInfoCell key='parameter-context' label={t('Context')}>
+        <CatalogTextValue>
+          {formatCatalogTokenCount(contextLength)}
+        </CatalogTextValue>
+      </CatalogInfoCell>
+    )
+  }
+
+  if (maxOutput > 0) {
+    cells.push(
+      <CatalogInfoCell key='parameter-max-output' label={t('Max output')}>
+        <CatalogTextValue>
+          {formatCatalogTokenCount(maxOutput)}
+        </CatalogTextValue>
+      </CatalogInfoCell>
+    )
+  }
+
+  if (props.model.parameter_count) {
+    cells.push(
+      <CatalogInfoCell key='parameter-count' label={t('Parameters')}>
+        <CatalogTextValue>{props.model.parameter_count}</CatalogTextValue>
+      </CatalogInfoCell>
+    )
+  }
+
+  if (endpoints.length > 0) {
+    cells.push(
+      <CatalogInfoCell key='parameter-endpoints' label={t('Endpoints')}>
+        <CatalogPillList items={endpoints} />
+      </CatalogInfoCell>
+    )
+  }
+
+  return (
+    <section className='space-y-3'>
+      <div>
+        <h2 className='text-sm font-semibold'>
+          {t('Published model information')}
+        </h2>
+        <p className='text-muted-foreground mt-1 text-xs'>
+          {t(
+            'This read-only summary comes from the public model catalog. Parameter contracts are managed separately.'
+          )}
+        </p>
+      </div>
+      {cells.length > 0 ? (
+        <div className='border-border/60 bg-border/60 grid grid-cols-1 gap-px overflow-hidden rounded-lg border sm:grid-cols-2'>
+          {cells}
+        </div>
+      ) : (
+        <div className='text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm'>
+          {t('No published parameter summary is available for this model yet.')}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function ModelParameterDetails(props: { model: PricingModel }) {
+  const { t } = useTranslation()
+  const isAdmin = useIsAdmin()
+
+  return (
+    <div className='space-y-5'>
+      <ModelParameterSummary model={props.model} />
+
+      {isAdmin ? (
+        <section className='min-w-0 rounded-lg border'>
+          <header className='border-b p-4'>
+            <h2 className='text-sm font-semibold'>{t('Model governance')}</h2>
+            <p className='text-muted-foreground mt-1 text-xs'>
+              {t(
+                'Manage parameter contracts, evidence, versions, and candidate routes for this exact gateway model.'
+              )}
+            </p>
+          </header>
+          <div className='min-w-0 p-3 sm:p-4'>
+            <Tabs defaultValue='parameters' className='min-w-0 gap-4'>
+              <TabsList className='grid w-full grid-cols-2'>
+                <TabsTrigger value='parameters' className='min-w-0 text-xs'>
+                  <SlidersHorizontal className='size-3.5 shrink-0' />
+                  <span className='truncate'>{t('Parameter contracts')}</span>
+                </TabsTrigger>
+                <TabsTrigger value='routes' className='min-w-0 text-xs'>
+                  <Route className='size-3.5 shrink-0' />
+                  <span className='truncate'>{t('Candidate routes')}</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value='parameters' className='min-w-0 outline-none'>
+                <Suspense
+                  fallback={<Skeleton className='h-36 w-full rounded-lg' />}
+                >
+                  <ModelParameterWorkspace modelName={props.model.model_name} />
+                </Suspense>
+              </TabsContent>
+              <TabsContent value='routes' className='min-w-0 outline-none'>
+                <Suspense
+                  fallback={<Skeleton className='h-36 w-full rounded-lg' />}
+                >
+                  <ModelRouteWorkspace modelName={props.model.model_name} />
+                </Suspense>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </section>
+      ) : (
+        <section className='bg-muted/20 rounded-lg border border-dashed p-4'>
+          <h2 className='text-sm font-semibold'>{t('Model governance')}</h2>
+          <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+            {t(
+              'Editing parameter contracts, evidence, versions, and candidate routes is available to administrators only.'
+            )}
+          </p>
+        </section>
+      )}
+    </div>
+  )
+}
+
+const TAB_VALUES = ['overview', 'performance', 'parameters', 'api'] as const
 type TabValue = (typeof TAB_VALUES)[number]
 
 const TAB_META: Record<
@@ -1148,6 +1324,7 @@ const TAB_META: Record<
 > = {
   overview: { icon: Info, labelKey: 'Overview' },
   performance: { icon: HeartPulse, labelKey: 'Performance' },
+  parameters: { icon: SlidersHorizontal, labelKey: 'Model parameters' },
   api: { icon: Code2, labelKey: 'API' },
 }
 
@@ -1176,7 +1353,7 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
       <ModelHeader model={props.model} />
 
       <Tabs defaultValue='overview' className='gap-4'>
-        <TabsList className='bg-muted/60 grid w-full grid-cols-3 gap-1 rounded-lg p-1 group-data-horizontal/tabs:h-auto'>
+        <TabsList className='bg-muted/60 grid w-full grid-cols-2 gap-1 rounded-lg p-1 group-data-horizontal/tabs:h-auto @md/details:grid-cols-4'>
           {TAB_VALUES.map((value) => {
             const Icon = TAB_META[value].icon
             return (
@@ -1224,6 +1401,10 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
 
         <TabsContent value='performance' className='outline-none'>
           <ModelDetailsPerformance model={props.model} />
+        </TabsContent>
+
+        <TabsContent value='parameters' className='outline-none'>
+          <ModelParameterDetails model={props.model} />
         </TabsContent>
 
         <TabsContent value='api' className='outline-none'>
@@ -1310,13 +1491,13 @@ export function ModelDetails() {
             <Skeleton className='h-4 w-full max-w-md' />
           </div>
           <div className='mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4'>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className='h-16 w-full' />
+            {['summary-a', 'summary-b', 'summary-c', 'summary-d'].map((key) => (
+              <Skeleton key={key} className='h-16 w-full' />
             ))}
           </div>
           <div className='mt-6 space-y-3'>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className='h-24 w-full' />
+            {['detail-a', 'detail-b', 'detail-c', 'detail-d'].map((key) => (
+              <Skeleton key={key} className='h-24 w-full' />
             ))}
           </div>
         </div>

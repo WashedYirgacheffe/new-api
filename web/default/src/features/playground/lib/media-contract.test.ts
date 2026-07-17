@@ -185,4 +185,23 @@ describe('media playground contract validation', () => {
       }
     )
   })
+
+  test('parses the generic failed task response and reason', () => {
+    assert.deepEqual(
+      extractVideoTask({
+        data: {
+          task_id: 'task-video-failed',
+          status: 'FAILURE',
+          fail_reason: 'upstream rejected the request',
+        },
+      }),
+      {
+        taskId: 'task-video-failed',
+        status: 'FAILURE',
+        progress: undefined,
+        source: undefined,
+        error: 'upstream rejected the request',
+      }
+    )
+  })
 })

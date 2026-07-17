@@ -59,6 +59,18 @@ func SetRelayRouter(router *gin.Engine) {
 		})
 	}
 
+	playgroundAssetRouter := router.Group("/pg")
+	playgroundAssetRouter.Use(middleware.RouteTag("relay"))
+	playgroundAssetRouter.Use(middleware.SystemPerformanceCheck())
+	playgroundAssetRouter.Use(middleware.TokenOrUserAuth())
+	{
+		playgroundAssetRouter.GET(
+			"/generations/:id/assets/:ordinal",
+			middleware.GlobalAPIRateLimit(),
+			controller.GetPlaygroundGenerationAsset,
+		)
+	}
+
 	playgroundRouter := router.Group("/pg")
 	playgroundRouter.Use(middleware.RouteTag("relay"))
 	playgroundRouter.Use(middleware.SystemPerformanceCheck())
@@ -66,6 +78,21 @@ func SetRelayRouter(router *gin.Engine) {
 	{
 		playgroundRouter.GET("/models/catalog", controller.GetPlaygroundModelCatalog)
 		playgroundRouter.POST("/models/quote", controller.QuotePlaygroundModel)
+		playgroundRouter.GET("/generations", middleware.GlobalAPIRateLimit(), controller.ListPlaygroundGenerations)
+		playgroundRouter.POST(
+			"/generations",
+			middleware.GlobalAPIRateLimit(),
+			middleware.CriticalRateLimit(),
+			controller.CreatePlaygroundGeneration,
+		)
+		playgroundRouter.PATCH("/generations/:id", middleware.GlobalAPIRateLimit(), controller.UpdatePlaygroundGeneration)
+		playgroundRouter.DELETE("/generations/:id", middleware.GlobalAPIRateLimit(), controller.DeletePlaygroundGeneration)
+		playgroundRouter.POST(
+			"/generations/:id/assets",
+			middleware.GlobalAPIRateLimit(),
+			middleware.UploadRateLimit(),
+			controller.UploadPlaygroundGenerationAsset,
+		)
 
 		playgroundRelayRouter := playgroundRouter.Group("")
 		playgroundRelayRouter.Use(middleware.Distribute())
