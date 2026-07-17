@@ -37,9 +37,14 @@ import type {
   DeploymentSettingsResponse,
   ListDeploymentsResponse,
   ModelOperationBinding,
+  ModelOperationBindingRevisionsResponse,
   ModelOperationBindingsResponse,
+  ModelOperationParameterEvidence,
+  ModelOperationParameterEvidenceResponse,
   ModelOperationProfile,
   ModelOperationProfilesResponse,
+  ModelRouteGroup,
+  ModelRouteRelationsResponse,
   ModelTokenProfileResponse,
   ModelTokenQuoteResponse,
 } from './types'
@@ -153,13 +158,135 @@ export async function saveModelOperationBinding(
     | 'profile_version'
     | 'overrides'
     | 'enabled'
-  >
+  > & { expected_contract_hash?: string }
 ): Promise<{
   success: boolean
   message?: string
   data?: ModelOperationBinding
 }> {
   const res = await api.post('/api/model-profiles/bindings', data)
+  return res.data
+}
+
+export async function deleteModelOperationBinding(
+  modelName: string,
+  operation: string,
+  expectedContractHash: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.delete('/api/model-profiles/bindings', {
+    params: {
+      model: modelName,
+      operation,
+      expected_contract_hash: expectedContractHash,
+    },
+  })
+  return res.data
+}
+
+export async function getModelOperationBindingRevisions(
+  modelName: string,
+  operation: string
+): Promise<ModelOperationBindingRevisionsResponse> {
+  const res = await api.get('/api/model-profiles/bindings/revisions', {
+    params: { model: modelName, operation, p: 1, page_size: 100 },
+  })
+  return res.data
+}
+
+export async function rollbackModelOperationBinding(
+  modelName: string,
+  operation: string,
+  revision: number,
+  expectedContractHash: string
+): Promise<{
+  success: boolean
+  message?: string
+  data?: ModelOperationBinding
+}> {
+  const res = await api.post('/api/model-profiles/bindings/rollback', {
+    model_name: modelName,
+    operation,
+    revision,
+    expected_contract_hash: expectedContractHash,
+  })
+  return res.data
+}
+
+export async function getModelOperationParameterEvidence(
+  modelName: string,
+  operation?: string
+): Promise<ModelOperationParameterEvidenceResponse> {
+  const res = await api.get('/api/model-profiles/evidence', {
+    params: { model: modelName, operation, p: 1, page_size: 100 },
+  })
+  return res.data
+}
+
+export async function saveModelOperationParameterEvidence(
+  evidence: Omit<
+    ModelOperationParameterEvidence,
+    'created_time' | 'updated_time'
+  >
+): Promise<{
+  success: boolean
+  message?: string
+  data?: ModelOperationParameterEvidence
+}> {
+  const res = await api.post('/api/model-profiles/evidence', evidence)
+  return res.data
+}
+
+export async function deleteModelOperationParameterEvidence(
+  id: number
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.delete(`/api/model-profiles/evidence/${id}`)
+  return res.data
+}
+
+export async function getModelRouteRelations(
+  modelName: string,
+  operation?: string
+): Promise<ModelRouteRelationsResponse> {
+  const res = await api.get('/api/model-routes/relations', {
+    params: { model: modelName, operation },
+  })
+  return res.data
+}
+
+export async function saveModelRouteGroup(
+  group: ModelRouteGroup,
+  expectedHash?: string
+): Promise<{ success: boolean; message?: string; data?: ModelRouteGroup }> {
+  const res = await api.post('/api/model-routes/', {
+    canonical_model: group.canonical_model,
+    operation: group.operation,
+    policy: group.policy,
+    enabled: group.enabled,
+    targets: group.targets.map((target) => ({
+      target_model: target.target_model,
+      priority: target.priority,
+      tie_breaker: target.tie_breaker,
+      enabled: target.enabled,
+      retryable_error_codes: target.retryable_error_codes,
+      compatibility_status: target.compatibility_status,
+    })),
+    expected_hash: expectedHash || '',
+  })
+  return res.data
+}
+
+export async function deleteModelRouteGroup(
+  modelName: string,
+  operation: string,
+  expectedHash: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.delete('/api/model-routes/', {
+    params: {
+      model: modelName,
+      operation,
+      expected_hash: expectedHash,
+    },
+  })
   return res.data
 }
 

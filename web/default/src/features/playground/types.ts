@@ -149,3 +149,105 @@ export interface GroupOption {
   ratio: number
   desc?: string
 }
+
+export type PlaygroundOperation =
+  | 'text.chat'
+  | 'image.generate'
+  | 'video.generate'
+
+export type ContractObject = Record<string, unknown>
+
+export interface PlaygroundEffectiveContract extends ContractObject {
+  operation?: PlaygroundOperation
+  endpoint_type?: string
+  execution_mode?: 'sync' | 'async'
+  input_schema?: ContractObject
+  ui_schema?: ContractObject
+  material_schema?: ContractObject
+  request_contract?: {
+    adapter?: string
+    field_map?: Record<string, string>
+    coercions?: Record<string, string>
+  }
+  parameter_defaults?: ContractObject
+  parameter_overrides?: ContractObject
+  dispatch_path?: string
+  response_contract?: string
+  contract_version?: number
+  contract_hash?: string
+}
+
+export interface PlaygroundCatalogBinding {
+  operation: PlaygroundOperation
+  profile_key: string
+  profile_version: number
+  contract_version: number
+  contract_hash: string
+  endpoint_type: string
+  execution_mode: 'sync' | 'async'
+  response_contract: string
+  effective_contract?: PlaygroundEffectiveContract
+  dispatch_ready: boolean
+}
+
+export interface PlaygroundCatalogModel {
+  model_id: string
+  display_name: string
+  description?: string
+  brand_icon?: string
+  model_type: string
+  billing_mode: string
+  base_price?: number
+  pricing_version: string
+  profile_bindings: PlaygroundCatalogBinding[]
+  routing_groups: string[]
+  routable: boolean
+  price_ready: boolean
+  profile_ready: boolean
+}
+
+export interface PlaygroundCatalogData {
+  items: PlaygroundCatalogModel[]
+  total: number
+  token_group: string
+  pricing_version: string
+}
+
+export interface PlaygroundCatalogResponse {
+  success: boolean
+  message?: string
+  data?: PlaygroundCatalogData
+}
+
+export interface PlaygroundQuoteData {
+  model_id: string
+  operation: PlaygroundOperation
+  effective_group: string
+  pricing_version: string
+  contract_version: number
+  contract_hash: string
+  estimated_quota: number
+  estimated_amount: number
+  estimate_kind: string
+  parameter_multipliers?: Record<string, number> | null
+}
+
+export interface PlaygroundQuoteResponse {
+  success: boolean
+  message?: string
+  data?: PlaygroundQuoteData
+}
+
+export interface PlaygroundMaterials {
+  image: PlaygroundMaterialItem[]
+  video: PlaygroundMaterialItem[]
+  audio: PlaygroundMaterialItem[]
+}
+
+export interface PlaygroundMaterialItem {
+  id: string
+  source: string
+  mime_type: string
+  size_mb?: number
+  duration_seconds?: number
+}

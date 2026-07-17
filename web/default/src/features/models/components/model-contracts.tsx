@@ -17,8 +17,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ExternalLink, FileCode2, Link2, Loader2, Plus } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import {
+  ExternalLink,
+  FileCode2,
+  Link2,
+  Loader2,
+  PlayCircle,
+  Plus,
+  Route,
+  SlidersHorizontal,
+} from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -52,6 +62,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 
 import {
@@ -68,7 +79,8 @@ import {
   type ModelOperationProfile,
   type ModelOperationProfileFormValues,
 } from '../types'
-import { ModelContractTestConsole } from './model-contract-test-console'
+import { ModelParameterWorkspace } from './model-parameter-workspace'
+import { ModelRouteWorkspace } from './model-route-workspace'
 
 const emptyProfile: ModelOperationProfileFormValues = {
   profile_key: '',
@@ -105,11 +117,16 @@ export function ModelContracts() {
   const [profiles, setProfiles] = useState<ModelOperationProfile[]>([])
   const [bindings, setBindings] = useState<ModelOperationBinding[]>([])
   const [modelQuery, setModelQuery] = useState('')
+  const [loadedModelName, setLoadedModelName] = useState('')
   const [loadingProfiles, setLoadingProfiles] = useState(false)
   const [loadingBindings, setLoadingBindings] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [bindingOpen, setBindingOpen] = useState(false)
+  const [editingBinding, setEditingBinding] =
+    useState<ModelOperationBinding | null>(null)
+  const [detailRevision, setDetailRevision] = useState(0)
   const [saving, setSaving] = useState(false)
+  const bindingLoadRunIdRef = useRef(0)
 
   const profileForm = useForm<ModelOperationProfileFormValues>({
     resolver: zodResolver(modelOperationProfileFormSchema),
@@ -154,17 +171,28 @@ export function ModelContracts() {
       toast.error(t('Enter an exact gateway model ID first.'))
       return
     }
+    const runId = bindingLoadRunIdRef.current + 1
+    bindingLoadRunIdRef.current = runId
     setLoadingBindings(true)
     try {
       const response = await getModelOperationBindings(modelName)
+      if (runId !== bindingLoadRunIdRef.current) return
       if (!response.success) {
         throw new Error(response.message || 'Request failed')
       }
       setBindings(response.data || [])
+      setLoadedModelName(modelName)
+      setDetailRevision((current) => current + 1)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Request failed'))
+      if (runId === bindingLoadRunIdRef.current) {
+        toast.error(
+          error instanceof Error ? error.message : t('Request failed')
+        )
+      }
     } finally {
-      setLoadingBindings(false)
+      if (runId === bindingLoadRunIdRef.current) {
+        setLoadingBindings(false)
+      }
     }
   }, [modelQuery, t])
 
@@ -196,6 +224,7 @@ export function ModelContracts() {
   }
 
   const openBinding = (binding?: ModelOperationBinding) => {
+    setEditingBinding(binding || null)
     bindingForm.reset(
       binding
         ? {
@@ -237,18 +266,32 @@ export function ModelContracts() {
   const submitBinding = async (values: ModelOperationBindingFormValues) => {
     setSaving(true)
     try {
+      if (
+        editingBinding &&
+        (values.model_name !== editingBinding.model_name ||
+          values.operation !== editingBinding.operation)
+      ) {
+        throw new Error(t('Binding model and operation cannot be changed.'))
+      }
       const response = await saveModelOperationBinding({
         ...values,
         overrides: JSON.parse(values.overrides),
+        expected_contract_hash: editingBinding?.contract_hash,
       })
       if (!response.success) {
         throw new Error(response.message || 'Request failed')
       }
       toast.success(t('Model binding saved.'))
       setBindingOpen(false)
+      setEditingBinding(null)
       setModelQuery(values.model_name)
       const refreshed = await getModelOperationBindings(values.model_name)
+      if (!refreshed.success) {
+        throw new Error(refreshed.message || 'Request failed')
+      }
       setBindings(refreshed.data || [])
+      setLoadedModelName(values.model_name)
+      setDetailRevision((current) => current + 1)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('Request failed'))
     } finally {
@@ -334,10 +377,66 @@ export function ModelContracts() {
         </AlertDescription>
       </Alert>
 
-      <ModelContractTestConsole
-        modelName={modelQuery}
-        onModelNameChange={setModelQuery}
-      />
+      <section className='rounded-lg border'>
+        <header className='flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-end lg:justify-between'>
+          <div>
+            <h2 className='font-medium'>{t('Model contract details')}</h2>
+            <p className='text-muted-foreground mt-1 text-sm'>
+              {t(
+                'Load one exact gateway model to edit its rendered parameters, evidence, versions, and candidate routes.'
+              )}
+            </p>
+          </div>
+          <div className='flex w-full max-w-3xl flex-col gap-2 sm:flex-row'>
+            <Input
+              value={modelQuery}
+              onChange={(event) => setModelQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') void loadBindings()
+              }}
+              placeholder='deepwl/gpt-image-2'
+            />
+            <Button
+              variant='outline'
+              disabled={loadingBindings}
+              onClick={() => void loadBindings()}
+            >
+              {loadingBindings && <Loader2 className='size-4 animate-spin' />}
+              {t('Load model')}
+            </Button>
+            <Button variant='outline' render={<Link to='/playground' />}>
+              <PlayCircle className='size-4' />
+              {t('Open playground')}
+            </Button>
+          </div>
+        </header>
+        <div className='p-4'>
+          <Tabs defaultValue='parameters'>
+            <TabsList className='mb-4'>
+              <TabsTrigger value='parameters'>
+                <SlidersHorizontal className='size-4' />
+                {t('Model parameters')}
+              </TabsTrigger>
+              <TabsTrigger value='routes'>
+                <Route className='size-4' />
+                {t('Candidate routes')}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value='parameters'>
+              <ModelParameterWorkspace
+                key={`parameters-${loadedModelName}-${detailRevision}`}
+                modelName={loadedModelName}
+              />
+            </TabsContent>
+            <TabsContent value='routes'>
+              <ModelRouteWorkspace
+                key={`routes-${loadedModelName}-${detailRevision}`}
+                modelName={loadedModelName}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </section>
 
       <section className='rounded-lg border'>
         <header className='flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between'>
@@ -590,7 +689,13 @@ export function ModelContracts() {
         </SheetContent>
       </Sheet>
 
-      <Sheet open={bindingOpen} onOpenChange={setBindingOpen}>
+      <Sheet
+        open={bindingOpen}
+        onOpenChange={(open) => {
+          setBindingOpen(open)
+          if (!open) setEditingBinding(null)
+        }}
+      >
         <SheetContent className={sideDrawerContentClassName('sm:max-w-3xl')}>
           <SheetHeader className={sideDrawerHeaderClassName()}>
             <SheetTitle>{t('Gateway model binding')}</SheetTitle>
@@ -609,14 +714,20 @@ export function ModelContracts() {
               <div className='grid gap-4 sm:grid-cols-2'>
                 <label className='space-y-1.5'>
                   <Label>{t('Gateway model ID')}</Label>
-                  <Input {...bindingForm.register('model_name')} />
+                  <Input
+                    readOnly={editingBinding !== null}
+                    {...bindingForm.register('model_name')}
+                  />
                   {renderError(
                     bindingForm.formState.errors.model_name?.message
                   )}
                 </label>
                 <label className='space-y-1.5'>
                   <Label>{t('Operation')}</Label>
-                  <Input {...bindingForm.register('operation')} />
+                  <Input
+                    readOnly={editingBinding !== null}
+                    {...bindingForm.register('operation')}
+                  />
                   {renderError(bindingForm.formState.errors.operation?.message)}
                 </label>
                 <label className='space-y-1.5'>

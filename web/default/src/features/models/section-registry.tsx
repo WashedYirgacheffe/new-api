@@ -34,7 +34,7 @@ const MODELS_SECTIONS = [
   },
   {
     id: 'contracts',
-    titleKey: 'Model Contracts & Test',
+    titleKey: 'Model Contracts',
     build: () => null, // Content is rendered directly in the page component
   },
 ] as const

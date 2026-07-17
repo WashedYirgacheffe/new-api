@@ -216,6 +216,18 @@ export const STATIC_I18N_KEYS = [
   'Channel Affinity',
 
   // Models constants
+  'Material contract for {{kind}} is missing request_field.',
+  'Material transport {{transport}} is not supported in the playground.',
+  'At least {{count}} {{kind}} material(s) are required.',
+  'No more than {{count}} {{kind}} material(s) are allowed.',
+  'Enter a valid HTTP(S) URL for every {{kind}} material.',
+  'Select an allowed MIME type for every {{kind}} material.',
+  'Enter the size in MB for every {{kind}} material.',
+  'Each {{kind}} material must be no larger than {{size}} MB.',
+  'Enter the duration for every {{kind}} material.',
+  'Total {{kind}} duration must not exceed {{duration}} seconds.',
+  'The material contract is not dispatch-ready.',
+  'The model contract has no supported dispatch path.',
   'Exact Match',
   'Prefix Match',
   'Contains Match',

@@ -22,8 +22,12 @@ import { API_ENDPOINTS } from './constants'
 import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
+  ContractObject,
   ModelOption,
   GroupOption,
+  PlaygroundCatalogResponse,
+  PlaygroundOperation,
+  PlaygroundQuoteResponse,
 } from './types'
 
 /**
@@ -79,4 +83,66 @@ export async function getUserGroups(): Promise<GroupOption[]> {
     ratio: info.ratio,
     desc: info.desc,
   }))
+}
+
+export async function getPlaygroundCatalog(
+  group: string
+): Promise<PlaygroundCatalogResponse> {
+  const res = await api.get(API_ENDPOINTS.MODEL_CATALOG, {
+    params: { group },
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  return res.data
+}
+
+export async function quotePlaygroundModel(
+  group: string,
+  model: string,
+  operation: PlaygroundOperation,
+  parameters: ContractObject,
+  signal?: AbortSignal
+): Promise<PlaygroundQuoteResponse> {
+  const res = await api.post(
+    API_ENDPOINTS.MODEL_QUOTE,
+    { model, operation, parameters },
+    {
+      params: { group },
+      headers: { 'X-CarLab-Operation': operation },
+      signal,
+      skipErrorHandler: true,
+    } as Record<string, unknown>
+  )
+  return res.data
+}
+
+export async function runPlaygroundMedia(
+  path: string,
+  group: string,
+  operation: PlaygroundOperation,
+  body: ContractObject,
+  signal?: AbortSignal
+): Promise<unknown> {
+  const res = await api.post(path, body, {
+    params: { group },
+    headers: { 'X-CarLab-Operation': operation },
+    signal,
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  return res.data
+}
+
+export async function getPlaygroundVideo(
+  taskId: string,
+  group: string,
+  operation: PlaygroundOperation,
+  signal?: AbortSignal
+): Promise<unknown> {
+  // The server normalizes every supported upstream poll path through this route.
+  const res = await api.get(`/pg/videos/${encodeURIComponent(taskId)}`, {
+    params: { group },
+    headers: { 'X-CarLab-Operation': operation },
+    signal,
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  return res.data
 }

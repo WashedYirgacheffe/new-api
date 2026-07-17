@@ -115,6 +115,77 @@ export interface ModelOperationBinding {
   enabled: boolean
 }
 
+export interface ModelOperationBindingDeletePayload {
+  model_name: string
+  operation: string
+  expected_contract_hash: string
+}
+
+export interface ModelOperationBindingRevision {
+  id: number
+  binding_id: number
+  model_name: string
+  operation: string
+  revision: number
+  profile_key: string
+  profile_version: number
+  contract_version: number
+  contract_hash: string
+  overrides: ModelContractObject
+  enabled: boolean
+  created_time: number
+}
+
+export interface ModelOperationParameterEvidence {
+  id: number
+  model_name: string
+  operation: string
+  field: string
+  source_type: 'doc' | 'demo' | 'manual' | 'test'
+  source_url?: string
+  source_locator?: string
+  verification_status: 'unverified' | 'documented' | 'tested' | 'rejected'
+  verified_at?: number
+  notes?: string
+  created_time?: number
+  updated_time?: number
+}
+
+export interface ModelRouteTarget {
+  client_key?: string
+  id?: number
+  group_id?: number
+  target_model: string
+  priority: number
+  tie_breaker: number
+  enabled: boolean
+  retryable_error_codes: string[]
+  compatibility_status: 'compatible' | 'incompatible'
+  compatibility_reason?: string
+  created_time?: number
+  updated_time?: number
+}
+
+export interface ModelRouteGroup {
+  id?: number
+  canonical_model: string
+  operation: string
+  policy: 'lowest_effective_cost_failover'
+  enabled: boolean
+  version?: number
+  route_hash?: string
+  targets: ModelRouteTarget[]
+  created_time?: number
+  updated_time?: number
+}
+
+export interface ModelRouteRelations {
+  model_name: string
+  operation?: string
+  incoming: ModelRouteGroup[]
+  outgoing: ModelRouteGroup[]
+}
+
 export interface ModelOperationProfilesResponse {
   success: boolean
   message?: string
@@ -130,6 +201,34 @@ export interface ModelOperationBindingsResponse {
   success: boolean
   message?: string
   data?: ModelOperationBinding[]
+}
+
+export interface ModelOperationBindingRevisionsResponse {
+  success: boolean
+  message?: string
+  data?: {
+    items: ModelOperationBindingRevision[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+export interface ModelOperationParameterEvidenceResponse {
+  success: boolean
+  message?: string
+  data?: {
+    items: ModelOperationParameterEvidence[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+export interface ModelRouteRelationsResponse {
+  success: boolean
+  message?: string
+  data?: ModelRouteRelations
 }
 
 export interface ModelOperationRequestContract {

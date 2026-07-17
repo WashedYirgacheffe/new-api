@@ -71,6 +71,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useSystemOptions,
@@ -85,6 +86,8 @@ import { createModel, updateModel, getModel, getVendors } from '../../api'
 import { getNameRuleOptions, ENDPOINT_TEMPLATES } from '../../constants'
 import { modelsQueryKeys, vendorsQueryKeys, parseModelTags } from '../../lib'
 import type { Model } from '../../types'
+import { ModelParameterWorkspace } from '../model-parameter-workspace'
+import { ModelRouteWorkspace } from '../model-route-workspace'
 
 // Extended schema for ratio configuration (internal form state only)
 const extendedModelFormSchema = z.object({
@@ -115,6 +118,7 @@ type ExtendedModelFormValues = z.infer<typeof extendedModelFormSchema>
 
 type PricingMode = 'per-token' | 'per-request'
 type PricingSubMode = 'ratio' | 'price'
+type ModelDetailTab = 'metadata' | 'parameters' | 'routes'
 
 type ModelMutateDrawerProps = {
   open: boolean
@@ -138,6 +142,11 @@ export function ModelMutateDrawer({
   const [promptPrice, setPromptPrice] = useState('')
   const [completionPrice, setCompletionPrice] = useState('')
   const [oldModelName, setOldModelName] = useState<string>('')
+  const [detailTab, setDetailTab] = useState<ModelDetailTab>('metadata')
+
+  useEffect(() => {
+    if (open) setDetailTab('metadata')
+  }, [currentModelId, open])
 
   // Fetch vendors for dropdown
   const { data: vendorsData } = useQuery({
@@ -678,7 +687,7 @@ export function ModelMutateDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className={sideDrawerContentClassName('sm:max-w-2xl')}>
+      <SheetContent className={sideDrawerContentClassName('sm:max-w-5xl')}>
         <SheetHeader className={sideDrawerHeaderClassName()}>
           <SheetTitle>
             {isEditing ? t('Edit Model') : t('Create Model')}
@@ -692,13 +701,36 @@ export function ModelMutateDrawer({
           </SheetDescription>
         </SheetHeader>
 
+        {isEditing && (
+          <div className='border-b px-4 py-2'>
+            <Tabs
+              value={detailTab}
+              onValueChange={(value) => setDetailTab(value as ModelDetailTab)}
+            >
+              <TabsList className='h-8'>
+                <TabsTrigger className='h-7 text-xs' value='metadata'>
+                  {t('Metadata')}
+                </TabsTrigger>
+                <TabsTrigger className='h-7 text-xs' value='parameters'>
+                  {t('Model parameters')}
+                </TabsTrigger>
+                <TabsTrigger className='h-7 text-xs' value='routes'>
+                  {t('Candidate routes')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        )}
+
         <Form {...form}>
           <form
             id='model-form'
             onSubmit={form.handleSubmit(
               onSubmit as Parameters<typeof form.handleSubmit>[0]
             )}
-            className={sideDrawerFormClassName()}
+            className={
+              detailTab === 'metadata' ? sideDrawerFormClassName() : 'hidden'
+            }
           >
             {/* Basic Information */}
             <SideDrawerSection>
@@ -1403,16 +1435,32 @@ export function ModelMutateDrawer({
           </form>
         </Form>
 
+        {isEditing && detailTab === 'parameters' && (
+          <div className='min-h-0 flex-1 overflow-y-auto p-4'>
+            <ModelParameterWorkspace modelName={currentRow?.model_name || ''} />
+          </div>
+        )}
+
+        {isEditing && detailTab === 'routes' && (
+          <div className='min-h-0 flex-1 overflow-y-auto p-4'>
+            <ModelRouteWorkspace modelName={currentRow?.model_name || ''} />
+          </div>
+        )}
+
         <SheetFooter className={sideDrawerFooterClassName()}>
           <SheetClose
             render={<Button variant='outline' disabled={isSubmitting} />}
           >
             {t('Cancel')}
           </SheetClose>
-          <Button form='model-form' type='submit' disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            {isEditing ? t('Update Model') : t('Save changes')}
-          </Button>
+          {detailTab === 'metadata' && (
+            <Button form='model-form' type='submit' disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              )}
+              {isEditing ? t('Update Model') : t('Save changes')}
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>
