@@ -171,6 +171,7 @@ describe('media playground contract validation', () => {
       extractVideoTask({
         code: 'success',
         data: {
+          id: 14,
           task_id: 'task-video-1',
           status: 'SUCCESS',
           video_url: 'https://cdn.example.com/output.mp4',

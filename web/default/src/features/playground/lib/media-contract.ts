@@ -576,7 +576,7 @@ export function extractVideoTask(payload: unknown): VideoTaskState {
   const value = nested || root || {}
   const output = objectValue(value.output)
   const errorValue = objectValue(value.error)
-  const taskId = String(value.id || value.task_id || value.taskId || '')
+  const taskId = String(value.task_id || value.taskId || value.id || '')
   const status = String(value.status || value.state || '')
   const rawProgress = value.progress
   let progress: number | undefined
