@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"errors"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -44,24 +46,82 @@ type modelOperationProfileContract struct {
 }
 
 type modelOperationBindingPayload struct {
-	ModelName      string                 `json:"model_name"`
-	Operation      string                 `json:"operation"`
-	ProfileKey     string                 `json:"profile_key"`
-	ProfileVersion int                    `json:"profile_version"`
-	Overrides      map[string]interface{} `json:"overrides"`
-	Enabled        *bool                  `json:"enabled"`
+	ModelName            string                 `json:"model_name"`
+	Operation            string                 `json:"operation"`
+	ProfileKey           string                 `json:"profile_key"`
+	ProfileVersion       int                    `json:"profile_version"`
+	Overrides            map[string]interface{} `json:"overrides"`
+	Enabled              *bool                  `json:"enabled"`
+	ExpectedContractHash string                 `json:"expected_contract_hash"`
 }
 
 type modelOperationBindingContract struct {
-	ModelName        string                                 `json:"model_name"`
-	Operation        string                                 `json:"operation"`
-	ProfileKey       string                                 `json:"profile_key"`
-	ProfileVersion   int                                    `json:"profile_version"`
-	ContractVersion  int                                    `json:"contract_version"`
-	ContractHash     string                                 `json:"contract_hash"`
-	Overrides        map[string]interface{}                 `json:"overrides"`
+	ModelName         string                                 `json:"model_name"`
+	Operation         string                                 `json:"operation"`
+	ProfileKey        string                                 `json:"profile_key"`
+	ProfileVersion    int                                    `json:"profile_version"`
+	ContractVersion   int                                    `json:"contract_version"`
+	ContractHash      string                                 `json:"contract_hash"`
+	Overrides         map[string]interface{}                 `json:"overrides"`
 	EffectiveContract *model.ModelOperationEffectiveContract `json:"effective_contract"`
-	Enabled          bool                                   `json:"enabled"`
+	Enabled           bool                                   `json:"enabled"`
+}
+
+type modelOperationBindingRevisionContract struct {
+	Id              int                    `json:"id"`
+	BindingId       int                    `json:"binding_id"`
+	ModelName       string                 `json:"model_name"`
+	Operation       string                 `json:"operation"`
+	Revision        int                    `json:"revision"`
+	ProfileKey      string                 `json:"profile_key"`
+	ProfileVersion  int                    `json:"profile_version"`
+	ContractVersion int                    `json:"contract_version"`
+	ContractHash    string                 `json:"contract_hash"`
+	Overrides       map[string]interface{} `json:"overrides"`
+	Enabled         bool                   `json:"enabled"`
+	CreatedTime     int64                  `json:"created_time"`
+}
+
+type modelOperationBindingRollbackPayload struct {
+	ModelName            string `json:"model_name"`
+	Operation            string `json:"operation"`
+	Revision             int    `json:"revision"`
+	ExpectedContractHash string `json:"expected_contract_hash"`
+}
+
+type modelOperationParameterEvidencePayload struct {
+	Id                 int    `json:"id"`
+	ModelName          string `json:"model_name"`
+	Operation          string `json:"operation"`
+	Field              string `json:"field"`
+	SourceType         string `json:"source_type"`
+	SourceURL          string `json:"source_url"`
+	SourceLocator      string `json:"source_locator"`
+	VerificationStatus string `json:"verification_status"`
+	VerifiedAt         int64  `json:"verified_at"`
+	Notes              string `json:"notes"`
+}
+
+func writeModelOperationBindingError(c *gin.Context, err error) {
+	if errors.Is(err, model.ErrModelOperationBindingConflict) {
+		c.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	common.ApiError(c, err)
+}
+
+func writeModelOperationEvidenceError(c *gin.Context, err error) {
+	if errors.Is(err, model.ErrModelOperationParameterEvidenceConflict) {
+		c.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	common.ApiError(c, err)
 }
 
 func marshalContractObject(value map[string]interface{}) (string, error) {
@@ -267,13 +327,13 @@ func SaveModelOperationBinding(c *gin.Context) {
 		Overrides:      overrides,
 		Enabled:        enabled,
 	}
-	if err := model.SaveModelOperationBinding(&binding); err != nil {
-		common.ApiError(c, err)
+	if err := model.SaveModelOperationBindingWithExpectedHash(&binding, payload.ExpectedContractHash); err != nil {
+		writeModelOperationBindingError(c, err)
 		return
 	}
 	profile, version, err := model.GetModelOperationProfileVersion(binding.ProfileKey, binding.ProfileVersion, false)
 	if err != nil {
-		common.ApiError(c, err)
+		writeModelOperationBindingError(c, err)
 		return
 	}
 	contract, err := buildModelOperationBindingContract(binding, profile, version)
@@ -284,6 +344,137 @@ func SaveModelOperationBinding(c *gin.Context) {
 	common.ApiSuccess(c, contract)
 }
 
+func GetModelOperationBindingRevisions(c *gin.Context) {
+	modelName := strings.TrimSpace(c.Query("model"))
+	operation := strings.TrimSpace(c.Query("operation"))
+	if modelName == "" || operation == "" {
+		common.ApiErrorMsg(c, "model and operation are required")
+		return
+	}
+	pageInfo := common.GetPageQuery(c)
+	revisions, total, err := model.GetModelOperationBindingRevisions(modelName, operation, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	items := make([]modelOperationBindingRevisionContract, 0, len(revisions))
+	for _, revision := range revisions {
+		items = append(items, modelOperationBindingRevisionContract{
+			Id:              revision.Id,
+			BindingId:       revision.BindingId,
+			ModelName:       revision.ModelName,
+			Operation:       revision.Operation,
+			Revision:        revision.Revision,
+			ProfileKey:      revision.ProfileKey,
+			ProfileVersion:  revision.ProfileVersion,
+			ContractVersion: revision.ContractVersion,
+			ContractHash:    revision.ContractHash,
+			Overrides:       unmarshalContractObject(revision.Overrides),
+			Enabled:         revision.Enabled,
+			CreatedTime:     revision.CreatedTime,
+		})
+	}
+	common.ApiSuccess(c, gin.H{
+		"items":     items,
+		"total":     total,
+		"page":      pageInfo.GetPage(),
+		"page_size": pageInfo.GetPageSize(),
+	})
+}
+
+func RollbackModelOperationBinding(c *gin.Context) {
+	var payload modelOperationBindingRollbackPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	binding, err := model.RollbackModelOperationBinding(
+		payload.ModelName,
+		payload.Operation,
+		payload.Revision,
+		payload.ExpectedContractHash,
+	)
+	if err != nil {
+		writeModelOperationBindingError(c, err)
+		return
+	}
+	profile, version, err := model.GetModelOperationProfileVersion(binding.ProfileKey, binding.ProfileVersion, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	contract, err := buildModelOperationBindingContract(*binding, profile, version)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, contract)
+}
+
+func GetModelOperationParameterEvidence(c *gin.Context) {
+	modelName := strings.TrimSpace(c.Query("model"))
+	if modelName == "" {
+		common.ApiErrorMsg(c, "model is required")
+		return
+	}
+	pageInfo := common.GetPageQuery(c)
+	items, total, err := model.GetModelOperationParameterEvidence(
+		modelName,
+		c.Query("operation"),
+		c.Query("field"),
+		pageInfo.GetStartIdx(),
+		pageInfo.GetPageSize(),
+	)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"items":     items,
+		"total":     total,
+		"page":      pageInfo.GetPage(),
+		"page_size": pageInfo.GetPageSize(),
+	})
+}
+
+func SaveModelOperationParameterEvidence(c *gin.Context) {
+	var payload modelOperationParameterEvidencePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	evidence := model.ModelOperationParameterEvidence{
+		Id:                 payload.Id,
+		ModelName:          payload.ModelName,
+		Operation:          payload.Operation,
+		Field:              payload.Field,
+		SourceType:         payload.SourceType,
+		SourceURL:          payload.SourceURL,
+		SourceLocator:      payload.SourceLocator,
+		VerificationStatus: payload.VerificationStatus,
+		VerifiedAt:         payload.VerifiedAt,
+		Notes:              payload.Notes,
+	}
+	if err := model.SaveModelOperationParameterEvidence(&evidence); err != nil {
+		writeModelOperationEvidenceError(c, err)
+		return
+	}
+	common.ApiSuccess(c, evidence)
+}
+
+func DeleteModelOperationParameterEvidence(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		common.ApiErrorMsg(c, "evidence id must be a positive integer")
+		return
+	}
+	if err := model.DeleteModelOperationParameterEvidence(id); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}
+
 func DeleteModelOperationBinding(c *gin.Context) {
 	modelName := strings.TrimSpace(c.Query("model"))
 	operation := strings.TrimSpace(c.Query("operation"))
@@ -291,8 +482,14 @@ func DeleteModelOperationBinding(c *gin.Context) {
 		common.ApiErrorMsg(c, "model and operation are required")
 		return
 	}
-	if err := model.DeleteModelOperationBinding(modelName, operation); err != nil {
-		common.ApiError(c, err)
+	expectedHash := strings.TrimSpace(c.Query("expected_contract_hash"))
+	if expectedHash == "" {
+		expectedHash = strings.TrimSpace(c.GetHeader("If-Match"))
+	}
+	expectedHash = strings.TrimPrefix(expectedHash, "W/")
+	expectedHash = strings.Trim(expectedHash, `"`)
+	if err := model.DeleteModelOperationBinding(modelName, operation, expectedHash); err != nil {
+		writeModelOperationBindingError(c, err)
 		return
 	}
 	common.ApiSuccess(c, nil)

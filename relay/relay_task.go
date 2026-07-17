@@ -177,7 +177,23 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 		info.PublicTaskID = model.GenerateTaskID()
 	}
 
-	// 4. 价格计算：基础模型价格
+	// 4. 合同参数必须先写回 task_request/body，后续计费估算与上游派发
+	//    才会消费同一份 effective parameters。
+	taskRequest, err := relaycommon.GetTaskRequest(c)
+	if err != nil {
+		return nil, service.TaskErrorWrapperLocal(err, "task_request_missing", http.StatusBadRequest)
+	}
+	preparedContract, err := helper.PrepareModelOperationContractRequest(c, info, "video.generate", &taskRequest)
+	if err != nil {
+		return nil, service.TaskErrorWrapperLocal(err, "invalid_contract_parameters", http.StatusBadRequest)
+	}
+	if preparedContract != nil {
+		if err := helper.ValidateModelOperationContractMaterials(c, preparedContract.Contract, preparedContract.RequestParameters); err != nil {
+			return nil, service.TaskErrorWrapperLocal(err, "model_contract_materials_invalid", http.StatusBadRequest)
+		}
+	}
+
+	// 5. 价格计算：基础模型价格
 	info.OriginModelName = modelName
 	priceData, err := helper.ModelPriceHelperPerCall(c, info)
 	if err != nil {
@@ -185,7 +201,7 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 	}
 	info.PriceData = priceData
 
-	// 5. 计费估算：让适配器根据用户请求提供 OtherRatios（时长、分辨率等）
+	// 6. 计费估算：让适配器根据 effective 请求提供 OtherRatios（时长、分辨率等）
 	//    必须在 ModelPriceHelperPerCall 之后调用（它会重建 PriceData）。
 	//    ResolveOriginTask 可能已在 remix 路径中预设了 OtherRatios，此处合并。
 	if estimatedRatios := adaptor.EstimateBilling(c, info); len(estimatedRatios) > 0 {
@@ -193,24 +209,11 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 			info.PriceData.AddOtherRatio(k, v)
 		}
 	}
-	taskRequest, err := relaycommon.GetTaskRequest(c)
-	if err != nil {
-		return nil, service.TaskErrorWrapperLocal(err, "task_request_missing", http.StatusBadRequest)
-	}
-	contractParameters, err := helper.ModelOperationParameters(taskRequest)
-	if err != nil {
-		return nil, service.TaskErrorWrapperLocal(err, "invalid_contract_parameters", http.StatusBadRequest)
-	}
-	for key, value := range taskRequest.Metadata {
-		if _, exists := contractParameters[key]; !exists {
-			contractParameters[key] = value
-		}
-	}
-	if _, err := helper.ApplyModelOperationContractPricing(info, "video.generate", contractParameters); err != nil {
+	if err := helper.ApplyPreparedModelOperationContractPricing(info, preparedContract); err != nil {
 		return nil, service.TaskErrorWrapperLocal(err, "model_contract_pricing_failed", http.StatusBadRequest)
 	}
 
-	// 6. 将 OtherRatios 应用到基础额度（饱和转换，防止溢出成负数）
+	// 7. 将 OtherRatios 应用到基础额度（饱和转换，防止溢出成负数）
 	if !common.StringsContains(constant.TaskPricePatches, modelName) {
 		quotaWithRatios := info.PriceData.ApplyOtherRatiosToFloat(float64(info.PriceData.Quota))
 		quota, clamp := common.QuotaFromFloatChecked(quotaWithRatios)
@@ -218,7 +221,7 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 		noteTaskQuotaClamp(info, clamp)
 	}
 
-	// 7. 预扣费（仅首次 — 重试时 info.Billing 已存在，跳过）
+	// 8. 预扣费（仅首次 — 重试时 info.Billing 已存在，跳过）
 	if info.Billing == nil && !info.PriceData.FreeModel {
 		info.ForcePreConsume = true
 		if apiErr := service.PreConsumeBilling(c, info.PriceData.Quota, info); apiErr != nil {
@@ -226,13 +229,13 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 		}
 	}
 
-	// 8. 构建请求体
+	// 9. 构建请求体
 	requestBody, err := adaptor.BuildRequestBody(c, info)
 	if err != nil {
 		return nil, service.TaskErrorWrapper(err, "build_request_failed", http.StatusInternalServerError)
 	}
 
-	// 9. 发送请求
+	// 10. 发送请求
 	resp, err := adaptor.DoRequest(c, info, requestBody)
 	if err != nil {
 		return nil, service.TaskErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
@@ -242,7 +245,7 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 		return nil, service.TaskErrorWrapper(fmt.Errorf("%s", string(responseBody)), "fail_to_fetch_task", resp.StatusCode)
 	}
 
-	// 10. 返回 OtherRatios 给下游（header 必须在 DoResponse 写 body 之前设置）
+	// 11. 返回 OtherRatios 给下游（header 必须在 DoResponse 写 body 之前设置）
 	otherRatios := info.PriceData.OtherRatios()
 	if otherRatios == nil {
 		otherRatios = map[string]float64{}
@@ -250,13 +253,13 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 	ratiosJSON, _ := common.Marshal(otherRatios)
 	c.Header("X-New-Api-Other-Ratios", string(ratiosJSON))
 
-	// 11. 解析响应
+	// 12. 解析响应
 	upstreamTaskID, taskData, taskErr := adaptor.DoResponse(c, resp, info)
 	if taskErr != nil {
 		return nil, taskErr
 	}
 
-	// 11. 提交后计费调整：让适配器根据上游实际返回调整 OtherRatios
+	// 13. 提交后计费调整：让适配器根据上游实际返回调整 OtherRatios
 	finalQuota := info.PriceData.Quota
 	if adjustedRatios := adaptor.AdjustBillingOnSubmit(info, taskData); len(adjustedRatios) > 0 {
 		if adjustedQuota, ok := recalcQuotaFromRatios(info, adjustedRatios); ok {
@@ -564,6 +567,10 @@ func mapTaskStatusToSimple(status model.TaskStatus) string {
 }
 
 func TaskModel2Dto(task *model.Task) *dto.TaskDto {
+	videoURL := ""
+	if task.Status == model.TaskStatusSuccess {
+		videoURL = task.GetResultURL()
+	}
 	return &dto.TaskDto{
 		ID:         task.ID,
 		CreatedAt:  task.CreatedAt,
@@ -578,6 +585,7 @@ func TaskModel2Dto(task *model.Task) *dto.TaskDto {
 		Status:     string(task.Status),
 		FailReason: task.FailReason,
 		ResultURL:  task.GetResultURL(),
+		VideoURL:   videoURL,
 		SubmitTime: task.SubmitTime,
 		StartTime:  task.StartTime,
 		FinishTime: task.FinishTime,

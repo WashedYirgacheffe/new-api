@@ -43,6 +43,7 @@ type TaskDto struct {
 	Status     string          `json:"status"`
 	FailReason string          `json:"fail_reason"`
 	ResultURL  string          `json:"result_url,omitempty"` // 任务结果 URL（视频地址等）
+	VideoURL   string          `json:"video_url,omitempty"`  // Playground 视频轮询兼容字段
 	SubmitTime int64           `json:"submit_time"`
 	StartTime  int64           `json:"start_time"`
 	FinishTime int64           `json:"finish_time"`

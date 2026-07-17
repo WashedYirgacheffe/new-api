@@ -83,6 +83,14 @@ func relayModelOperation(c *gin.Context, info *relaycommon.RelayInfo) string {
 	}
 }
 
+func relayRetryRequestPath(info *relaycommon.RelayInfo) string {
+	if info == nil {
+		return ""
+	}
+	requestPath, _, _ := strings.Cut(info.RequestURLPath, "?")
+	return requestPath
+}
+
 func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	requestId := c.GetString(common.RequestIdKey)
@@ -140,6 +148,22 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
 		return
 	}
+	preparedContract, err := helper.PrepareModelOperationContractRequest(
+		c,
+		relayInfo,
+		relayModelOperation(c, relayInfo),
+		request,
+	)
+	if err != nil {
+		newAPIError = types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithStatusCode(http.StatusBadRequest), types.ErrOptionWithSkipRetry())
+		return
+	}
+	if preparedContract != nil {
+		if err := helper.ValidateModelOperationContractMaterials(c, preparedContract.Contract, preparedContract.RequestParameters); err != nil {
+			newAPIError = types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithStatusCode(http.StatusBadRequest), types.ErrOptionWithSkipRetry())
+			return
+		}
+	}
 
 	needSensitiveCheck := setting.ShouldCheckPromptSensitive()
 	needCountToken := constant.CountToken
@@ -173,12 +197,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		newAPIError = types.NewError(err, types.ErrorCodeModelPriceError, types.ErrOptionWithStatusCode(http.StatusBadRequest))
 		return
 	}
-	contractParameters, err := helper.ModelOperationParameters(request)
-	if err != nil {
-		newAPIError = types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithStatusCode(http.StatusBadRequest))
-		return
-	}
-	if _, err := helper.ApplyModelOperationContractPricing(relayInfo, relayModelOperation(c, relayInfo), contractParameters); err != nil {
+	if err := helper.ApplyPreparedModelOperationContractPricing(relayInfo, preparedContract); err != nil {
 		newAPIError = types.NewError(err, types.ErrorCodeModelPriceError, types.ErrOptionWithStatusCode(http.StatusBadRequest))
 		return
 	}
@@ -214,7 +233,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		Ctx:         c,
 		TokenGroup:  relayInfo.TokenGroup,
 		ModelName:   relayInfo.OriginModelName,
-		RequestPath: c.Request.URL.Path,
+		RequestPath: relayRetryRequestPath(relayInfo),
 		Retry:       common.GetPointer(0),
 	}
 	relayInfo.RetryIndex = 0
@@ -543,7 +562,7 @@ func RelayTask(c *gin.Context) {
 		Ctx:         c,
 		TokenGroup:  relayInfo.TokenGroup,
 		ModelName:   relayInfo.OriginModelName,
-		RequestPath: c.Request.URL.Path,
+		RequestPath: relayRetryRequestPath(relayInfo),
 		Retry:       common.GetPointer(0),
 	}
 

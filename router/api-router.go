@@ -361,10 +361,24 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			modelProfilesRoute.GET("/", controller.GetModelOperationProfiles)
 			modelProfilesRoute.GET("/bindings", controller.GetModelOperationBindings)
+			modelProfilesRoute.GET("/bindings/revisions", controller.GetModelOperationBindingRevisions)
+			modelProfilesRoute.POST("/bindings/rollback", controller.RollbackModelOperationBinding)
+			modelProfilesRoute.GET("/evidence", controller.GetModelOperationParameterEvidence)
+			modelProfilesRoute.POST("/evidence", controller.SaveModelOperationParameterEvidence)
+			modelProfilesRoute.DELETE("/evidence/:id", controller.DeleteModelOperationParameterEvidence)
 			modelProfilesRoute.GET("/:profile_key", controller.GetModelOperationProfile)
 			modelProfilesRoute.POST("/", controller.SaveModelOperationProfile)
 			modelProfilesRoute.POST("/bindings", controller.SaveModelOperationBinding)
 			modelProfilesRoute.DELETE("/bindings", controller.DeleteModelOperationBinding)
+		}
+
+		modelRoutesRoute := apiRouter.Group("/model-routes")
+		modelRoutesRoute.Use(middleware.AdminAuth())
+		{
+			modelRoutesRoute.GET("/", controller.GetModelRouteGroups)
+			modelRoutesRoute.GET("/relations", controller.GetModelRouteDetail)
+			modelRoutesRoute.POST("/", controller.SaveModelRouteGroup)
+			modelRoutesRoute.DELETE("/", controller.DeleteModelRouteGroup)
 		}
 
 		// Deployments (model deployment management)

@@ -463,14 +463,19 @@ func QuoteTokenModel(c *gin.Context) {
 		common.ApiErrorMsg(c, fmt.Sprintf("operation %s is not dispatch-ready for model %s", request.Operation, request.Model))
 		return
 	}
+	normalizedParameters, err := model.NormalizeAndValidateModelOperationParameters(effectiveContract, request.Parameters)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	selectedGroup, err := resolveQuoteGroup(c, groups, request.Model, profileVersion.EndpointType)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	quoteBody := make(map[string]interface{}, len(request.Parameters)+1)
+	quoteBody := make(map[string]interface{}, len(normalizedParameters)+1)
 	quoteBody["model"] = request.Model
-	for key, value := range request.Parameters {
+	for key, value := range normalizedParameters {
 		quoteBody[key] = value
 	}
 	bodyBytes, err := common.Marshal(quoteBody)
@@ -496,7 +501,7 @@ func QuoteTokenModel(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
-		parameterRatios, err := model.CalculateModelOperationParameterRatios(effectiveContract, request.Parameters)
+		parameterRatios, err := model.CalculateModelOperationParameterRatios(effectiveContract, normalizedParameters)
 		if err != nil {
 			common.ApiError(c, err)
 			return
@@ -513,7 +518,7 @@ func QuoteTokenModel(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
-		parameterRatios, err := model.CalculateModelOperationParameterRatios(effectiveContract, request.Parameters)
+		parameterRatios, err := model.CalculateModelOperationParameterRatios(effectiveContract, normalizedParameters)
 		if err != nil {
 			common.ApiError(c, err)
 			return

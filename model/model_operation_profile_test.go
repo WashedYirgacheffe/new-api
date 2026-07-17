@@ -8,18 +8,149 @@ import (
 	"gorm.io/gorm"
 )
 
+func defaultModelOperationContractForModel(t *testing.T, modelName string) *ModelOperationEffectiveContract {
+	t.Helper()
+	for _, item := range defaultModelOperationProfiles() {
+		for _, candidate := range item.ModelNames {
+			if candidate != modelName {
+				continue
+			}
+			normalizedOverrides, _, err := normalizeModelOperationBindingOverrides(
+				item.BindingOverrides,
+				&item.Profile,
+				&item.Version,
+			)
+			require.NoError(t, err)
+			contract, err := BuildModelOperationEffectiveContract(ModelOperationBinding{
+				ModelName:      modelName,
+				Operation:      item.Version.Operation,
+				ProfileKey:     item.Profile.ProfileKey,
+				ProfileVersion: item.Version.Version,
+				Overrides:      normalizedOverrides,
+				Enabled:        true,
+			}, &item.Profile, &item.Version)
+			require.NoError(t, err)
+			return contract
+		}
+	}
+	t.Fatalf("default model operation contract for %s was not found", modelName)
+	return nil
+}
+
+func TestCoreDefaultModelOperationContractMatrix(t *testing.T) {
+	gptImage2Sizes := []interface{}{
+		"1024x1024", "1536x1024", "1024x1536", "1920x1920", "2560x1440", "1440x2560",
+		"2560x1920", "1920x2560", "2880x2880", "3840x2160", "2160x3840", "2880x2160", "2160x2880",
+	}
+	gptImage2AllSizes := []interface{}{"1024x1024", "1536x1024", "1024x1536"}
+	for _, test := range []struct {
+		modelName string
+		sizes     []interface{}
+	}{
+		{modelName: "deepwl/gpt-image-2", sizes: gptImage2Sizes},
+		{modelName: gptImage2CModelName, sizes: gptImage2Sizes},
+		{modelName: gptImage2AllModelName, sizes: gptImage2AllSizes},
+	} {
+		t.Run(test.modelName, func(t *testing.T) {
+			contract := defaultModelOperationContractForModel(t, test.modelName)
+			assert.Equal(t, "image.generate.gpt-image-2", contract.ProfileKey)
+			assert.Equal(t, "image-generation", contract.EndpointType)
+			assert.Equal(t, "openai-image", contract.RequestContract.Adapter)
+
+			properties, ok := contractObject(contract.InputSchema["properties"])
+			require.True(t, ok)
+			size, ok := contractObject(properties["size"])
+			require.True(t, ok)
+			assert.Equal(t, test.sizes, size["enum"])
+			assert.Equal(t, "1024x1024", size["default"])
+			quality, ok := contractObject(properties["quality"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{"low", "medium", "high"}, quality["enum"])
+			assert.Equal(t, "high", quality["default"])
+			n, ok := contractObject(properties["n"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{float64(1)}, n["enum"])
+			assert.Equal(t, float64(1), n["default"])
+			assert.Equal(t, float64(1), n["maximum"])
+			responseFormat, ok := contractObject(properties["response_format"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{"url", "b64_json"}, responseFormat["enum"])
+			assert.Equal(t, "url", responseFormat["default"])
+
+			image, ok := contractObject(contract.MaterialSchema["image"])
+			require.True(t, ok)
+			assert.Equal(t, float64(0), image["max_items"])
+		})
+	}
+
+	for _, test := range []struct {
+		modelName    string
+		profileKey   string
+		videoEnabled bool
+	}{
+		{modelName: omniFastModelName, profileKey: "video.generate.omni"},
+		{modelName: omniFastV2VModelName, profileKey: "video.generate.omni-v2v", videoEnabled: true},
+	} {
+		t.Run(test.modelName, func(t *testing.T) {
+			contract := defaultModelOperationContractForModel(t, test.modelName)
+			assert.Equal(t, test.profileKey, contract.ProfileKey)
+			assert.Equal(t, "openai-video", contract.EndpointType)
+			assert.Equal(t, "async", contract.ExecutionMode)
+			assert.Equal(t, "openai-video", contract.RequestContract.Adapter)
+			assert.Equal(t, "/v1/videos", contract.DispatchPath)
+			assert.Equal(t, "/v1/videos/{task_id}", contract.PollPath)
+
+			properties, ok := contractObject(contract.InputSchema["properties"])
+			require.True(t, ok)
+			seconds, ok := contractObject(properties["seconds"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{float64(4), float64(6), float64(8), float64(10)}, seconds["enum"])
+			assert.Equal(t, float64(4), seconds["default"])
+			resolution, ok := contractObject(properties["resolution"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{"720p"}, resolution["enum"])
+			assert.Equal(t, "720p", resolution["default"])
+			aspectRatio, ok := contractObject(properties["aspect_ratio"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{"16:9", "9:16", "1:1", "4:3", "3:4"}, aspectRatio["enum"])
+			assert.Equal(t, "16:9", aspectRatio["default"])
+
+			image, ok := contractObject(contract.MaterialSchema["image"])
+			require.True(t, ok)
+			assert.Equal(t, float64(5), image["max_items"])
+			assert.Equal(t, "images", image["request_field"])
+			assert.Equal(t, "url", image["transport"])
+
+			video, ok := contractObject(contract.MaterialSchema["video"])
+			require.True(t, ok)
+			if test.videoEnabled {
+				assert.Equal(t, float64(1), video["min_items"])
+				assert.Equal(t, float64(1), video["max_items"])
+				assert.Equal(t, float64(15), video["max_size_mb"])
+				assert.Equal(t, []interface{}{"video/mp4"}, video["mime_types"])
+				assert.Equal(t, "video", video["request_field"])
+				assert.Equal(t, "url", video["transport"])
+			} else {
+				assert.Equal(t, float64(0), video["max_items"])
+				assert.NotContains(t, video, "max_size_mb")
+			}
+		})
+	}
+}
+
 func TestSeedDefaultModelOperationProfilesMigratesLegacyGeminiImageBinding(t *testing.T) {
 	require.NoError(t, DB.AutoMigrate(
 		&Model{},
 		&ModelOperationProfile{},
 		&ModelOperationProfileVersion{},
 		&ModelOperationBinding{},
+		&ModelOperationBindingRevision{},
 	))
-	for _, table := range []interface{}{&ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+	for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table).Error)
 	}
 	t.Cleanup(func() {
-		for _, table := range []interface{}{&ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+		for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
 			DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table)
 		}
 	})
@@ -65,12 +196,13 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 		&ModelOperationProfile{},
 		&ModelOperationProfileVersion{},
 		&ModelOperationBinding{},
+		&ModelOperationBindingRevision{},
 	))
-	for _, table := range []interface{}{&ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+	for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table).Error)
 	}
 	t.Cleanup(func() {
-		for _, table := range []interface{}{&ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+		for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
 			DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table)
 		}
 	})
@@ -92,6 +224,17 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 	require.NoError(t, err)
 	legacyGeminiOverrides, _, err := normalizeModelOperationBindingOverrides(geminiNativeOverrides, nativeProfile, nativeVersion)
 	require.NoError(t, err)
+	_, currentV2VVersion, err := GetModelOperationProfileVersion("video.generate.omni-v2v", 3, false)
+	require.NoError(t, err)
+	version2V2V := *currentV2VVersion
+	version2V2V.Id = 0
+	version2V2V.Version = 2
+	version2V2V.MaterialSchema = `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"min_items":1,"max_items":1,"max_size_mb":15,"request_field":"video","transport":"url"},"audio":{"max_items":0}}`
+	require.NoError(t, DB.Create(&version2V2V).Error)
+	legacyV2VVersion := version2V2V
+	legacyV2VVersion.Id = 0
+	legacyV2VVersion.Version = 1
+	require.NoError(t, DB.Create(&legacyV2VVersion).Error)
 	require.NoError(t, DB.Model(&ModelOperationBinding{}).
 		Where("model_name = ? AND operation = ?", gptImage2AllModelName, "image.generate").
 		Updates(map[string]interface{}{"profile_key": "image.generate.chat", "profile_version": 1, "overrides": legacyGPTOverrides}).Error)
@@ -103,7 +246,11 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 		Update("endpoints", `["openai"]`).Error)
 	require.NoError(t, DB.Model(&ModelOperationBinding{}).
 		Where("model_name = ? AND operation = ?", omniFastV2VModelName, "video.generate").
-		Updates(map[string]interface{}{"profile_key": "video.generate.basic", "profile_version": 3, "overrides": "{}"}).Error)
+		Updates(map[string]interface{}{
+			"profile_key":     "video.generate.omni-v2v",
+			"profile_version": 1,
+			"overrides":       omniFastV2VLegacyOverrides,
+		}).Error)
 
 	require.NoError(t, SeedDefaultModelOperationProfiles())
 
@@ -130,10 +277,113 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 		binding, _, _, contract, err := GetEnabledModelOperationContract(modelName, "video.generate")
 		require.NoError(t, err)
 		assert.Equal(t, expectedProfile, binding.ProfileKey)
+		if modelName == omniFastV2VModelName {
+			assert.Equal(t, 3, binding.ProfileVersion)
+		}
 		assert.Equal(t, "/v1/videos", contract.DispatchPath)
 		assert.Equal(t, "/v1/videos/{task_id}", contract.PollPath)
 		var item Model
 		require.NoError(t, DB.Where("model_name = ?", modelName).First(&item).Error)
 		assert.Contains(t, parseConfiguredEndpointTypes(item.Endpoints), "openai-video")
 	}
+}
+
+func TestSeedDefaultModelOperationProfilesPreservesAdministratorBinding(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(
+		&Model{},
+		&ModelOperationProfile{},
+		&ModelOperationProfileVersion{},
+		&ModelOperationBinding{},
+		&ModelOperationBindingRevision{},
+	))
+	for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table).Error)
+	}
+	t.Cleanup(func() {
+		for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+			DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table)
+		}
+	})
+
+	require.NoError(t, DB.Create(&Model{
+		ModelName: omniFastV2VModelName, DisplayName: "Omni Fast V2V", ModelType: "video", Status: 1,
+	}).Error)
+	require.NoError(t, SeedDefaultModelOperationProfiles())
+
+	adminProfile, adminVersion, err := GetModelOperationProfileVersion("video.generate.basic", 3, false)
+	require.NoError(t, err)
+	adminOverrides, _, err := normalizeModelOperationBindingOverrides(
+		`{"parameter_defaults":{"seconds":"6"}}`,
+		adminProfile,
+		adminVersion,
+	)
+	require.NoError(t, err)
+	require.NoError(t, DB.Model(&ModelOperationBinding{}).
+		Where("model_name = ? AND operation = ?", omniFastV2VModelName, "video.generate").
+		Updates(map[string]interface{}{
+			"profile_key":     adminProfile.ProfileKey,
+			"profile_version": adminVersion.Version,
+			"overrides":       adminOverrides,
+			"enabled":         false,
+		}).Error)
+
+	require.NoError(t, SeedDefaultModelOperationProfiles())
+
+	var binding ModelOperationBinding
+	require.NoError(t, DB.Where("model_name = ? AND operation = ?", omniFastV2VModelName, "video.generate").First(&binding).Error)
+	assert.Equal(t, adminProfile.ProfileKey, binding.ProfileKey)
+	assert.Equal(t, adminVersion.Version, binding.ProfileVersion)
+	assert.Equal(t, adminOverrides, binding.Overrides)
+	assert.False(t, binding.Enabled)
+}
+
+func TestSeedDefaultModelOperationProfilesCreatesDisabledGPTRouteCandidate(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(
+		&Model{},
+		&ModelOperationProfile{},
+		&ModelOperationProfileVersion{},
+		&ModelOperationBinding{},
+		&ModelOperationBindingRevision{},
+		&ModelOperationParameterEvidence{},
+		&ModelRouteGroup{},
+		&ModelRouteTarget{},
+		&ModelRouteOperationLock{},
+	))
+	cleanup := func() {
+		var routeGroups []ModelRouteGroup
+		DB.Where("canonical_model = ? AND operation = ?", gptImage2AllModelName, "image.generate").Find(&routeGroups)
+		for _, routeGroup := range routeGroups {
+			DB.Where("group_id = ?", routeGroup.Id).Delete(&ModelRouteTarget{})
+		}
+		DB.Where("canonical_model = ? AND operation = ?", gptImage2AllModelName, "image.generate").Delete(&ModelRouteGroup{})
+		DB.Where("operation = ?", "image.generate").Delete(&ModelRouteOperationLock{})
+		DB.Where("model_name IN ?", []string{gptImage2AllModelName, gptImage2CModelName, "deepwl/gpt-image-2", omniFastModelName, omniFastV2VModelName}).Delete(&ModelOperationParameterEvidence{})
+		DB.Where("model_name IN ?", []string{gptImage2AllModelName, gptImage2CModelName, "deepwl/gpt-image-2"}).Delete(&ModelOperationBindingRevision{})
+		DB.Where("model_name IN ?", []string{gptImage2AllModelName, gptImage2CModelName, "deepwl/gpt-image-2"}).Delete(&ModelOperationBinding{})
+		DB.Where("model_name IN ?", []string{gptImage2AllModelName, gptImage2CModelName, "deepwl/gpt-image-2"}).Delete(&Model{})
+		for _, profileKey := range []string{"image.generate.gpt-image-2", "image.generate.chat", "image.generate.basic"} {
+			var profile ModelOperationProfile
+			if DB.Where("profile_key = ?", profileKey).First(&profile).Error == nil {
+				DB.Where("profile_id = ?", profile.Id).Delete(&ModelOperationProfileVersion{})
+				DB.Delete(&profile)
+			}
+		}
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+	require.NoError(t, DB.Create(&[]Model{
+		{ModelName: "deepwl/gpt-image-2", DisplayName: "GPT Image 2", ModelType: "image", Status: 1},
+		{ModelName: gptImage2CModelName, DisplayName: "GPT Image 2 C", ModelType: "image", Status: 1},
+		{ModelName: gptImage2AllModelName, DisplayName: "GPT Image 2 All", ModelType: "image", Status: 1},
+	}).Error)
+	require.NoError(t, SeedDefaultModelOperationProfiles())
+	require.NoError(t, SeedDefaultModelOperationProfiles())
+	var group ModelRouteGroup
+	require.NoError(t, DB.Where("canonical_model = ? AND operation = ?", gptImage2AllModelName, "image.generate").First(&group).Error)
+	assert.False(t, group.Enabled)
+	var targets []ModelRouteTarget
+	require.NoError(t, DB.Where("group_id = ?", group.Id).Order("priority ASC").Find(&targets).Error)
+	require.Len(t, targets, 2)
+	assert.Equal(t, ModelRouteCompatibilityCompatible, targets[0].CompatibilityStatus)
+	assert.Equal(t, ModelRouteCompatibilityCompatible, targets[1].CompatibilityStatus)
 }

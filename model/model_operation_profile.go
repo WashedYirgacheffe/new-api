@@ -136,12 +136,26 @@ func normalizeModelOperationProfile(profile *ModelOperationProfile, version *Mod
 	if err != nil {
 		return err
 	}
+	inputSchemaObject, err := unmarshalModelOperationContractObject("input_schema", inputSchema)
+	if err != nil {
+		return err
+	}
+	if err := validateModelOperationInputSchema(inputSchemaObject); err != nil {
+		return err
+	}
 	uiSchema, err := normalizeContractJSONObject("ui_schema", version.UISchema)
 	if err != nil {
 		return err
 	}
 	materialSchema, err := normalizeContractJSONObject("material_schema", version.MaterialSchema)
 	if err != nil {
+		return err
+	}
+	materialSchemaObject, err := unmarshalModelOperationContractObject("material_schema", materialSchema)
+	if err != nil {
+		return err
+	}
+	if err := validateModelOperationMaterialSchema(materialSchemaObject, false); err != nil {
 		return err
 	}
 	smokeTest, err := normalizeContractJSONObject("smoke_test", version.SmokeTest)
@@ -288,6 +302,14 @@ func GetModelOperationProfileVersion(profileKey string, version int, publishedOn
 }
 
 func SaveModelOperationBinding(binding *ModelOperationBinding) error {
+	return saveModelOperationBinding(binding, nil)
+}
+
+func SaveModelOperationBindingWithExpectedHash(binding *ModelOperationBinding, expectedContractHash string) error {
+	return saveModelOperationBinding(binding, &expectedContractHash)
+}
+
+func saveModelOperationBinding(binding *ModelOperationBinding, expectedContractHash *string) error {
 	if binding == nil {
 		return errors.New("binding is required")
 	}
@@ -338,13 +360,32 @@ func SaveModelOperationBinding(binding *ModelOperationBinding) error {
 		var stored ModelOperationBinding
 		err := lockForUpdate(tx).Where("model_name = ? AND operation = ?", binding.ModelName, operation).First(&stored).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if expectedContractHash != nil && strings.TrimSpace(*expectedContractHash) != "" {
+				return fmt.Errorf("%w: binding does not exist for expected hash %s", ErrModelOperationBindingConflict, strings.TrimSpace(*expectedContractHash))
+			}
 			binding.ContractVersion = 1
 			binding.ContractHash = contractHash
 			binding.CreatedTime = now
-			return tx.Create(binding).Error
+			if err := tx.Create(binding).Error; err != nil {
+				return err
+			}
+			return appendModelOperationBindingRevisionIfChanged(tx, binding, now)
 		}
 		if err != nil {
 			return err
+		}
+		if expectedContractHash != nil {
+			expected := strings.TrimSpace(*expectedContractHash)
+			if expected == "" {
+				return fmt.Errorf("%w: expected_contract_hash is required when updating an existing binding", ErrModelOperationBindingConflict)
+			}
+			if stored.ContractHash != expected {
+				return fmt.Errorf("%w: expected hash %s, current hash %s", ErrModelOperationBindingConflict, expected, stored.ContractHash)
+			}
+		}
+		if stored.ContractHash == contractHash && stored.Enabled == binding.Enabled {
+			*binding = stored
+			return appendModelOperationBindingRevisionIfChanged(tx, binding, now)
 		}
 		contractVersion := stored.ContractVersion
 		if contractVersion <= 0 {
@@ -356,9 +397,12 @@ func SaveModelOperationBinding(binding *ModelOperationBinding) error {
 		binding.ContractVersion = contractVersion
 		binding.ContractHash = contractHash
 		binding.CreatedTime = stored.CreatedTime
-		return tx.Model(&stored).Select(
+		if err := tx.Model(&stored).Select(
 			"profile_key", "profile_version", "contract_version", "contract_hash", "overrides", "enabled", "updated_time",
-		).Updates(binding).Error
+		).Updates(binding).Error; err != nil {
+			return err
+		}
+		return appendModelOperationBindingRevisionIfChanged(tx, binding, now)
 	})
 }
 
@@ -382,13 +426,32 @@ func GetModelOperationBindings(modelNames []string, enabledOnly bool) (map[strin
 	return result, nil
 }
 
-func DeleteModelOperationBinding(modelName string, operation string) error {
+func DeleteModelOperationBinding(modelName string, operation string, expectedHash string) error {
 	modelName = strings.TrimSpace(modelName)
+	if modelName == "" || len(modelName) > 255 {
+		return errors.New("model_name is required and must be 255 characters or fewer")
+	}
 	operation, err := normalizeContractIdentifier(operation, 64)
 	if err != nil {
 		return err
 	}
-	return DB.Where("model_name = ? AND operation = ?", modelName, operation).Delete(&ModelOperationBinding{}).Error
+	expectedHash = strings.TrimSpace(expectedHash)
+	if expectedHash == "" {
+		return fmt.Errorf("%w: expected_contract_hash is required", ErrModelOperationBindingConflict)
+	}
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var binding ModelOperationBinding
+		if err := lockForUpdate(tx).Where("model_name = ? AND operation = ?", modelName, operation).First(&binding).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrModelOperationBindingNotFound
+			}
+			return err
+		}
+		if binding.ContractHash != expectedHash {
+			return fmt.Errorf("%w: expected hash %s, current hash %s", ErrModelOperationBindingConflict, expectedHash, binding.ContractHash)
+		}
+		return tx.Delete(&binding).Error
+	})
 }
 
 type defaultModelOperationProfile struct {
@@ -400,20 +463,26 @@ type defaultModelOperationProfile struct {
 }
 
 const (
-	gemini25FlashImageModelName = "deepwl/gemini-2.5-flash-image"
-	geminiProImageModelName     = "deepwl/gemini-3-pro-image"
-	gemini31FlashImageModelName = "deepwl/gemini-3.1-flash-image-preview"
-	gptImage2AllModelName       = "deepwl/gpt-image-2-all"
-	omniFastModelName           = "deepwl/omni-fast"
-	omniFastV2VModelName        = "deepwl/omni-fast-v2v"
-	geminiNativeOverrides       = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
-	geminiProImageOverrides     = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.25,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
-	gemini31FlashImageOverrides = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.2,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
-	geminiOpenAIOverrides       = `{"branding":{"icon_key":"gemini","description":"Gemini 2.5 Flash Image 快速图片生成，使用 OpenAI Images 兼容入口。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","n":"batch"},"widgets":{"prompt":"textarea","size":"select","n":"segmented"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","n":"n"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","n":1}}`
-	gptImage2AllLegacyOverrides = `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，当前发布合同仅开放已验证的文本生图能力。"},"ui_schema":{"placements":{"prompt":"prompt"},"widgets":{"prompt":"textarea"}},"request_contract":{"adapter":"openai-chat","field_map":{},"coercions":{}}}`
-	gptImage2Overrides          = `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，支持六种已记录尺寸和 URL/Base64 返回。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","n":"batch","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","n":"segmented","response_format":"hidden"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","n":1,"response_format":"url"}}`
-	omniFastOverrides           = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图，当前按独立模型固定采购价结算。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
-	omniFastV2VOverrides        = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个公网 MP4 参考视频的编辑、延长或重新生成。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":0},"video":{"min_items":1,"max_items":1,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
+	gemini25FlashImageModelName  = "deepwl/gemini-2.5-flash-image"
+	geminiProImageModelName      = "deepwl/gemini-3-pro-image"
+	gemini31FlashImageModelName  = "deepwl/gemini-3.1-flash-image-preview"
+	gptImage2AllModelName        = "deepwl/gpt-image-2-all"
+	gptImage2CModelName          = "deepwl/gpt-image-2-c"
+	omniFastModelName            = "deepwl/omni-fast"
+	omniFastV2VModelName         = "deepwl/omni-fast-v2v"
+	geminiNativeOverrides        = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
+	geminiProImageOverrides      = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.25,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
+	gemini31FlashImageOverrides  = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.2,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
+	geminiOpenAIOverrides        = `{"branding":{"icon_key":"gemini","description":"Gemini 2.5 Flash Image 快速图片生成，使用 OpenAI Images 兼容入口。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","n":"batch"},"widgets":{"prompt":"textarea","size":"select","n":"segmented"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","n":"n"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","n":1}}`
+	gptImage2AllLegacyOverrides  = `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，当前发布合同仅开放已验证的文本生图能力。"},"ui_schema":{"placements":{"prompt":"prompt"},"widgets":{"prompt":"textarea"}},"request_contract":{"adapter":"openai-chat","field_map":{},"coercions":{}}}`
+	gptImage2LegacyOverrides     = `{"branding":{"icon_key":"openai","description":"GPT Image 2 图像生成模型，支持六种已记录尺寸和 URL/Base64 返回。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","n":"batch","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","n":"segmented","response_format":"hidden"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","n":1,"response_format":"url"}}`
+	gptImage2Overrides           = `{"branding":{"icon_key":"openai","description":"GPT Image 2 / C 图像生成，开放 Duoyuanx Demo 当前列出的 13 档尺寸与三档质量；TapLater 单次运行固定生成 1 张。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","quality":"footer","n":"hidden","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","quality":"select","n":"hidden","response_format":"hidden"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","quality":"quality","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","quality":"high","n":1,"response_format":"url"}}`
+	gptImage2AllOverrides        = `{"schema_mode":"replace","branding":{"icon_key":"openai","description":"GPT Image 2 All 低价路由，仅开放 Duoyuanx Demo 当前验证的三档 1K 尺寸；TapLater 单次运行固定生成 1 张。"},"input_schema":{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"size":{"type":"string","enum":["1024x1024","1536x1024","1024x1536"],"default":"1024x1024"},"quality":{"type":"string","enum":["low","medium","high"],"default":"high"},"n":{"type":"integer","enum":[1],"default":1,"maximum":1},"response_format":{"type":"string","enum":["url","b64_json"],"default":"url"}},"required":["prompt"],"additionalProperties":false},"ui_schema":{"order":["prompt","size","quality","n","response_format"],"placements":{"prompt":"prompt","size":"footer","quality":"footer","n":"hidden","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","quality":"select","n":"hidden","response_format":"hidden"}},"material_schema":{"image":{"max_items":0}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","quality":"quality","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","quality":"high","n":1,"response_format":"url"}}`
+	omniFastLegacyOverrides      = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图，当前按独立模型固定采购价结算。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
+	omniFastOverrides            = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图；运行合同采用 Duoyuanx Demo 已开放的 4/6/8/10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":4,"aspect_ratio":"16:9","resolution":"720p"}}`
+	omniFastV2VLegacyOverrides   = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个公网 MP4 参考视频的编辑、延长或重新生成。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":0},"video":{"min_items":1,"max_items":1,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
+	omniFastV2VVersion2Overrides = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个不超过 15MB 的公网 MP4，并可附加最多 5 张参考图；运行合同采用 4/6/8/10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"min_items":1,"max_items":1,"max_size_mb":15,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":4,"aspect_ratio":"16:9","resolution":"720p"}}`
+	omniFastV2VOverrides         = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个不超过 15MB 的公网 MP4，并可附加最多 5 张参考图；运行合同采用 4/6/8/10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"min_items":1,"max_items":1,"mime_types":["video/mp4"],"max_size_mb":15,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":4,"aspect_ratio":"16:9","resolution":"720p"}}`
 )
 
 func defaultModelOperationProfiles() []defaultModelOperationProfile {
@@ -435,10 +504,16 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version: ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-chat-markdown-images-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelNames:       []string{"deepwl/gpt-image-2", gptImage2AllModelName},
+			ModelNames:       []string{"deepwl/gpt-image-2", gptImage2CModelName},
 			BindingOverrides: gptImage2Overrides,
 			Profile:          ModelOperationProfile{ProfileKey: "image.generate.gpt-image-2", DisplayName: "GPT Image 2 图片生成", Description: "DeepWL GPT Image 2 的 OpenAI Images 标准能力。"},
-			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"size":{"type":"string","enum":["1024x1024","1536x1152","1536x1024","1024x1536","1920x1080","1080x1920"],"default":"1024x1024"},"n":{"type":"integer","enum":[1],"default":1,"maximum":1},"response_format":{"type":"string","enum":["url","b64_json"],"default":"url"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","n","response_format"],"widgets":{"prompt":"textarea","size":"select","n":"segmented","response_format":"select"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","n":1,"response_format":"url"}`, Status: ModelOperationProfileStatusPublished},
+			Version:          ModelOperationProfileVersion{Version: 2, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"size":{"type":"string","enum":["1024x1024","1536x1024","1024x1536","1920x1920","2560x1440","1440x2560","2560x1920","1920x2560","2880x2880","3840x2160","2160x3840","2880x2160","2160x2880"],"default":"1024x1024"},"quality":{"type":"string","enum":["low","medium","high"],"default":"high"},"n":{"type":"integer","enum":[1],"default":1,"maximum":1},"response_format":{"type":"string","enum":["url","b64_json"],"default":"url"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","quality","n","response_format"],"widgets":{"prompt":"textarea","size":"select","quality":"select","n":"hidden","response_format":"hidden"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","quality":"high","n":1,"response_format":"url"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{gptImage2AllModelName},
+			BindingOverrides: gptImage2AllOverrides,
+			Profile:          ModelOperationProfile{ProfileKey: "image.generate.gpt-image-2", DisplayName: "GPT Image 2 图片生成", Description: "DeepWL GPT Image 2 的 OpenAI Images 标准能力。"},
+			Version:          ModelOperationProfileVersion{Version: 2, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"size":{"type":"string","enum":["1024x1024","1536x1024","1024x1536","1920x1920","2560x1440","1440x2560","2560x1920","1920x2560","2880x2880","3840x2160","2160x3840","2880x2160","2160x2880"],"default":"1024x1024"},"quality":{"type":"string","enum":["low","medium","high"],"default":"high"},"n":{"type":"integer","enum":[1],"default":1,"maximum":1},"response_format":{"type":"string","enum":["url","b64_json"],"default":"url"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","quality","n","response_format"],"widgets":{"prompt":"textarea","size":"select","quality":"select","n":"hidden","response_format":"hidden"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","quality":"high","n":1,"response_format":"url"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelNames:       []string{geminiProImageModelName},
@@ -474,13 +549,13 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			ModelNames:       []string{omniFastModelName},
 			BindingOverrides: omniFastOverrides,
 			Profile:          ModelOperationProfile{ProfileKey: "video.generate.omni", DisplayName: "Omni 视频生成", Description: "DeepWL Omni Fast 的 JSON 视频生成能力。"},
-			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","minimum":4,"maximum":30,"default":8},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p","1080p","2k","4k"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个简洁的海浪镜头","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
+			Version:          ModelOperationProfileVersion{Version: 2, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","enum":[4,6,8,10],"default":4},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个简洁的海浪镜头","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelNames:       []string{omniFastV2VModelName},
 			BindingOverrides: omniFastV2VOverrides,
 			Profile:          ModelOperationProfile{ProfileKey: "video.generate.omni-v2v", DisplayName: "Omni 参考视频生成", Description: "DeepWL Omni Fast V2V 的参考视频编辑与重新生成能力。"},
-			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","minimum":4,"maximum":30,"default":8},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p","1080p","2k","4k"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":0},"video":{"min_items":1,"max_items":1,"request_field":"video","transport":"url"},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"将参考视频重新生成成夜景风格","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
+			Version:          ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","enum":[4,6,8,10],"default":4},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"min_items":1,"max_items":1,"mime_types":["video/mp4"],"max_size_mb":15,"request_field":"video","transport":"url"},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"将参考视频重新生成成夜景风格","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			Profile: ModelOperationProfile{ProfileKey: "video.generate.seedance-2", DisplayName: "Seedance 2.0 视频生成", Description: "DeepWL Seedance 2.0 多模态视频能力模板；当前 Key 未授权模型，仅保存文档合同。"},
@@ -507,6 +582,9 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 func migrateReservedModelOperationBinding(modelName, operation, legacyProfileKey string, legacyProfileVersion int, legacyOverrides, nextProfileKey string, nextProfileVersion int, nextOverrides string) error {
 	legacyProfile, legacyVersion, err := GetModelOperationProfileVersion(legacyProfileKey, legacyProfileVersion, false)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
 		return err
 	}
 	legacyNormalized, _, err := normalizeModelOperationBindingOverrides(legacyOverrides, legacyProfile, legacyVersion)
@@ -524,19 +602,21 @@ func migrateReservedModelOperationBinding(modelName, operation, legacyProfileKey
 	return DB.Model(&ModelOperationBinding{}).
 		Where("model_name = ? AND operation = ?", modelName, operation).
 		Where("profile_key = ? AND profile_version = ?", legacyProfileKey, legacyProfileVersion).
+		Where("enabled = ?", true).
 		Where("overrides = ? OR overrides = ?", legacyOverrides, legacyNormalized).
 		Updates(map[string]interface{}{
 			"profile_key":     nextProfileKey,
 			"profile_version": nextProfileVersion,
 			"overrides":       nextNormalized,
-			"enabled":         true,
 			"updated_time":    common.GetTimestamp(),
 		}).Error
 }
 
 func ensureCoreModelEndpointTypes() error {
 	required := map[string][]string{
+		"deepwl/gpt-image-2":  {"image-generation"},
 		gptImage2AllModelName: {"image-generation"},
+		gptImage2CModelName:   {"image-generation"},
 		omniFastModelName:     {"openai-video"},
 		omniFastV2VModelName:  {"openai-video"},
 	}
@@ -622,12 +702,12 @@ func SeedDefaultModelOperationProfiles() error {
 	now := common.GetTimestamp()
 	if err := DB.Model(&ModelOperationBinding{}).
 		Where("model_name = ? AND operation = ?", gemini25FlashImageModelName, nativeVersion.Operation).
+		Where("enabled = ?", true).
 		Where("overrides = ? OR overrides = ?", geminiOpenAIOverrides, legacyOverrides).
 		Updates(map[string]interface{}{
 			"profile_key":     nativeProfile.ProfileKey,
 			"profile_version": nativeVersion.Version,
 			"overrides":       nativeOverrides,
-			"enabled":         true,
 			"updated_time":    now,
 		}).Error; err != nil {
 		return fmt.Errorf("migrate legacy Gemini image binding: %w", err)
@@ -639,10 +719,75 @@ func SeedDefaultModelOperationProfiles() error {
 		1,
 		gptImage2AllLegacyOverrides,
 		"image.generate.gpt-image-2",
-		1,
-		gptImage2Overrides,
+		2,
+		gptImage2AllOverrides,
 	); err != nil {
 		return fmt.Errorf("migrate GPT Image 2 All binding: %w", err)
+	}
+	for _, migration := range []struct {
+		modelName    string
+		nextOverride string
+	}{
+		{modelName: "deepwl/gpt-image-2", nextOverride: gptImage2Overrides},
+		{modelName: gptImage2AllModelName, nextOverride: gptImage2AllOverrides},
+		{modelName: gptImage2CModelName, nextOverride: gptImage2Overrides},
+	} {
+		if err := migrateReservedModelOperationBinding(
+			migration.modelName,
+			"image.generate",
+			"image.generate.gpt-image-2",
+			1,
+			gptImage2LegacyOverrides,
+			"image.generate.gpt-image-2",
+			2,
+			migration.nextOverride,
+		); err != nil {
+			return fmt.Errorf("migrate GPT Image 2 contract %s: %w", migration.modelName, err)
+		}
+	}
+	for _, migration := range []struct {
+		modelName     string
+		profileKey    string
+		legacyVersion int
+		legacy        string
+		nextVersion   int
+		next          string
+	}{
+		{
+			modelName: omniFastModelName, profileKey: "video.generate.omni",
+			legacyVersion: 1, legacy: omniFastLegacyOverrides,
+			nextVersion: 2, next: omniFastOverrides,
+		},
+		{
+			modelName: omniFastV2VModelName, profileKey: "video.generate.omni-v2v",
+			legacyVersion: 1, legacy: omniFastV2VLegacyOverrides,
+			nextVersion: 2, next: omniFastV2VVersion2Overrides,
+		},
+	} {
+		if err := migrateReservedModelOperationBinding(
+			migration.modelName,
+			"video.generate",
+			migration.profileKey,
+			migration.legacyVersion,
+			migration.legacy,
+			migration.profileKey,
+			migration.nextVersion,
+			migration.next,
+		); err != nil {
+			return fmt.Errorf("migrate Omni contract %s: %w", migration.modelName, err)
+		}
+	}
+	if err := migrateReservedModelOperationBinding(
+		omniFastV2VModelName,
+		"video.generate",
+		"video.generate.omni-v2v",
+		2,
+		omniFastV2VVersion2Overrides,
+		"video.generate.omni-v2v",
+		3,
+		omniFastV2VOverrides,
+	); err != nil {
+		return fmt.Errorf("migrate Omni V2V MIME contract: %w", err)
 	}
 	for _, migration := range []struct {
 		modelName string
@@ -672,20 +817,14 @@ func SeedDefaultModelOperationProfiles() error {
 	if err := DB.Select("model_name", "model_type").Where("status = ?", 1).Find(&models).Error; err != nil {
 		return err
 	}
-	bindings := make([]ModelOperationBinding, 0, len(models))
-	for _, modelItem := range models {
-		template, ok := bindingsByType[strings.ToLower(strings.TrimSpace(modelItem.ModelType))]
-		if !ok {
-			continue
-		}
-		template.ModelName = modelItem.ModelName
-		template.CreatedTime = now
-		template.UpdatedTime = now
-		bindings = append(bindings, template)
-	}
+	explicitBindings := make(map[string]ModelOperationBinding)
 	for _, profile := range profiles {
 		for _, modelName := range profile.ModelNames {
-			bindings = append(bindings, ModelOperationBinding{
+			key := modelName + "\x00" + profile.Version.Operation
+			if _, exists := explicitBindings[key]; exists {
+				return fmt.Errorf("duplicate default model operation binding for %s:%s", modelName, profile.Version.Operation)
+			}
+			explicitBindings[key] = ModelOperationBinding{
 				ModelName:      modelName,
 				Operation:      profile.Version.Operation,
 				ProfileKey:     profile.Profile.ProfileKey,
@@ -694,58 +833,45 @@ func SeedDefaultModelOperationProfiles() error {
 				Enabled:        true,
 				CreatedTime:    now,
 				UpdatedTime:    now,
-			})
+			}
 		}
 	}
-	if len(bindings) == 0 {
-		return nil
-	}
-	sort.Slice(bindings, func(i, j int) bool {
-		if bindings[i].ModelName == bindings[j].ModelName {
-			return bindings[i].Operation < bindings[j].Operation
+	bindings := make([]ModelOperationBinding, 0, len(models))
+	for _, modelItem := range models {
+		template, ok := bindingsByType[strings.ToLower(strings.TrimSpace(modelItem.ModelType))]
+		if !ok {
+			continue
 		}
-		return bindings[i].ModelName < bindings[j].ModelName
-	})
-	if err := DB.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(bindings, 200).Error; err != nil {
+		template.ModelName = modelItem.ModelName
+		if _, reserved := explicitBindings[template.ModelName+"\x00"+template.Operation]; reserved {
+			continue
+		}
+		template.CreatedTime = now
+		template.UpdatedTime = now
+		bindings = append(bindings, template)
+	}
+	for _, binding := range explicitBindings {
+		bindings = append(bindings, binding)
+	}
+	if len(bindings) > 0 {
+		sort.Slice(bindings, func(i, j int) bool {
+			if bindings[i].ModelName == bindings[j].ModelName {
+				return bindings[i].Operation < bindings[j].Operation
+			}
+			return bindings[i].ModelName < bindings[j].ModelName
+		})
+		if err := DB.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(bindings, 200).Error; err != nil {
+			return err
+		}
+	}
+	if err := RefreshModelOperationBindingContracts(); err != nil {
 		return err
 	}
-	for _, profile := range profiles {
-		modelNames := make([]string, 0)
-		for _, modelItem := range models {
-			if strings.EqualFold(strings.TrimSpace(modelItem.ModelType), profile.ModelType) {
-				modelNames = append(modelNames, modelItem.ModelName)
-			}
-		}
-		if len(modelNames) > 0 {
-			if err := DB.Model(&ModelOperationBinding{}).
-				Where("model_name IN ? AND operation = ? AND profile_key = ?", modelNames, profile.Version.Operation, profile.Profile.ProfileKey).
-				Updates(map[string]interface{}{"profile_version": profile.Version.Version, "updated_time": now}).Error; err != nil {
-				return err
-			}
-		}
-		if len(profile.ModelNames) > 0 {
-			if err := DB.Model(&ModelOperationBinding{}).
-				Where("model_name IN ? AND operation = ?", profile.ModelNames, profile.Version.Operation).
-				Updates(map[string]interface{}{
-					"profile_key":     profile.Profile.ProfileKey,
-					"profile_version": profile.Version.Version,
-					"enabled":         true,
-					"updated_time":    now,
-				}).Error; err != nil {
-				return err
-			}
-			if profile.BindingOverrides != "" {
-				if err := DB.Model(&ModelOperationBinding{}).
-					Where("model_name IN ? AND operation = ?", profile.ModelNames, profile.Version.Operation).
-					Where("overrides = ? OR overrides = ?", "", "{}").
-					Updates(map[string]interface{}{
-						"overrides":    profile.BindingOverrides,
-						"updated_time": now,
-					}).Error; err != nil {
-					return err
-				}
-			}
-		}
+	if err := SeedDefaultModelOperationParameterEvidence(); err != nil {
+		return fmt.Errorf("seed model operation parameter evidence: %w", err)
 	}
-	return RefreshModelOperationBindingContracts()
+	if err := SeedDefaultModelRouteCandidates(); err != nil {
+		return fmt.Errorf("seed model route candidates: %w", err)
+	}
+	return nil
 }
