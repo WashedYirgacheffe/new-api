@@ -221,6 +221,13 @@ func TestParseTaskResultSupportsNodyHubBareTask(t *testing.T) {
 			expectedURL:      "https://media.example/video.mp4",
 		},
 		{
+			name:             "success with nested video URL array fallback",
+			responseBody:     `{"task_id":"upstream-task","status":"SUCCESS","progress":"100%","data":{"result":{"videos":[{"url":["","https://media.example/nested.mp4"]},{"url":["https://media.example/later.mp4"]}]}}}`,
+			expectedStatus:   model.TaskStatusSuccess,
+			expectedProgress: "100%",
+			expectedURL:      "https://media.example/nested.mp4",
+		},
+		{
 			name:             "failure",
 			responseBody:     `{"task_id":"upstream-task","status":"FAILURE","progress":"100%","fail_reason":"upstream rejected request","data":{}}`,
 			expectedStatus:   model.TaskStatusFailure,

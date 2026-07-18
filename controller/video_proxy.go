@@ -14,6 +14,8 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/relay"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
@@ -112,8 +114,17 @@ func VideoProxy(c *gin.Context) {
 			return
 		}
 	case constant.ChannelTypeOpenAI, constant.ChannelTypeSora:
-		videoURL = fmt.Sprintf("%s/v1/videos/%s/content", baseURL, task.GetUpstreamTaskID())
-		req.Header.Set("Authorization", "Bearer "+channel.Key)
+		if strings.EqualFold(strings.TrimSpace(channel.ChannelProvider), "nodyhub") {
+			videoURL, err = getNodyHubVideoURLFromTaskData(channel, task)
+			if err != nil {
+				logger.LogError(c.Request.Context(), fmt.Sprintf("Failed to resolve NodyHub video URL for task %s: %s", taskID, err.Error()))
+				videoProxyError(c, http.StatusBadGateway, "server_error", "Failed to resolve NodyHub video URL")
+				return
+			}
+		} else {
+			videoURL = fmt.Sprintf("%s/v1/videos/%s/content", baseURL, task.GetUpstreamTaskID())
+			req.Header.Set("Authorization", "Bearer "+channel.Key)
+		}
 	default:
 		// Video URL is stored in PrivateData.ResultURL (fallback to FailReason for old data)
 		videoURL = task.GetResultURL()
@@ -180,6 +191,33 @@ func VideoProxy(c *gin.Context) {
 	if _, err = io.Copy(c.Writer, resp.Body); err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Failed to stream video content: %s", err.Error()))
 	}
+}
+
+func getNodyHubVideoURLFromTaskData(channel *model.Channel, task *model.Task) (string, error) {
+	if channel == nil || task == nil {
+		return "", fmt.Errorf("invalid channel or task")
+	}
+	if resultURL := strings.TrimSpace(task.GetResultURL()); resultURL != "" && !isTaskProxyContentURL(resultURL, task.TaskID) {
+		return resultURL, nil
+	}
+
+	adaptor := relay.GetTaskAdaptor(constant.TaskPlatform(fmt.Sprintf("%d", channel.Type)))
+	if adaptor == nil {
+		return "", fmt.Errorf("NodyHub task adaptor not found")
+	}
+	adaptor.Init(&relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{
+		ChannelType:     channel.Type,
+		ChannelProvider: channel.ChannelProvider,
+		ChannelBaseUrl:  channel.GetBaseURL(),
+	}})
+	taskInfo, err := adaptor.ParseTaskResult(task.Data)
+	if err != nil {
+		return "", fmt.Errorf("parse stored NodyHub task result: %w", err)
+	}
+	if taskInfo == nil || strings.TrimSpace(taskInfo.Url) == "" {
+		return "", fmt.Errorf("NodyHub video URL not found")
+	}
+	return strings.TrimSpace(taskInfo.Url), nil
 }
 
 func writeVideoDataURL(c *gin.Context, dataURL string) error {

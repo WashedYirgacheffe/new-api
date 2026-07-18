@@ -64,6 +64,13 @@ type nodyHubResponseTask struct {
 	FailReason string `json:"fail_reason"`
 	ResultURL  string `json:"result_url"`
 	VideoURL   string `json:"video_url"`
+	Data       struct {
+		Result struct {
+			Videos []struct {
+				URL []string `json:"url"`
+			} `json:"videos"`
+		} `json:"result"`
+	} `json:"data"`
 }
 
 // ============================
@@ -381,6 +388,19 @@ func parseNodyHubTaskResult(respBody []byte) (*relaycommon.TaskInfo, error) {
 		taskResult.Url = resTask.ResultURL
 		if taskResult.Url == "" {
 			taskResult.Url = resTask.VideoURL
+		}
+		if taskResult.Url == "" {
+			for _, video := range resTask.Data.Result.Videos {
+				for _, videoURL := range video.URL {
+					if strings.TrimSpace(videoURL) != "" {
+						taskResult.Url = videoURL
+						break
+					}
+				}
+				if taskResult.Url != "" {
+					break
+				}
+			}
 		}
 	case model.TaskStatusFailure:
 		taskResult.Status = model.TaskStatusFailure
