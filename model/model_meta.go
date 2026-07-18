@@ -30,21 +30,22 @@ type ModelChannelProvider struct {
 }
 
 type Model struct {
-	Id           int            `json:"id"`
-	ModelName    string         `json:"model_name" gorm:"size:128;not null;uniqueIndex:uk_model_name_delete_at,priority:1"`
-	DisplayName  string         `json:"display_name,omitempty" gorm:"type:varchar(128)"`
-	ModelType    string         `json:"model_type,omitempty" gorm:"type:varchar(32);index"`
-	Description  string         `json:"description,omitempty" gorm:"type:text"`
-	SourceURL    string         `json:"source_url,omitempty" gorm:"type:text"`
-	Icon         string         `json:"icon,omitempty" gorm:"type:varchar(128)"`
-	Tags         string         `json:"tags,omitempty" gorm:"type:varchar(255)"`
-	VendorID     int            `json:"vendor_id,omitempty" gorm:"index"`
-	Endpoints    string         `json:"endpoints,omitempty" gorm:"type:text"`
-	Status       int            `json:"status" gorm:"default:1"`
-	SyncOfficial int            `json:"sync_official" gorm:"default:1"`
-	CreatedTime  int64          `json:"created_time" gorm:"bigint"`
-	UpdatedTime  int64          `json:"updated_time" gorm:"bigint"`
-	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index;uniqueIndex:uk_model_name_delete_at,priority:2"`
+	Id             int            `json:"id"`
+	ModelName      string         `json:"model_name" gorm:"size:128;not null;uniqueIndex:uk_model_name_delete_at,priority:1"`
+	DisplayName    string         `json:"display_name,omitempty" gorm:"type:varchar(128)"`
+	ModelType      string         `json:"model_type,omitempty" gorm:"type:varchar(32);index"`
+	Description    string         `json:"description,omitempty" gorm:"type:text"`
+	SourceURL      string         `json:"source_url,omitempty" gorm:"type:text"`
+	SourceMetadata string         `json:"source_metadata,omitempty" gorm:"type:text"`
+	Icon           string         `json:"icon,omitempty" gorm:"type:varchar(128)"`
+	Tags           string         `json:"tags,omitempty" gorm:"type:varchar(255)"`
+	VendorID       int            `json:"vendor_id,omitempty" gorm:"index"`
+	Endpoints      string         `json:"endpoints,omitempty" gorm:"type:text"`
+	Status         int            `json:"status" gorm:"default:1"`
+	SyncOfficial   int            `json:"sync_official" gorm:"default:1"`
+	CreatedTime    int64          `json:"created_time" gorm:"bigint"`
+	UpdatedTime    int64          `json:"updated_time" gorm:"bigint"`
+	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index;uniqueIndex:uk_model_name_delete_at,priority:2"`
 
 	BoundChannels    []BoundChannel `json:"bound_channels,omitempty" gorm:"-"`
 	ChannelProviders []string       `json:"channel_providers,omitempty" gorm:"-"`
@@ -96,7 +97,7 @@ func (mi *Model) Update() error {
 			return err
 		}
 		if err := tx.Model(&Model{}).Where("id = ?", mi.Id).
-			Select("model_name", "display_name", "model_type", "description", "source_url", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "updated_time").
+			Select("model_name", "display_name", "model_type", "description", "source_url", "source_metadata", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "updated_time").
 			Updates(mi).Error; err != nil {
 			return err
 		}

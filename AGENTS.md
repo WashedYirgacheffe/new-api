@@ -163,6 +163,7 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 
 | Document | Contents | Corresponding code and resources |
 | --- | --- | --- |
+| `docs/operations/2026-07-18-nodyhub-catalog-source-metadata.md` | NodyHub 全量目录原始元数据持久化、批量模型写入延迟刷新边界、Railway 迁移与回滚 | `model/model_meta.go`, `controller/model_meta.go`, Railway `new-api`, PostgreSQL `models.source_metadata` |
 | `docs/operations/2026-07-17-playground-history-pricing-details.md` | Playground 真实付费验收护栏、图片/视频生成历史、私有媒体归档、刷新恢复与放大预览，以及 `/pricing` 模型参数治理入口 | `model/controller/service playground_generation*`, `/pg/generations`, Railway `new-api-volume`, `PLAYGROUND_ASSET_DIR`, `web/default` Playground media history/preview, pricing model details |
 | `docs/operations/2026-07-16-model-parameter-routing-playground.md` | 模型参数合同、证据与修订治理，管理态模型路由，以及文字/图片/Gemini/视频 Playground 收口与运行边界 | `model/model_operation_*`, `model/model_route.go`, model profile/evidence/route APIs, `/pg` relay routes, `web/default` model and Playground workspaces |
 | `docs/operations/2026-07-15-core-model-production-readiness.md` | DeepWL 核心文字/图片/视频生产准备、Banana 分辨率倍率、真实采购扣费、Gemini 文本图片修复、Superseed Preview 三类验收和生产切流边界 | CarLab model metadata/Profile/Binding/pricing, TapDash generation ledger, Railway `new-api`, Vercel `superseed-dash`/`superseed`, Supabase generation tables |

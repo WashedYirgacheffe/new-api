@@ -116,7 +116,7 @@ func CreateModelMeta(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	model.RefreshPricing()
+	refreshPricingAfterModelMutation(c)
 	common.ApiSuccess(c, &m)
 }
 
@@ -155,7 +155,7 @@ func UpdateModelMeta(c *gin.Context) {
 			return
 		}
 	}
-	model.RefreshPricing()
+	refreshPricingAfterModelMutation(c)
 	common.ApiSuccess(c, &m)
 }
 
@@ -176,8 +176,15 @@ func DeleteModelMeta(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	model.RefreshPricing()
+	refreshPricingAfterModelMutation(c)
 	common.ApiSuccess(c, nil)
+}
+
+func refreshPricingAfterModelMutation(c *gin.Context) {
+	if c.Query("defer_refresh") == "true" {
+		return
+	}
+	model.RefreshPricing()
 }
 
 // enrichModels 批量填充附加信息：端点、渠道、分组、计费类型，避免 N+1 查询
