@@ -1,7 +1,7 @@
 # NodyHub 视频协议路由维护记录
 
 - 日期：2026-07-18
-- 状态：生产失败/成功样本探测完成，本地纠正代码与定向测试完成，未重新部署
+- 状态：生产部署与文字、图片、视频代表性验收完成
 - 操作目录：`/Volumes/CODE/Code_SYS/CarLabAPI`
 - 代码分支：`codex/oem-api-hub`
 
@@ -33,9 +33,11 @@
 
 - Railway 项目：`carlab-api`
 - Railway 服务：`new-api`
+- Railway 成功部署：`39474155-56b5-4b6a-91dc-abc5a4c95820`
+- 部署代码提交：`494c1236`
 - 公网入口：`https://api.carlab.top`
 - 运行配置：渠道字段 `channel_provider=nodyhub`
-- 本轮没有修改 Railway、Cloudflare、数据库渠道、环境变量、Token 或 Secret，也没有执行部署。
+- 本轮没有修改 Railway 环境变量、Cloudflare、数据库渠道、Token 或 Secret；部署从目标提交的干净 worktree 上传。
 
 ## 验证证据
 
@@ -46,6 +48,9 @@
 - 对同一路径使用 POST 返回 `Invalid URL`，因此轮询方法纠正为 GET。
 - GET 响应为裸 Task，而不是现有 Sora 轮询结构；真实失败样本使用大写 `FAILURE`、字符串 `100%` 和 `fail_reason`。回归 fixture 已匿名化，不包含真实任务 ID 或内容。
 - 真实成功样本使用大写 `SUCCESS`，媒体地址位于 `data.result.videos[0].url[0]`；该地址的 Range GET 返回 HTTP 206 和 `video/mp4`，而未纠正版本的 CarLab `/v1/videos/{public_task_id}/content` 返回 HTTP 502，因为解析器没有把嵌套媒体地址写入任务结果 URL。
+- 最终部署后，同一成功任务保持 `SUCCESS / 100%`，CarLab `/v1/videos/{public_task_id}/content` 返回 HTTP 200、`video/mp4` 和 390832 字节；无需再次创建付费任务。
+- 最终视频请求只记录一笔 600000 quota 的 gold 消费且没有退款；两条协议纠正阶段失败任务均有等额类型 6 退款日志，不需要人工补偿。
+- 本轮目录代表性烟测还包括 `nodyhub/gpt-4o-mini` 文字和 `nodyhub/gpt-image-1` 图片，均命中 channel 3 / gold 并成功返回结果。
 
 执行：
 
@@ -55,19 +60,19 @@ go test -count=1 ./controller -run '^TestGetNodyHubVideoURL'
 git diff --check
 ```
 
-结果：适配器、服务与 NodyHub 内容代理定向测试通过，差异检查无报错。测试验证 NodyHub 使用 `POST /v2/videos/generations` 和 `GET /v2/videos/generations/{task_id}`，合法 `seconds` 整数字符串转换为 JSON number、非法字符串返回错误，并兼容五种大写任务状态、字符串进度、`fail_reason`、顶层成功 URL 及 `data.result.videos[].url[]` 嵌套 URL 数组；其他 OpenAI/Sora 渠道继续使用 `POST /v1/videos`、`GET /v1/videos/{task_id}`、字符串 `seconds` 和原响应解析。服务测试继续验证后台轮询初始化时收到 `nodyhub` 渠道商，内容代理测试覆盖已存直接 URL、历史自身代理 URL回放和缺失 URL 失败。
+结果：适配器、服务与 NodyHub 内容代理定向测试通过，差异检查无报错。测试验证 NodyHub 使用 `POST /v2/videos/generations` 和 `GET /v2/videos/generations/{task_id}`，合法 `seconds` 整数字符串转换为 JSON number、非法字符串返回错误，并兼容五种大写任务状态、字符串进度、`fail_reason`、顶层成功 URL 及 `data.result.videos[].url[]` 嵌套 URL 数组；其他 OpenAI/Sora 渠道继续使用 `POST /v1/videos`、`GET /v1/videos/{task_id}`、字符串 `seconds` 和原响应解析。服务测试继续验证后台轮询初始化时收到 `nodyhub` 渠道商，内容代理测试覆盖已存直接 URL、历史自身代理 URL 回放和缺失 URL 失败。
 
 本轮不会把工作区中其他开发者的既有改动纳入、回退或重排。
 
 ## 回滚
 
 1. 在生产止损时先停用 NodyHub 渠道，阻止新视频任务提交。
-2. 回退本轮渠道商上下文传递与 Sora 适配器分支，重新部署上一成功的 Railway 版本。
+2. 从提交 `5190b1f5` 创建干净 worktree 并重新部署，或回退本轮三个视频修复提交后重新部署。
 3. 回滚后普通 OpenAI/Sora 视频协议将统一恢复为提交 `POST /v1/videos`、轮询 `GET /v1/videos/{task_id}`，出站 `seconds` 恢复原字段类型。
 4. 已创建的公开任务 ID 与上游任务 ID 分离机制不受本轮影响；必要时保留旧版本服务完成存量任务轮询后再切换。
 
 ## 剩余风险与权限
 
-- 生产探测已确认提交路径、GET 轮询路径、成功媒体字段位置及上游媒体可访问性，但纠正代码尚未重新部署，完整 CarLab 任务生命周期仍待发布后验收。
-- 视频内容代理仍按现有 OpenAI/Sora 规则处理；发布后必须确认成功任务落库了嵌套媒体 URL，并复验 `/v1/videos/{public_task_id}/content` 不再返回 HTTP 502。
-- 生产验收应使用单次最低成本请求，禁止自动重试，并在确认提交、轮询、任务落库和计费日志一致后再保持渠道启用。
+- NodyHub 的公开端点目录把任务查询标为 POST，但生产实证要求 GET；来源 metadata 保留原声明，运行适配以实证为准。
+- 本轮只验证一个最低成本 Veo 模型；其他 NodyHub 私有视频协议仍需在各自发布前独立验证，不能由目录标签推断可执行性。
+- 上游媒体 URL 有过期时间；CarLab 内容代理按现有策略实时读取 URL，没有新增长期媒体归档。
