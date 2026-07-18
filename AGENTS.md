@@ -163,7 +163,7 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 
 | Document | Contents | Corresponding code and resources |
 | --- | --- | --- |
-| `docs/operations/2026-07-18-nodyhub-video-protocol-routing.md` | NodyHub OpenAI 视频渠道按渠道商切换 `/v2/videos/generations` 提交与 POST 轮询协议，同时保持其他 OpenAI/Sora 行为不变 | `constant/context_key.go`, `middleware/distributor.go`, `relay/common/relay_info.go`, `relay/channel/task/sora/`, `service/task_polling.go`, Railway `new-api`, channel provider `nodyhub` |
+| `docs/operations/2026-07-18-nodyhub-video-protocol-routing.md` | NodyHub OpenAI 视频渠道切换 `/v2/videos/generations` 提交/GET 轮询协议，将专用出站 `seconds` 转换为 JSON number，并兼容裸 Task 轮询响应 | `constant/context_key.go`, `middleware/distributor.go`, `relay/common/relay_info.go`, `relay/channel/task/sora/`, `service/task_polling.go`, Railway `new-api`, channel provider `nodyhub` |
 | `docs/operations/2026-07-18-nodyhub-catalog-source-metadata.md` | NodyHub 全量目录原始元数据持久化、批量模型写入延迟刷新边界、Railway 迁移与回滚 | `model/model_meta.go`, `controller/model_meta.go`, Railway `new-api`, PostgreSQL `models.source_metadata` |
 | `docs/operations/2026-07-17-playground-history-pricing-details.md` | Playground 真实付费验收护栏、图片/视频生成历史、私有媒体归档、刷新恢复与放大预览，以及 `/pricing` 模型参数治理入口 | `model/controller/service playground_generation*`, `/pg/generations`, Railway `new-api-volume`, `PLAYGROUND_ASSET_DIR`, `web/default` Playground media history/preview, pricing model details |
 | `docs/operations/2026-07-16-model-parameter-routing-playground.md` | 模型参数合同、证据与修订治理，管理态模型路由，以及文字/图片/Gemini/视频 Playground 收口与运行边界 | `model/model_operation_*`, `model/model_route.go`, model profile/evidence/route APIs, `/pg` relay routes, `web/default` model and Playground workspaces |

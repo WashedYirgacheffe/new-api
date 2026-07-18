@@ -57,6 +57,15 @@ type responseTask struct {
 	} `json:"error,omitempty"`
 }
 
+type nodyHubResponseTask struct {
+	TaskID     string `json:"task_id"`
+	Status     string `json:"status"`
+	Progress   string `json:"progress"`
+	FailReason string `json:"fail_reason"`
+	ResultURL  string `json:"result_url"`
+	VideoURL   string `json:"video_url"`
+}
+
 // ============================
 // Adaptor implementation
 // ============================
@@ -167,6 +176,17 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 		var bodyMap map[string]interface{}
 		if err := common.Unmarshal(cachedBody, &bodyMap); err == nil {
 			bodyMap["model"] = info.UpstreamModelName
+			if isNodyHubChannelProvider(a.channelProvider) {
+				if secondsValue, exists := bodyMap["seconds"]; exists {
+					if secondsString, ok := secondsValue.(string); ok {
+						seconds, err := strconv.Atoi(secondsString)
+						if err != nil {
+							return nil, fmt.Errorf("invalid seconds: must be an integer: %w", err)
+						}
+						bodyMap["seconds"] = seconds
+					}
+				}
+			}
 			if newBody, err := common.Marshal(bodyMap); err == nil {
 				return bytes.NewReader(newBody), nil
 			}
@@ -272,22 +292,17 @@ func (a *TaskAdaptor) FetchTask(baseUrl, key string, body map[string]any, proxy 
 		return nil, fmt.Errorf("invalid task_id")
 	}
 
-	method := http.MethodGet
 	uri := fmt.Sprintf("%s/v1/videos/%s", baseUrl, taskID)
 	if isNodyHubChannelProvider(a.channelProvider) {
-		method = http.MethodPost
 		uri = fmt.Sprintf("%s/v2/videos/generations/%s", baseUrl, taskID)
 	}
 
-	req, err := http.NewRequest(method, uri, nil)
+	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+key)
-	if method == http.MethodPost {
-		req.Header.Set("Content-Type", "application/json")
-	}
 
 	client, err := service.GetHttpClientWithProxy(proxy)
 	if err != nil {
@@ -305,6 +320,10 @@ func (a *TaskAdaptor) GetChannelName() string {
 }
 
 func (a *TaskAdaptor) ParseTaskResult(respBody []byte) (*relaycommon.TaskInfo, error) {
+	if isNodyHubChannelProvider(a.channelProvider) {
+		return parseNodyHubTaskResult(respBody)
+	}
+
 	resTask := responseTask{}
 	if err := common.Unmarshal(respBody, &resTask); err != nil {
 		return nil, errors.Wrap(err, "unmarshal task result failed")
@@ -333,6 +352,42 @@ func (a *TaskAdaptor) ParseTaskResult(respBody []byte) (*relaycommon.TaskInfo, e
 	}
 	if resTask.Progress > 0 && resTask.Progress < 100 {
 		taskResult.Progress = fmt.Sprintf("%d%%", resTask.Progress)
+	}
+
+	return &taskResult, nil
+}
+
+func parseNodyHubTaskResult(respBody []byte) (*relaycommon.TaskInfo, error) {
+	resTask := nodyHubResponseTask{}
+	if err := common.Unmarshal(respBody, &resTask); err != nil {
+		return nil, errors.Wrap(err, "unmarshal NodyHub task result failed")
+	}
+
+	taskResult := relaycommon.TaskInfo{
+		Code:     0,
+		TaskID:   resTask.TaskID,
+		Progress: resTask.Progress,
+	}
+
+	switch resTask.Status {
+	case model.TaskStatusSubmitted:
+		taskResult.Status = model.TaskStatusSubmitted
+	case model.TaskStatusQueued:
+		taskResult.Status = model.TaskStatusQueued
+	case model.TaskStatusInProgress:
+		taskResult.Status = model.TaskStatusInProgress
+	case model.TaskStatusSuccess:
+		taskResult.Status = model.TaskStatusSuccess
+		taskResult.Url = resTask.ResultURL
+		if taskResult.Url == "" {
+			taskResult.Url = resTask.VideoURL
+		}
+	case model.TaskStatusFailure:
+		taskResult.Status = model.TaskStatusFailure
+		taskResult.Reason = resTask.FailReason
+		if taskResult.Reason == "" {
+			taskResult.Reason = "task failed"
+		}
 	}
 
 	return &taskResult, nil
