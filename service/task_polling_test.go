@@ -20,16 +20,21 @@ import (
 )
 
 type taskPollingFetchAdaptor struct {
-	mu           sync.Mutex
-	taskIDs      []string
-	fetched      chan string
-	blockTaskID  string
-	blockStarted chan struct{}
-	releaseBlock chan struct{}
-	blockOnce    sync.Once
+	mu               sync.Mutex
+	taskIDs          []string
+	channelProviders []string
+	fetched          chan string
+	blockTaskID      string
+	blockStarted     chan struct{}
+	releaseBlock     chan struct{}
+	blockOnce        sync.Once
 }
 
-func (a *taskPollingFetchAdaptor) Init(_ *relaycommon.RelayInfo) {}
+func (a *taskPollingFetchAdaptor) Init(info *relaycommon.RelayInfo) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.channelProviders = append(a.channelProviders, info.ChannelProvider)
+}
 
 func (a *taskPollingFetchAdaptor) FetchTask(_ string, _ string, body map[string]any, _ string) (*http.Response, error) {
 	taskID, _ := body["task_id"].(string)
@@ -88,6 +93,12 @@ func (a *taskPollingFetchAdaptor) fetchedTaskIDs() []string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return append([]string(nil), a.taskIDs...)
+}
+
+func (a *taskPollingFetchAdaptor) initializedChannelProviders() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.channelProviders...)
 }
 
 func seedTaskPollingChannel(t *testing.T, id int, disableSleep bool) {
@@ -183,6 +194,37 @@ func TestUpdateVideoTasksCanSkipPollingSleepPerChannel(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, 2, adaptor.fetchCount())
+}
+
+func TestUpdateVideoTasksPassesChannelProviderToAdaptor(t *testing.T) {
+	truncate(t)
+
+	const channelID = 103
+	channel := &model.Channel{
+		Id:              channelID,
+		Type:            constant.ChannelTypeOpenAI,
+		Name:            "nodyhub_polling_channel",
+		ChannelProvider: "nodyhub",
+		Key:             "sk-test",
+		Status:          common.ChannelStatusEnabled,
+	}
+	channel.SetOtherSettings(dto.ChannelOtherSettings{DisableTaskPollingSleep: true})
+	require.NoError(t, model.DB.Create(channel).Error)
+	task := seedPollingTask(t, channelID, "task_public_nodyhub", "upstream_nodyhub")
+
+	adaptor := &taskPollingFetchAdaptor{}
+	previousFactory := GetTaskAdaptorFunc
+	GetTaskAdaptorFunc = func(constant.TaskPlatform) TaskPollingAdaptor { return adaptor }
+	t.Cleanup(func() { GetTaskAdaptorFunc = previousFactory })
+
+	err := UpdateVideoTasks(context.Background(), constant.TaskPlatform("1"), map[int][]string{
+		channelID: {task.GetUpstreamTaskID()},
+	}, map[string]*model.Task{
+		task.GetUpstreamTaskID(): task,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"nodyhub"}, adaptor.initializedChannelProviders())
 }
 
 func TestUpdateVideoTasksDefaultSleepDoesNotBlockOtherChannels(t *testing.T) {

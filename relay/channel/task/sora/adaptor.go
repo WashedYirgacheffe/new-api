@@ -63,15 +63,21 @@ type responseTask struct {
 
 type TaskAdaptor struct {
 	taskcommon.BaseBilling
-	ChannelType int
-	apiKey      string
-	baseURL     string
+	ChannelType     int
+	channelProvider string
+	apiKey          string
+	baseURL         string
 }
 
 func (a *TaskAdaptor) Init(info *relaycommon.RelayInfo) {
 	a.ChannelType = info.ChannelType
+	a.channelProvider = info.ChannelProvider
 	a.baseURL = info.ChannelBaseUrl
 	a.apiKey = info.ApiKey
+}
+
+func isNodyHubChannelProvider(provider string) bool {
+	return strings.EqualFold(strings.TrimSpace(provider), "nodyhub")
 }
 
 func validateRemixRequest(c *gin.Context) *dto.TaskError {
@@ -132,6 +138,9 @@ func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInf
 func (a *TaskAdaptor) BuildRequestURL(info *relaycommon.RelayInfo) (string, error) {
 	if info.Action == constant.TaskActionRemix {
 		return fmt.Sprintf("%s/v1/videos/%s/remix", a.baseURL, info.OriginTaskID), nil
+	}
+	if isNodyHubChannelProvider(a.channelProvider) {
+		return fmt.Sprintf("%s/v2/videos/generations", a.baseURL), nil
 	}
 	return fmt.Sprintf("%s/v1/videos", a.baseURL), nil
 }
@@ -263,14 +272,22 @@ func (a *TaskAdaptor) FetchTask(baseUrl, key string, body map[string]any, proxy 
 		return nil, fmt.Errorf("invalid task_id")
 	}
 
+	method := http.MethodGet
 	uri := fmt.Sprintf("%s/v1/videos/%s", baseUrl, taskID)
+	if isNodyHubChannelProvider(a.channelProvider) {
+		method = http.MethodPost
+		uri = fmt.Sprintf("%s/v2/videos/generations/%s", baseUrl, taskID)
+	}
 
-	req, err := http.NewRequest(http.MethodGet, uri, nil)
+	req, err := http.NewRequest(method, uri, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+key)
+	if method == http.MethodPost {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	client, err := service.GetHttpClientWithProxy(proxy)
 	if err != nil {
