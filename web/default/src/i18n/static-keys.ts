@@ -216,6 +216,14 @@ export const STATIC_I18N_KEYS = [
   'Channel Affinity',
 
   // Models constants
+  'Text',
+  'Audio',
+  'Embedding',
+  'Ranking',
+  'Unknown',
+  'Searching models...',
+  'No gateway models found.',
+  'Model search failed.',
   'Material contract for {{kind}} is missing request_field.',
   'Material transport {{transport}} is not supported in the playground.',
   'At least {{count}} {{kind}} material(s) are required.',

@@ -70,6 +70,7 @@ import {
   getModelOperationProfiles,
   saveModelOperationBinding,
   saveModelOperationProfile,
+  searchModels,
 } from '../api'
 import {
   modelOperationBindingFormSchema,
@@ -78,7 +79,9 @@ import {
   type ModelOperationBindingFormValues,
   type ModelOperationProfile,
   type ModelOperationProfileFormValues,
+  type Model,
 } from '../types'
+import { GatewayModelPicker } from './gateway-model-picker'
 import { ModelParameterWorkspace } from './model-parameter-workspace'
 import { ModelRouteWorkspace } from './model-route-workspace'
 
@@ -118,6 +121,7 @@ export function ModelContracts() {
   const [bindings, setBindings] = useState<ModelOperationBinding[]>([])
   const [modelQuery, setModelQuery] = useState('')
   const [loadedModelName, setLoadedModelName] = useState('')
+  const [loadedModel, setLoadedModel] = useState<Model>()
   const [loadingProfiles, setLoadingProfiles] = useState(false)
   const [loadingBindings, setLoadingBindings] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -165,36 +169,65 @@ export function ModelContracts() {
     }
   }, [t])
 
-  const loadBindings = useCallback(async () => {
-    const modelName = modelQuery.trim()
-    if (!modelName) {
-      toast.error(t('Enter an exact gateway model ID first.'))
-      return
-    }
-    const runId = bindingLoadRunIdRef.current + 1
-    bindingLoadRunIdRef.current = runId
-    setLoadingBindings(true)
-    try {
-      const response = await getModelOperationBindings(modelName)
-      if (runId !== bindingLoadRunIdRef.current) return
-      if (!response.success) {
-        throw new Error(response.message || 'Request failed')
+  const loadBindings = useCallback(
+    async (requestedModelName?: string, model?: Model) => {
+      const modelName = (requestedModelName ?? modelQuery).trim()
+      if (!modelName) {
+        toast.error(t('Enter an exact gateway model ID first.'))
+        return
       }
-      setBindings(response.data || [])
-      setLoadedModelName(modelName)
-      setDetailRevision((current) => current + 1)
-    } catch (error) {
-      if (runId === bindingLoadRunIdRef.current) {
-        toast.error(
-          error instanceof Error ? error.message : t('Request failed')
-        )
+      const runId = bindingLoadRunIdRef.current + 1
+      bindingLoadRunIdRef.current = runId
+      setLoadingBindings(true)
+      try {
+        const metadataRequest = model
+          ? Promise.resolve(model)
+          : searchModels({ keyword: modelName, p: 1, page_size: 50 })
+              .then((response) =>
+                response.success
+                  ? response.data?.items.find(
+                      (candidate) => candidate.model_name === modelName
+                    )
+                  : undefined
+              )
+              .catch(() => undefined)
+        const [response, resolvedModel] = await Promise.all([
+          getModelOperationBindings(modelName),
+          metadataRequest,
+        ])
+        if (runId !== bindingLoadRunIdRef.current) return
+        if (!response.success) {
+          throw new Error(response.message || 'Request failed')
+        }
+        setBindings(response.data || [])
+        setLoadedModelName(modelName)
+        setLoadedModel((current) => {
+          if (resolvedModel?.model_name === modelName) return resolvedModel
+          return current?.model_name === modelName ? current : undefined
+        })
+        setDetailRevision((current) => current + 1)
+      } catch (error) {
+        if (runId === bindingLoadRunIdRef.current) {
+          toast.error(
+            error instanceof Error ? error.message : t('Request failed')
+          )
+        }
+      } finally {
+        if (runId === bindingLoadRunIdRef.current) {
+          setLoadingBindings(false)
+        }
       }
-    } finally {
-      if (runId === bindingLoadRunIdRef.current) {
-        setLoadingBindings(false)
-      }
-    }
-  }, [modelQuery, t])
+    },
+    [modelQuery, t]
+  )
+
+  const commitModel = useCallback(
+    (modelName: string, model?: Model) => {
+      setModelQuery(modelName)
+      void loadBindings(modelName, model)
+    },
+    [loadBindings]
+  )
 
   useEffect(() => {
     void loadProfiles()
@@ -291,6 +324,9 @@ export function ModelContracts() {
       }
       setBindings(refreshed.data || [])
       setLoadedModelName(values.model_name)
+      setLoadedModel((current) =>
+        current?.model_name === values.model_name ? current : undefined
+      )
       setDetailRevision((current) => current + 1)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('Request failed'))
@@ -352,7 +388,7 @@ export function ModelContracts() {
   }
 
   return (
-    <div className='flex min-h-0 flex-col gap-4'>
+    <div className='flex h-full min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain'>
       <Alert>
         <FileCode2 className='size-4' />
         <AlertTitle>
@@ -388,13 +424,10 @@ export function ModelContracts() {
             </p>
           </div>
           <div className='flex w-full max-w-3xl flex-col gap-2 sm:flex-row'>
-            <Input
+            <GatewayModelPicker
               value={modelQuery}
-              onChange={(event) => setModelQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') void loadBindings()
-              }}
-              placeholder='deepwl/gpt-image-2'
+              onValueChange={setModelQuery}
+              onValueCommit={commitModel}
             />
             <Button
               variant='outline'
@@ -426,6 +459,8 @@ export function ModelContracts() {
               <ModelParameterWorkspace
                 key={`parameters-${loadedModelName}-${detailRevision}`}
                 modelName={loadedModelName}
+                model={loadedModel}
+                showCapabilitySummary
               />
             </TabsContent>
             <TabsContent value='routes'>
@@ -480,15 +515,10 @@ export function ModelContracts() {
               </p>
             </div>
             <div className='flex w-full max-w-2xl flex-col gap-2 sm:flex-row'>
-              <Input
+              <GatewayModelPicker
                 value={modelQuery}
-                onChange={(event) => setModelQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    void loadBindings()
-                  }
-                }}
-                placeholder='deepwl/gpt-image-2'
+                onValueChange={setModelQuery}
+                onValueCommit={commitModel}
               />
               <Button
                 variant='outline'

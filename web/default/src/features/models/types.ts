@@ -111,7 +111,7 @@ export interface ModelOperationBinding {
   contract_version: number
   contract_hash: string
   overrides: ModelContractObject
-  effective_contract?: ModelContractObject
+  effective_contract: ModelOperationEffectiveContract
   enabled: boolean
 }
 
@@ -238,11 +238,25 @@ export interface ModelOperationRequestContract {
 }
 
 export interface ModelOperationEffectiveContract extends ModelContractObject {
-  contract_version?: number
-  contract_hash?: string
-  response_contract?: string
-  request_contract?: ModelOperationRequestContract
+  profile_key: string
+  profile_version: number
+  schema_mode: string
+  operation: string
+  endpoint_type: string
+  execution_mode: string
+  branding: ModelContractObject
+  input_schema: ModelContractObject
+  ui_schema: ModelContractObject
+  material_schema: ModelContractObject
+  request_contract: ModelOperationRequestContract
+  pricing_rule: ModelContractObject
+  parameter_defaults: ModelContractObject
+  parameter_overrides: ModelContractObject
+  response_contract: string
+  contract_version: number
+  contract_hash: string
   dispatch_path?: string
+  poll_path?: string
 }
 
 export interface ModelTokenProfileData {

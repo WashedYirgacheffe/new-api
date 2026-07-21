@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,6 +26,8 @@ import { cn } from '@/lib/utils'
 export type ComboboxInputOption = {
   value: string
   label: string
+  description?: string
+  metadata?: string
   icon?: React.ReactNode
 }
 
@@ -39,6 +41,11 @@ interface ComboboxInputProps {
   id?: string
   allowCustomValue?: boolean
   openOnFocus?: boolean
+  loading?: boolean
+  loadingText?: string
+  shouldFilter?: boolean
+  onSearchValueChange?: (value: string) => void
+  onValueCommit?: (value: string, option?: ComboboxInputOption) => void
 }
 
 export function ComboboxInput({
@@ -51,6 +58,11 @@ export function ComboboxInput({
   id,
   allowCustomValue = false,
   openOnFocus = true,
+  loading = false,
+  loadingText = 'Loading...',
+  shouldFilter = true,
+  onSearchValueChange,
+  onValueCommit,
 }: ComboboxInputProps) {
   const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
@@ -67,6 +79,7 @@ export function ComboboxInput({
   const displayValue = open ? searchValue : (selectedOption?.label ?? value)
 
   const filteredOptions = React.useMemo(() => {
+    if (!shouldFilter) return options
     if (!searchValue.trim()) return options
     const search = searchValue.toLowerCase().trim()
     return options.filter(
@@ -74,12 +87,16 @@ export function ComboboxInput({
         option.label.toLowerCase().includes(search) ||
         option.value.toLowerCase().includes(search)
     )
-  }, [options, searchValue])
+  }, [options, searchValue, shouldFilter])
 
   // Reset highlight when filtered options change
   React.useEffect(() => {
     setHighlightedIndex(-1)
   }, [filteredOptions])
+
+  React.useEffect(() => {
+    if (loading) setHighlightedIndex(-1)
+  }, [loading])
 
   // Handle click outside to close
   React.useEffect(() => {
@@ -92,17 +109,21 @@ export function ComboboxInput({
       ) {
         setOpen(false)
         setSearchValue('')
+        onSearchValueChange?.('')
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
+  }, [onSearchValueChange, open])
 
   const handleSelect = (selectedValue: string) => {
+    const selected = options.find((option) => option.value === selectedValue)
     onValueChange(selectedValue)
+    onValueCommit?.(selectedValue, selected)
     setOpen(false)
     setSearchValue('')
+    onSearchValueChange?.('')
     inputRef.current?.focus()
   }
 
@@ -113,6 +134,18 @@ export function ComboboxInput({
     }
 
     if (!open) return
+
+    if (loading && e.key !== 'Escape') {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (allowCustomValue && searchValue.trim()) {
+          handleSelect(searchValue.trim())
+        }
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+      }
+      return
+    }
 
     switch (e.key) {
       case 'ArrowDown':
@@ -137,12 +170,14 @@ export function ComboboxInput({
           // No highlighted option, just close the dropdown and keep current value
           setOpen(false)
           setSearchValue('')
+          onSearchValueChange?.('')
         }
         break
       case 'Escape':
         e.preventDefault()
         setOpen(false)
         setSearchValue('')
+        onSearchValueChange?.('')
         break
     }
   }
@@ -156,7 +191,9 @@ export function ComboboxInput({
 
   const showDropdown =
     open &&
-    (filteredOptions.length > 0 || (allowCustomValue && searchValue.trim()))
+    (loading ||
+      filteredOptions.length > 0 ||
+      (allowCustomValue && searchValue.trim()))
 
   return (
     <div ref={containerRef} className='relative'>
@@ -168,12 +205,14 @@ export function ComboboxInput({
         aria-expanded={open}
         aria-haspopup='listbox'
         aria-autocomplete='list'
+        aria-busy={loading}
         autoComplete='off'
         placeholder={placeholder}
         value={displayValue}
         onChange={(e) => {
           const nextValue = e.target.value
           setSearchValue(nextValue)
+          onSearchValueChange?.(nextValue)
           if (allowCustomValue) {
             onValueChange(nextValue)
           }
@@ -186,7 +225,10 @@ export function ComboboxInput({
           }
         }}
         onFocus={() => {
-          setSearchValue(allowCustomValue && !selectedOption ? value : '')
+          const nextSearchValue =
+            allowCustomValue && !selectedOption ? value : ''
+          setSearchValue(nextSearchValue)
+          onSearchValueChange?.(nextSearchValue)
           if (openOnFocus || pointerFocusRef.current) {
             setOpen(true)
           }
@@ -199,7 +241,15 @@ export function ComboboxInput({
 
       {showDropdown && (
         <div className='bg-popover text-popover-foreground absolute top-full z-100 mt-1 w-full rounded-md border shadow-md'>
-          {filteredOptions.length > 0 ? (
+          {loading ? (
+            <div
+              role='status'
+              className='text-muted-foreground flex items-center justify-center gap-2 px-2 py-6 text-sm'
+            >
+              <Loader2 className='size-4 animate-spin' />
+              {t(loadingText)}
+            </div>
+          ) : filteredOptions.length > 0 ? (
             <ul
               ref={listRef}
               role='listbox'
@@ -225,12 +275,26 @@ export function ComboboxInput({
                 >
                   <Check
                     className={cn(
-                      'size-4 shrink-0',
+                      'mt-0.5 size-4 shrink-0 self-start',
                       value === option.value ? 'opacity-100' : 'opacity-0'
                     )}
                   />
-                  {option.icon && <span>{option.icon}</span>}
-                  <span className='truncate'>{option.label}</span>
+                  {option.icon && (
+                    <span className='self-start'>{option.icon}</span>
+                  )}
+                  <span className='min-w-0 flex-1'>
+                    <span className='block truncate'>{option.label}</span>
+                    {option.description && (
+                      <span className='text-muted-foreground block font-mono text-xs font-normal break-all'>
+                        {option.description}
+                      </span>
+                    )}
+                    {option.metadata && (
+                      <span className='text-muted-foreground block truncate text-xs font-normal'>
+                        {option.metadata}
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>

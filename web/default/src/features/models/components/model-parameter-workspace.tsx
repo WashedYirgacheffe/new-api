@@ -21,6 +21,7 @@ import {
   FileCheck2,
   History,
   Loader2,
+  Network,
   Plus,
   RotateCcw,
   Save,
@@ -48,7 +49,13 @@ import {
   saveModelOperationBinding,
   saveModelOperationParameterEvidence,
 } from '../api'
+import {
+  deriveModelContractCapabilities,
+  type MaterialInputCapability,
+  type ModelOutputKind,
+} from '../lib/model-contract-capabilities'
 import type {
+  Model,
   ModelContractObject,
   ModelOperationBinding,
   ModelOperationBindingRevision,
@@ -528,7 +535,160 @@ function ParameterRow(props: {
   )
 }
 
-export function ModelParameterWorkspace(props: { modelName: string }) {
+const CAPABILITY_KIND_LABEL_KEYS: Record<ModelOutputKind, string> = {
+  text: 'Text',
+  image: 'Image',
+  video: 'Video',
+  audio: 'Audio',
+  embedding: 'Embedding',
+  ranking: 'Ranking',
+  unknown: 'Unknown',
+}
+
+const MODEL_TYPE_OUTPUT_KINDS: Record<string, ModelOutputKind> = {
+  text: 'text',
+  image: 'image',
+  video: 'video',
+  audio: 'audio',
+  embedding: 'embedding',
+  rerank: 'ranking',
+}
+
+function ModelCapabilitySummary(props: {
+  model?: Model
+  binding: ModelOperationBinding
+}) {
+  const { t } = useTranslation()
+  const capabilities = useMemo(
+    () => deriveModelContractCapabilities(props.model, props.binding),
+    [props.binding, props.model]
+  )
+  const hasUpstreamInputs =
+    capabilities.prompt.accepted ||
+    capabilities.textInput.fields.length > 0 ||
+    capabilities.materials.length > 0
+
+  const materialLabel = (material: MaterialInputCapability) => {
+    const kind = t(CAPABILITY_KIND_LABEL_KEYS[material.kind])
+    if (material.maxItems === null) {
+      if (material.minItems === 0) {
+        return t('{{kind}} materials: unlimited', { kind })
+      }
+      return t('{{kind}} materials: at least {{min}}', {
+        kind,
+        min: material.minItems,
+      })
+    }
+    if (material.minItems === material.maxItems) {
+      return t('{{kind}} materials: {{count}}', {
+        kind,
+        count: material.maxItems,
+      })
+    }
+    return t('{{kind}} materials: {{min}}-{{max}}', {
+      kind,
+      min: material.minItems,
+      max: material.maxItems,
+    })
+  }
+
+  let modelTypeLabel = t(CAPABILITY_KIND_LABEL_KEYS[capabilities.outputKind])
+  if (capabilities.modelType) {
+    const normalizedModelType = capabilities.modelType.toLowerCase()
+    const modelTypeOutputKind = MODEL_TYPE_OUTPUT_KINDS[normalizedModelType]
+    modelTypeLabel = modelTypeOutputKind
+      ? t(CAPABILITY_KIND_LABEL_KEYS[modelTypeOutputKind])
+      : capabilities.modelType
+  }
+
+  let downstreamRule = t('No automatic downstream connection rule.')
+  if (capabilities.downstreamRule.kind === 'prompt') {
+    downstreamRule = t('May connect to a downstream prompt input.')
+  } else if (capabilities.downstreamRule.kind === 'material') {
+    downstreamRule = t(
+      'May connect to downstream models accepting {{kind}} materials.',
+      {
+        kind: t(
+          CAPABILITY_KIND_LABEL_KEYS[capabilities.downstreamRule.materialKind]
+        ),
+      }
+    )
+  }
+
+  return (
+    <section
+      aria-labelledby='model-io-capability-summary'
+      className='bg-muted/30 border-y px-4 py-3'
+    >
+      <div className='mb-3 flex items-center gap-2'>
+        <Network className='size-4' />
+        <h3 id='model-io-capability-summary' className='text-sm font-medium'>
+          {t('I/O capability summary')}
+        </h3>
+      </div>
+      <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+        <div className='min-w-0'>
+          <p className='text-muted-foreground text-xs'>{t('Model Type')}</p>
+          <p className='mt-1 truncate text-sm font-medium'>{modelTypeLabel}</p>
+        </div>
+        <div className='min-w-0'>
+          <p className='text-muted-foreground text-xs'>
+            {t('Accepted upstream inputs')}
+          </p>
+          <div className='mt-1 flex flex-wrap gap-1.5'>
+            {capabilities.prompt.accepted && (
+              <Badge variant='outline'>
+                {capabilities.prompt.required
+                  ? t('Prompt required')
+                  : t('Prompt optional')}
+              </Badge>
+            )}
+            {capabilities.textInput.fields.length > 0 && (
+              <Badge variant='outline'>
+                {capabilities.textInput.required
+                  ? t('Text input required')
+                  : t('Text input optional')}
+              </Badge>
+            )}
+            {capabilities.materials.map((material) => (
+              <Badge key={material.kind} variant='outline'>
+                {materialLabel(material)}
+              </Badge>
+            ))}
+            {!hasUpstreamInputs && (
+              <span className='text-muted-foreground text-sm'>
+                {t('No upstream inputs declared.')}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className='min-w-0'>
+          <p className='text-muted-foreground text-xs'>{t('Output type')}</p>
+          <div className='mt-1 flex flex-wrap items-center gap-2'>
+            <Badge variant='secondary'>
+              {t(CAPABILITY_KIND_LABEL_KEYS[capabilities.outputKind])}
+            </Badge>
+            <code className='text-muted-foreground text-xs'>
+              {props.binding.operation}
+            </code>
+          </div>
+        </div>
+        <div className='min-w-0'>
+          <p className='text-muted-foreground text-xs'>
+            {t('Downstream rule')}
+          </p>
+          <p className='mt-1 text-sm'>{downstreamRule}</p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export function ModelParameterWorkspace(props: {
+  modelName: string
+  model?: Model
+  showCapabilitySummary?: boolean
+}) {
   const { t } = useTranslation()
   const [bindings, setBindings] = useState<ModelOperationBinding[]>([])
   const [operation, setOperation] = useState('')
@@ -905,6 +1065,12 @@ export function ModelParameterWorkspace(props: { modelName: string }) {
       )}
       {!loading && selectedBinding && (
         <>
+          {props.showCapabilitySummary && (
+            <ModelCapabilitySummary
+              model={props.model}
+              binding={selectedBinding}
+            />
+          )}
           <section className='rounded-lg border'>
             <header className='flex flex-wrap items-center justify-between gap-3 border-b p-4'>
               <div>
