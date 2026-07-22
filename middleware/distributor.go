@@ -29,6 +29,24 @@ type ModelRequest struct {
 	Group string `json:"group,omitempty"`
 }
 
+const carLabRouteGroupHeader = "X-CarLab-Route-Group"
+
+func requestedRelayGroup(c *gin.Context, modelRequest *ModelRequest) string {
+	requestedGroup := strings.TrimSpace(c.GetHeader(carLabRouteGroupHeader))
+	c.Request.Header.Del(carLabRouteGroupHeader)
+	if !strings.HasPrefix(c.Request.URL.Path, "/pg/") && !strings.HasPrefix(c.Request.URL.Path, "/v1") {
+		return ""
+	}
+	if !strings.HasPrefix(c.Request.URL.Path, "/pg/") {
+		return requestedGroup
+	}
+	requestedGroup = strings.TrimSpace(modelRequest.Group)
+	if queryGroup := strings.TrimSpace(c.Query("group")); queryGroup != "" {
+		return queryGroup
+	}
+	return requestedGroup
+}
+
 func Distribute() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var channel *model.Channel
@@ -38,6 +56,7 @@ func Distribute() func(c *gin.Context) {
 			abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorInvalidRequest, map[string]any{"Error": err.Error()}))
 			return
 		}
+		requestedGroup := requestedRelayGroup(c, modelRequest)
 		if ok {
 			id, err := strconv.Atoi(channelId.(string))
 			if err != nil {
@@ -97,24 +116,26 @@ func Distribute() func(c *gin.Context) {
 				}
 				var selectGroup string
 				usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
-				if strings.HasPrefix(c.Request.URL.Path, "/pg/") {
-					requestedGroup := strings.TrimSpace(modelRequest.Group)
-					if queryGroup := strings.TrimSpace(c.Query("group")); queryGroup != "" {
-						requestedGroup = queryGroup
+				if requestedGroup != "" {
+					tokenGroup := common.GetContextKeyString(c, constant.ContextKeyTokenGroup)
+					if !strings.HasPrefix(c.Request.URL.Path, "/pg/") && tokenGroup != "" && tokenGroup != "auto" && requestedGroup != tokenGroup {
+						abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
+						return
 					}
-					if requestedGroup != "" {
-						baseGroup := usingGroup
-						if baseGroup == "" {
-							baseGroup = common.GetContextKeyString(c, constant.ContextKeyUserGroup)
-						}
-						if !service.GroupInUserUsableGroups(baseGroup, requestedGroup) && requestedGroup != baseGroup {
-							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
-							return
-						}
-						usingGroup = requestedGroup
-						common.SetContextKey(c, constant.ContextKeyUsingGroup, usingGroup)
-						common.SetContextKey(c, constant.ContextKeyTokenGroup, usingGroup)
+					baseGroup := usingGroup
+					if !strings.HasPrefix(c.Request.URL.Path, "/pg/") {
+						baseGroup = common.GetContextKeyString(c, constant.ContextKeyUserGroup)
 					}
+					if baseGroup == "" {
+						baseGroup = common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+					}
+					if !service.GroupInUserUsableGroups(baseGroup, requestedGroup) && requestedGroup != baseGroup {
+						abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
+						return
+					}
+					usingGroup = requestedGroup
+					common.SetContextKey(c, constant.ContextKeyUsingGroup, usingGroup)
+					common.SetContextKey(c, constant.ContextKeyTokenGroup, usingGroup)
 				}
 
 				if preferredChannelID, found := service.GetPreferredChannelByAffinity(c, modelRequest.Model, usingGroup); found {

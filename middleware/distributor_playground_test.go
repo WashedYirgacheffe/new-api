@@ -47,6 +47,20 @@ func TestRelayRequestPathNormalizesPlaygroundMediaEndpoints(t *testing.T) {
 	}
 }
 
+func TestRequestedRelayGroupUsesTokenRelayHeaderAndDoesNotForwardIt(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	ctx.Request.Header.Set(carLabRouteGroupHeader, "gold")
+
+	group := requestedRelayGroup(ctx, &ModelRequest{Group: "untrusted-body-group"})
+
+	assert.Equal(t, "gold", group)
+	assert.Empty(t, ctx.Request.Header.Get(carLabRouteGroupHeader))
+}
+
 func TestGetModelRequestParsesPlaygroundMediaEndpoints(t *testing.T) {
 	t.Parallel()
 
