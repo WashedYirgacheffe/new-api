@@ -1,8 +1,9 @@
 # Superseed 分站控制面迁移
 
 - 日期：2026-07-22
-- 状态：实现与本地验证完成，云端发布待本轮收口
+- 状态：已部署并完成无付费线上验收
 - 代码分支：`codex/oem-api-hub`
+- 代码提交：`7feaa6df`
 
 ## 范围
 
@@ -48,7 +49,7 @@
 
 | 资源 | 影响 |
 | --- | --- |
-| Railway `carlab-api/new-api` | 构建新后端和默认 React 控制台，启动时迁移三张分站表；首次 seed 可选读取 `SUBSITE_DEFAULT_CLAIM_PASSWORD` |
+| Railway `carlab-api/new-api` | deployment `1fe5b370-9a0b-4c0b-8340-8fa2182fac1a` 已成功，构建新后端和默认 React 控制台，启动时迁移三张分站表；首次 seed 可选读取 `SUBSITE_DEFAULT_CLAIM_PASSWORD` |
 | Railway PostgreSQL | 保存分站、认领关系和启用模型；不保存明文认领密码 |
 | Railway Redis | 用户角色和目录相关缓存按既有机制失效 |
 | Cloudflare `api.carlab.top` | 继续代理 Railway 源站，无新增公开源站 |
@@ -61,8 +62,10 @@ TapLater 使用的配置名称为 `CARLAB_SUBSITE_DOMAIN`、`CARLAB_SUBSITE_ROUT
 - CarLabAPI 分站 model、controller、middleware 聚焦 Go 测试通过；SQLite fixture 覆盖默认 seed、认领不改角色、真实 HTTP 错误和路由组隔离。
 - 默认前端 `bun run typecheck`、定向 lint/format 和 `bun run build` 通过。
 - TapLater 使用 Node 20.20.2 执行全量测试，331/331 通过；`vue-tsc --noEmit` 和 Vite build 通过。
+- Railway deployment `1fe5b370-9a0b-4c0b-8340-8fa2182fac1a` 状态为 `SUCCESS`，服务为 `Online`；`GET https://api.carlab.top/api/status` 返回 HTTP 200。
+- 未登录访问 `GET /api/subsites/claimable` 返回 HTTP 401 和 `error.code=subsite_auth_required`；携带无效 access token 与用户 ID 返回 HTTP 401 和 `error.code=subsite_access_token_invalid`。
+- `https://api.carlab.top/` 和三个分站控制台 SPA 路径均返回 HTTP 200；TapLater Preview deployment `dpl_5ecDr89kYWoVQQ8y13AthxsHFXpd` 状态为 `READY`，对应 Superseed commit `74a3ddb`。
 - 未执行任何付费生成请求。
-- 云端部署 ID、健康检查和无付费接口验收在发布完成后补充。
 
 ## 回滚
 
