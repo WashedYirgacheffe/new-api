@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -94,9 +95,34 @@ func GlobalWebRateLimit() func(c *gin.Context) {
 	return defNext
 }
 
+func bypassGlobalAPIRateLimit(c *gin.Context) bool {
+	if c.Request == nil {
+		return false
+	}
+	path := c.Request.URL.Path
+	switch c.Request.Method {
+	case http.MethodGet:
+		return path == "/api/user/models/catalog" ||
+			path == "/api/user/models/profile" ||
+			(strings.HasPrefix(path, "/api/subsites/by-domain/") && strings.HasSuffix(path, "/catalog"))
+	case http.MethodPost:
+		return path == "/api/user/models/quote"
+	default:
+		return false
+	}
+}
+
 func GlobalAPIRateLimit() func(c *gin.Context) {
 	if common.GlobalApiRateLimitEnable {
-		return rateLimitFactory(common.GlobalApiRateLimitNum, common.GlobalApiRateLimitDuration, "GA")
+		limiter := rateLimitFactory(common.GlobalApiRateLimitNum, common.GlobalApiRateLimitDuration, "GA")
+		return func(c *gin.Context) {
+			// These are TokenAuth-protected BFF reads. Vercel shares egress IPs, so
+			// applying the anonymous IP bucket here rejects unrelated callers as 429.
+			if bypassGlobalAPIRateLimit(c) {
+				return
+			}
+			limiter(c)
+		}
 	}
 	return defNext
 }

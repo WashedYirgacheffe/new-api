@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	DefaultSubsiteCode        = "superseed"
-	DefaultSubsiteDomain      = "cjzz.top"
-	DefaultSubsiteVersion     = "v0.9.0"
-	DefaultSubsiteRouteGroup  = "gold"
-	defaultSubsitePasswordEnv = "SUBSITE_DEFAULT_CLAIM_PASSWORD"
+	DefaultSubsiteCode          = "superseed"
+	DefaultSubsiteDomain        = "cjzz.top"
+	DefaultSubsiteVersion       = "v0.9.0"
+	DefaultSubsiteRouteGroup    = "gold"
+	DefaultSubsiteClaimPassword = "888888"
+	defaultSubsitePasswordEnv   = "SUBSITE_DEFAULT_CLAIM_PASSWORD"
 )
 
 var ErrSubsiteClaimPasswordInvalid = errors.New("subsite claim password is invalid")
@@ -230,10 +231,7 @@ func SeedDefaultSubsite() error {
 	}
 	claimPassword := strings.TrimSpace(os.Getenv(defaultSubsitePasswordEnv))
 	if claimPassword == "" {
-		claimPassword, err = common.GenerateRandomKey(48)
-		if err != nil {
-			return err
-		}
+		claimPassword = DefaultSubsiteClaimPassword
 	}
 	hash, err := common.Password2Hash(claimPassword)
 	if err != nil {

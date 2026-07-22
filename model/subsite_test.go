@@ -53,6 +53,26 @@ func TestSeedDefaultSubsiteCreatesCanonicalModelsAndHashesPassword(t *testing.T)
 	assert.NotContains(t, strings.ToLower(string(encoded)), "password")
 }
 
+func TestSeedDefaultSubsiteUsesDefaultClaimPasswordWithoutEnvironmentOverride(t *testing.T) {
+	setupSubsiteModelTest(t)
+	t.Setenv(defaultSubsitePasswordEnv, "")
+	if existing, err := GetSubsiteByCode(DefaultSubsiteCode); err == nil {
+		require.NoError(t, DeleteSubsite(existing.Id))
+	} else {
+		require.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	}
+	t.Cleanup(func() {
+		if existing, err := GetSubsiteByCode(DefaultSubsiteCode); err == nil {
+			_ = DeleteSubsite(existing.Id)
+		}
+	})
+
+	require.NoError(t, SeedDefaultSubsite())
+	site, err := GetSubsiteByCode(DefaultSubsiteCode)
+	require.NoError(t, err)
+	assert.True(t, common.ValidatePasswordAndHash(DefaultSubsiteClaimPassword, site.ClaimPasswordHash))
+}
+
 func TestSeedDefaultSubsiteIsIdempotentWhenCanonicalDomainAlreadyExists(t *testing.T) {
 	setupSubsiteModelTest(t)
 	DB.Where("code = ? OR domain = ?", DefaultSubsiteCode, DefaultSubsiteDomain).Delete(&Subsite{})
