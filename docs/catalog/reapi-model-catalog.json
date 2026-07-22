@@ -1,0 +1,1899 @@
+{
+  "schema_version": 1,
+  "retrieved_at": "2026-07-23",
+  "channel_provider": {
+    "code": "re",
+    "name": "RE",
+    "models_url": "https://reapi.ai/models",
+    "async_openapi_url": "https://reapi.ai/openapi.json",
+    "chat_base_url": "https://api.reapi.ai",
+    "task_base_url": "https://reapi.ai/api/v1"
+  },
+  "integrity": {
+    "model_count": 104,
+    "chat_model_count": 8,
+    "async_model_count": 96,
+    "sorted_model_name_sha256": "348a7a9d52def9d7a4cbc6443dc76b9bb94269cd2890e06e2aedd8768b5dd02b",
+    "source_sha256": {
+      "async_openapi": "0090c53338a3edcb252c99ffc51d46031f5929caf6938724ebce79c9eec2ce72",
+      "models_llms": "d2966c605c14fad7f9d0f6575ce9de5c225fc590b9d6d5e375f4d3d24c8eaacd",
+      "async_model_ids": "131750d75611c1110e3b96c4bd0df5bab0e99ced51d5a0802d0b13f849cb3045",
+      "model_slugs": "84aae1541afcac3920b1349ce757cae89d059c976c69191fe990bed3f86d8e2d",
+      "model_page_parse": "9d3d5bc4ec6ed89ae2f1ab0a5f4dae378756a391ab3a4e9d51efa43fff07cd3d"
+    }
+  },
+  "models": [
+    {
+      "model_name": "re/ai-essay-writer",
+      "upstream_model_id": "ai-essay-writer",
+      "display_name": "AI Essay Writer",
+      "model_type": "text",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/essay",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "ai-essay-writer",
+        "upstream_endpoint": "/essay",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/ai-text-detector",
+      "upstream_model_id": "ai-text-detector",
+      "display_name": "AI Text Detector",
+      "model_type": "text",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/detect",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "ai-text-detector",
+        "upstream_endpoint": "/detect",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/audio-multistem",
+      "upstream_model_id": "audio-multistem",
+      "display_name": "Multistem Splitter API",
+      "model_type": "audio",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models/multistem-splitter",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "multistem-splitter",
+        "upstream_model_id": "audio-multistem",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/audio-music-extractor",
+      "upstream_model_id": "audio-music-extractor",
+      "display_name": "Music Extractor API",
+      "model_type": "audio",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models/music-extractor",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "music-extractor",
+        "upstream_model_id": "audio-music-extractor",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/audio-stem-separator",
+      "upstream_model_id": "audio-stem-separator",
+      "display_name": "Vocal Remover API",
+      "model_type": "audio",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models/vocal-remover",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "vocal-remover",
+        "upstream_model_id": "audio-stem-separator",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/audio-voice-change",
+      "upstream_model_id": "audio-voice-change",
+      "display_name": "Voice Changer API",
+      "model_type": "audio",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models/voice-changer",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "voice-changer",
+        "upstream_model_id": "audio-voice-change",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/audio-voice-clean",
+      "upstream_model_id": "audio-voice-clean",
+      "display_name": "Voice Cleaner API",
+      "model_type": "audio",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models/voice-cleaner",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "voice-cleaner",
+        "upstream_model_id": "audio-voice-clean",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/claude-fable-5",
+      "upstream_model_id": "claude-fable-5",
+      "display_name": "Claude Fable 5",
+      "model_type": "text",
+      "vendor": "Anthropic",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/claude-fable-5",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "claude-fable-5",
+        "upstream_model_id": "claude-fable-5",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/claude-opus-4-7",
+      "upstream_model_id": "claude-opus-4-7",
+      "display_name": "Claude Opus 4.7",
+      "model_type": "text",
+      "vendor": "Anthropic",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/claude-opus-4-7",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "claude-opus-4-7",
+        "upstream_model_id": "claude-opus-4-7",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/claude-opus-4-8",
+      "upstream_model_id": "claude-opus-4-8",
+      "display_name": "Claude Opus 4.8",
+      "model_type": "text",
+      "vendor": "Anthropic",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/claude-opus-4-8",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "claude-opus-4-8",
+        "upstream_model_id": "claude-opus-4-8",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/claude-sonnet-4-6",
+      "upstream_model_id": "claude-sonnet-4-6",
+      "display_name": "Claude Sonnet 4.6",
+      "model_type": "text",
+      "vendor": "Anthropic",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/claude-sonnet-4-6",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "claude-sonnet-4-6",
+        "upstream_model_id": "claude-sonnet-4-6",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/deepseek-v4-flash",
+      "upstream_model_id": "deepseek-v4-flash",
+      "display_name": "DeepSeek V4",
+      "model_type": "text",
+      "vendor": "DeepSeek",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/deepseek-v4",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "deepseek-v4",
+        "upstream_model_id": "deepseek-v4-flash",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0",
+      "upstream_model_id": "doubao-seedance-2.0",
+      "display_name": "Doubao Seedance 2.0",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "doubao-seedance-2.0",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-face",
+      "upstream_model_id": "doubao-seedance-2.0-face",
+      "display_name": "Seedance 2.0",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "seedance-2-0",
+        "upstream_model_id": "doubao-seedance-2.0-face",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-fast",
+      "upstream_model_id": "doubao-seedance-2.0-fast",
+      "display_name": "Doubao Seedance 2.0 Fast",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "doubao-seedance-2.0-fast",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-fast-face",
+      "upstream_model_id": "doubao-seedance-2.0-fast-face",
+      "display_name": "Doubao Seedance 2.0 Fast Face",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "doubao-seedance-2.0-fast-face",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-fast-official",
+      "upstream_model_id": "doubao-seedance-2.0-fast-official",
+      "display_name": "Doubao Seedance 2.0 Fast Official",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "doubao-seedance-2.0-fast-official",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-official",
+      "upstream_model_id": "doubao-seedance-2.0-official",
+      "display_name": "Doubao Seedance 2.0 Official",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "doubao-seedance-2.0-official",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedream-5-0-lite",
+      "upstream_model_id": "doubao-seedream-5-0-lite",
+      "display_name": "Seedream 5.0 Lite",
+      "model_type": "image",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/seedream-5-0-lite",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "seedream-5-0-lite",
+        "upstream_model_id": "doubao-seedream-5-0-lite",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/doubao-seedream-5-0-pro",
+      "upstream_model_id": "doubao-seedream-5-0-pro",
+      "display_name": "Seedream 5.0 Pro",
+      "model_type": "image",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/seedream-5-0-pro",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "seedream-5-0-pro",
+        "upstream_model_id": "doubao-seedream-5-0-pro",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/enhance-video-1.0",
+      "upstream_model_id": "enhance-video-1.0",
+      "display_name": "Enhance Video 1.0",
+      "model_type": "video",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/enhance-video-1-0",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "enhance-video-1-0",
+        "upstream_model_id": "enhance-video-1.0",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/flux-2",
+      "upstream_model_id": "flux-2",
+      "display_name": "FLUX.2",
+      "model_type": "image",
+      "vendor": "Black Forest Labs",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/flux-2",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "flux-2",
+        "upstream_model_id": "flux-2",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/flux-2-flex",
+      "upstream_model_id": "flux-2-flex",
+      "display_name": "Flux 2 Flex",
+      "model_type": "image",
+      "vendor": "Black Forest Labs",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "flux-2-flex",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-2.5-flash-image-preview",
+      "upstream_model_id": "gemini-2.5-flash-image-preview",
+      "display_name": "Gemini 2.5 Flash Image Preview",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/gemini-2-5-flash-image-preview",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "gemini-2-5-flash-image-preview",
+        "upstream_model_id": "gemini-2.5-flash-image-preview",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-2.5-flash-image-preview-official",
+      "upstream_model_id": "gemini-2.5-flash-image-preview-official",
+      "display_name": "Gemini 2.5 Flash Image Preview Official",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "gemini-2.5-flash-image-preview-official",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-3-pro-image-preview",
+      "upstream_model_id": "gemini-3-pro-image-preview",
+      "display_name": "Gemini 3 Pro Image Preview",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/gemini-3-pro-image-preview",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "gemini-3-pro-image-preview",
+        "upstream_model_id": "gemini-3-pro-image-preview",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-3-pro-image-preview-official",
+      "upstream_model_id": "gemini-3-pro-image-preview-official",
+      "display_name": "Gemini 3 Pro Image Preview Official",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "gemini-3-pro-image-preview-official",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-3.1-flash-image-preview",
+      "upstream_model_id": "gemini-3.1-flash-image-preview",
+      "display_name": "Gemini 3.1 Flash Image Preview",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/gemini-3-1-flash-image-preview",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "gemini-3-1-flash-image-preview",
+        "upstream_model_id": "gemini-3.1-flash-image-preview",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-3.1-flash-image-preview-official",
+      "upstream_model_id": "gemini-3.1-flash-image-preview-official",
+      "display_name": "Gemini 3.1 Flash Image Preview Official",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "gemini-3.1-flash-image-preview-official",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-omni",
+      "upstream_model_id": "gemini-omni",
+      "display_name": "Gemini Omni",
+      "model_type": "video",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "gemini-omni",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gemini-omni-beta",
+      "upstream_model_id": "gemini-omni-beta",
+      "display_name": "Gemini Omni Beta",
+      "model_type": "video",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "gemini-omni-beta",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gpt-5.4",
+      "upstream_model_id": "gpt-5.4",
+      "display_name": "GPT-5.4",
+      "model_type": "text",
+      "vendor": "OpenAI",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/gpt-5-4",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "gpt-5-4",
+        "upstream_model_id": "gpt-5.4",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gpt-5.5",
+      "upstream_model_id": "gpt-5.5",
+      "display_name": "GPT-5.5",
+      "model_type": "text",
+      "vendor": "OpenAI",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/gpt-5-5",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "gpt-5-5",
+        "upstream_model_id": "gpt-5.5",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gpt-image-2",
+      "upstream_model_id": "gpt-image-2",
+      "display_name": "GPT Image 2",
+      "model_type": "image",
+      "vendor": "OpenAI",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "gpt-image-2",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gpt-image-2-beta",
+      "upstream_model_id": "gpt-image-2-beta",
+      "display_name": "GPT Image 2 Beta",
+      "model_type": "image",
+      "vendor": "OpenAI",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "gpt-image-2-beta",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/gpt-image-2-official",
+      "upstream_model_id": "gpt-image-2-official",
+      "display_name": "GPT Image 2",
+      "model_type": "image",
+      "vendor": "OpenAI",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/gpt-image-2",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "gpt-image-2",
+        "upstream_model_id": "gpt-image-2-official",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/grok-imagine-1.0-video",
+      "upstream_model_id": "grok-imagine-1.0-video",
+      "display_name": "Grok Imagine 1.0 Video",
+      "model_type": "video",
+      "vendor": "xAI",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/grok-imagine-1-0-video",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "grok-imagine-1-0-video",
+        "upstream_model_id": "grok-imagine-1.0-video",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/grok-imagine-video-1.5-beta",
+      "upstream_model_id": "grok-imagine-video-1.5-beta",
+      "display_name": "Grok Imagine Video 1.5",
+      "model_type": "video",
+      "vendor": "xAI",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/grok-imagine-video-1-5",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "grok-imagine-video-1-5",
+        "upstream_model_id": "grok-imagine-video-1.5-beta",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/grok-imagine-video-1.5-official",
+      "upstream_model_id": "grok-imagine-video-1.5-official",
+      "display_name": "Grok Imagine Video 1.5 Official",
+      "model_type": "video",
+      "vendor": "xAI",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "grok-imagine-video-1.5-official",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/happyhorse-1-1",
+      "upstream_model_id": "happyhorse-1-1",
+      "display_name": "HappyHorse 1.1",
+      "model_type": "video",
+      "vendor": "Happy Horse",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/happyhorse-1-1",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "happyhorse-1-1",
+        "upstream_model_id": "happyhorse-1-1",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/happyhorse-1.0",
+      "upstream_model_id": "happyhorse-1.0",
+      "display_name": "Happy Horse 1.0",
+      "model_type": "video",
+      "vendor": "Happy Horse",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/happyhorse-1-0",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "happyhorse-1-0",
+        "upstream_model_id": "happyhorse-1.0",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/happyhorse-1.0-official",
+      "upstream_model_id": "happyhorse-1.0-official",
+      "display_name": "Happyhorse 1.0 Official",
+      "model_type": "video",
+      "vendor": "Happy Horse",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "happyhorse-1.0-official",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/humanize",
+      "upstream_model_id": "humanize",
+      "display_name": "Humanize",
+      "model_type": "text",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/humanize",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "humanize",
+        "upstream_endpoint": "/humanize",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/imagen-4-0",
+      "upstream_model_id": "imagen-4-0",
+      "display_name": "Imagen 4 0",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "imagen-4-0",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/kling-3-0",
+      "upstream_model_id": "kling-3-0",
+      "display_name": "Kling 3 0",
+      "model_type": "video",
+      "vendor": "Kuaishou",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "kling-3-0",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/kling-3-0-turbo",
+      "upstream_model_id": "kling-3-0-turbo",
+      "display_name": "Kling 3 0 Turbo",
+      "model_type": "video",
+      "vendor": "Kuaishou",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "kling-3-0-turbo",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/kling-3-0-turbo-beta",
+      "upstream_model_id": "kling-3-0-turbo-beta",
+      "display_name": "Kling 3 0 Turbo Beta",
+      "model_type": "video",
+      "vendor": "Kuaishou",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "kling-3-0-turbo-beta",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/kling-v2-6-motion-control",
+      "upstream_model_id": "kling-v2-6-motion-control",
+      "display_name": "Kling V2 6 Motion Control",
+      "model_type": "video",
+      "vendor": "Kuaishou",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "kling-v2-6-motion-control",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/kling-v3-motion-control",
+      "upstream_model_id": "kling-v3-motion-control",
+      "display_name": "Kling Motion Control",
+      "model_type": "video",
+      "vendor": "Kuaishou",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/kling-motion-control",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "kling-motion-control",
+        "upstream_model_id": "kling-v3-motion-control",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/midjourney",
+      "upstream_model_id": "midjourney",
+      "display_name": "Midjourney V8",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/midjourney-v8",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "midjourney-v8",
+        "upstream_model_id": "midjourney",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/midjourney-video",
+      "upstream_model_id": "midjourney-video",
+      "display_name": "Midjourney Video",
+      "model_type": "video",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "midjourney-video",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/minimax/minimax-m3",
+      "upstream_model_id": "minimax/minimax-m3",
+      "display_name": "MiniMax M3",
+      "model_type": "text",
+      "vendor": "MiniMax",
+      "protocol": "chat-completions",
+      "endpoint": "/v1/chat/completions",
+      "source_url": "https://reapi.ai/models/minimax-m3",
+      "source_metadata": {
+        "catalog_source": "reapi-model-page",
+        "model_page_slug": "minimax-m3",
+        "upstream_model_id": "minimax/minimax-m3",
+        "upstream_endpoint": "/v1/chat/completions",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7",
+      "upstream_model_id": "mj-v7",
+      "display_name": "Midjourney V7",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "midjourney-v7",
+        "upstream_model_id": "mj-v7",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-edit",
+      "upstream_model_id": "mj-v7-edit",
+      "display_name": "MJ V7 Edit",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-edit",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-enhance",
+      "upstream_model_id": "mj-v7-enhance",
+      "display_name": "MJ V7 Enhance",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-enhance",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-inpaint",
+      "upstream_model_id": "mj-v7-inpaint",
+      "display_name": "MJ V7 Inpaint",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-inpaint",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-outpaint",
+      "upstream_model_id": "mj-v7-outpaint",
+      "display_name": "MJ V7 Outpaint",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-outpaint",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-pan",
+      "upstream_model_id": "mj-v7-pan",
+      "display_name": "MJ V7 Pan",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-pan",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-remix",
+      "upstream_model_id": "mj-v7-remix",
+      "display_name": "MJ V7 Remix",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-remix",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-remove-bg",
+      "upstream_model_id": "mj-v7-remove-bg",
+      "display_name": "MJ V7 Remove Bg",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-remove-bg",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-retexture",
+      "upstream_model_id": "mj-v7-retexture",
+      "display_name": "MJ V7 Retexture",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-retexture",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-upload-paint",
+      "upstream_model_id": "mj-v7-upload-paint",
+      "display_name": "MJ V7 Upload Paint",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-upload-paint",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-upscale",
+      "upstream_model_id": "mj-v7-upscale",
+      "display_name": "MJ V7 Upscale",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-upscale",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mj-v7-variation",
+      "upstream_model_id": "mj-v7-variation",
+      "display_name": "MJ V7 Variation",
+      "model_type": "image",
+      "vendor": "Midjourney",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mj-v7-variation",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/mureka-v9-song",
+      "upstream_model_id": "mureka-v9-song",
+      "display_name": "Mureka V9 Song",
+      "model_type": "audio",
+      "vendor": "Mureka",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "mureka-v9-song",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/music-video-1-0",
+      "upstream_model_id": "music-video-1-0",
+      "display_name": "Music Video 1 0",
+      "model_type": "video",
+      "vendor": "reAPI",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "music-video-1-0",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/nano-banana-2-lite",
+      "upstream_model_id": "nano-banana-2-lite",
+      "display_name": "Nano Banana 2 Lite",
+      "model_type": "image",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "nano-banana-2-lite",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/pixverse-v6",
+      "upstream_model_id": "pixverse-v6",
+      "display_name": "Pixverse V6",
+      "model_type": "video",
+      "vendor": "PixVerse",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "pixverse-v6",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/qwen-image-2",
+      "upstream_model_id": "qwen-image-2",
+      "display_name": "QWEN Image 2",
+      "model_type": "image",
+      "vendor": "Alibaba",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "qwen-image-2",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/seedance-2.0-beta",
+      "upstream_model_id": "seedance-2.0-beta",
+      "display_name": "Seedance 2.0 Beta",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "seedance-2.0-beta",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/seedance-2.0-fast-beta",
+      "upstream_model_id": "seedance-2.0-fast-beta",
+      "display_name": "Seedance 2.0 Fast Beta",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "seedance-2.0-fast-beta",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/seedance-2.0-mini",
+      "upstream_model_id": "seedance-2.0-mini",
+      "display_name": "Seedance 2.0 Mini",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/seedance-2-0-mini",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "seedance-2-0-mini",
+        "upstream_model_id": "seedance-2.0-mini",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/seedance-2.5",
+      "upstream_model_id": "seedance-2.5",
+      "display_name": "Seedance 2.5",
+      "model_type": "video",
+      "vendor": "ByteDance",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/seedance-2-5",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "seedance-2-5",
+        "upstream_model_id": "seedance-2.5",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-add-instrumental",
+      "upstream_model_id": "suno-add-instrumental",
+      "display_name": "Suno Add Instrumental",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-add-instrumental",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-add-vocals",
+      "upstream_model_id": "suno-add-vocals",
+      "display_name": "Suno Add Vocals",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-add-vocals",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-cover-image",
+      "upstream_model_id": "suno-cover-image",
+      "display_name": "Suno Cover Image",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-cover-image",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-extend",
+      "upstream_model_id": "suno-extend",
+      "display_name": "Suno Extend",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-extend",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-lyrics",
+      "upstream_model_id": "suno-lyrics",
+      "display_name": "Suno Lyrics",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-lyrics",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-mashup",
+      "upstream_model_id": "suno-mashup",
+      "display_name": "Suno Mashup",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-mashup",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-midi",
+      "upstream_model_id": "suno-midi",
+      "display_name": "Suno Midi",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-midi",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-music",
+      "upstream_model_id": "suno-music",
+      "display_name": "Suno",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models/Suno",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "Suno",
+        "upstream_model_id": "suno-music",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-music-video",
+      "upstream_model_id": "suno-music-video",
+      "display_name": "Suno Music Video",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-music-video",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-replace-section",
+      "upstream_model_id": "suno-replace-section",
+      "display_name": "Suno Replace Section",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-replace-section",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-sounds",
+      "upstream_model_id": "suno-sounds",
+      "display_name": "Suno Sounds",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-sounds",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-upload-cover",
+      "upstream_model_id": "suno-upload-cover",
+      "display_name": "Suno Upload Cover",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-upload-cover",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-upload-extend",
+      "upstream_model_id": "suno-upload-extend",
+      "display_name": "Suno Upload Extend",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-upload-extend",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-vocal-separation",
+      "upstream_model_id": "suno-vocal-separation",
+      "display_name": "Suno Vocal Separation",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-vocal-separation",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-voice-generate",
+      "upstream_model_id": "suno-voice-generate",
+      "display_name": "Suno Voice Generate",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-voice-generate",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-voice-regenerate",
+      "upstream_model_id": "suno-voice-regenerate",
+      "display_name": "Suno Voice Regenerate",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-voice-regenerate",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-voice-validate",
+      "upstream_model_id": "suno-voice-validate",
+      "display_name": "Suno Voice Validate",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-voice-validate",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/suno-wav",
+      "upstream_model_id": "suno-wav",
+      "display_name": "Suno Wav",
+      "model_type": "audio",
+      "vendor": "Suno",
+      "protocol": "re-task",
+      "endpoint": "/audio/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "suno-wav",
+        "upstream_endpoint": "/audio/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/topaz-video-upscaler",
+      "upstream_model_id": "topaz-video-upscaler",
+      "display_name": "Topaz Video Upscaler",
+      "model_type": "video",
+      "vendor": "Topaz Labs",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "topaz-video-upscaler",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/veo3.1-fast",
+      "upstream_model_id": "veo3.1-fast",
+      "display_name": "VEO 3.1",
+      "model_type": "video",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/veo3-1",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "veo3-1",
+        "upstream_model_id": "veo3.1-fast",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/veo3.1-fast-official",
+      "upstream_model_id": "veo3.1-fast-official",
+      "display_name": "Veo3.1 Fast Official",
+      "model_type": "video",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "veo3.1-fast-official",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/veo3.1-lite",
+      "upstream_model_id": "veo3.1-lite",
+      "display_name": "Veo3.1 Lite",
+      "model_type": "video",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "veo3.1-lite",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/veo3.1-quality",
+      "upstream_model_id": "veo3.1-quality",
+      "display_name": "Veo3.1 Quality",
+      "model_type": "video",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "veo3.1-quality",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/veo3.1-quality-official",
+      "upstream_model_id": "veo3.1-quality-official",
+      "display_name": "Veo3.1 Quality Official",
+      "model_type": "video",
+      "vendor": "Google",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "veo3.1-quality-official",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/viduq3-pro",
+      "upstream_model_id": "viduq3-pro",
+      "display_name": "Vidu Q3",
+      "model_type": "video",
+      "vendor": "Vidu",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/viduq3",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "viduq3",
+        "upstream_model_id": "viduq3-pro",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/viduq3-turbo",
+      "upstream_model_id": "viduq3-turbo",
+      "display_name": "Viduq3 Turbo",
+      "model_type": "video",
+      "vendor": "Vidu",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "viduq3-turbo",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/wan2.7-image",
+      "upstream_model_id": "wan2.7-image",
+      "display_name": "Wan 2.7 Image",
+      "model_type": "image",
+      "vendor": "Alibaba",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models/wan-2-7-image",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "wan-2-7-image",
+        "upstream_model_id": "wan2.7-image",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/wan2.7-image-pro",
+      "upstream_model_id": "wan2.7-image-pro",
+      "display_name": "Wan2.7 Image Pro",
+      "model_type": "image",
+      "vendor": "Alibaba",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "wan2.7-image-pro",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/wan2.7-video",
+      "upstream_model_id": "wan2.7-video",
+      "display_name": "Wan 2.7 Video",
+      "model_type": "video",
+      "vendor": "Alibaba",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models/wan-2-7-video",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": "wan-2-7-video",
+        "upstream_model_id": "wan2.7-video",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/wan2.7-video-official",
+      "upstream_model_id": "wan2.7-video-official",
+      "display_name": "Wan2.7 Video Official",
+      "model_type": "video",
+      "vendor": "Alibaba",
+      "protocol": "re-task",
+      "endpoint": "/videos/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "wan2.7-video-official",
+        "upstream_endpoint": "/videos/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    },
+    {
+      "model_name": "re/z-image",
+      "upstream_model_id": "z-image",
+      "display_name": "Z Image",
+      "model_type": "image",
+      "vendor": "Z.ai",
+      "protocol": "re-task",
+      "endpoint": "/images/generations",
+      "source_url": "https://reapi.ai/models",
+      "source_metadata": {
+        "catalog_source": "reapi-openapi-and-model-page",
+        "model_page_slug": null,
+        "upstream_model_id": "z-image",
+        "upstream_endpoint": "/images/generations",
+        "status": "disabled_pending_pricing"
+      },
+      "status": "disabled_pending_pricing"
+    }
+  ]
+}

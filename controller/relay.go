@@ -17,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	"github.com/QuantumNous/new-api/relay"
+	"github.com/QuantumNous/new-api/relay/channel/task/reapi"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
@@ -532,6 +533,46 @@ func RelayTaskFetch(c *gin.Context) {
 	if taskErr := relay.RelayTaskFetch(c, relayInfo.RelayMode); taskErr != nil {
 		respondTaskError(c, taskErr)
 	}
+}
+
+func RelayReAPITaskFetch(c *gin.Context) {
+	taskID := c.Param("task_id")
+	if strings.TrimSpace(taskID) == "" {
+		respondTaskError(c, service.TaskErrorWrapperLocal(errors.New("task_id is required"), "invalid_request", http.StatusBadRequest))
+		return
+	}
+	task, exists, err := model.GetByTaskId(c.GetInt("id"), taskID)
+	if err != nil {
+		respondTaskError(c, service.TaskErrorWrapper(err, "get_task_failed", http.StatusInternalServerError))
+		return
+	}
+	if !exists || task.Platform != constant.TaskPlatform(fmt.Sprintf("%d", constant.ChannelTypeReAPI)) {
+		respondTaskError(c, service.TaskErrorWrapperLocal(errors.New("task_not_exist"), "task_not_exist", http.StatusNotFound))
+		return
+	}
+
+	upstreamTaskID, upstreamModel, upstreamStatus, createdAt, output, upstreamError, decodeErr := reapi.DecodeTaskResponse(task.Data)
+	if decodeErr != nil {
+		respondTaskError(c, service.TaskErrorWrapper(decodeErr, "unmarshal_task_data_failed", http.StatusInternalServerError))
+		return
+	}
+	if createdAt == 0 {
+		createdAt = task.CreatedAt
+	}
+	if upstreamModel == "" {
+		upstreamModel = task.Properties.OriginModelName
+	}
+	if upstreamStatus == "" {
+		upstreamStatus = reapi.StatusFromTaskStatus(task.Status)
+	}
+	c.JSON(http.StatusOK, reapi.PublicTaskResponse(
+		task.TaskID,
+		upstreamModel,
+		upstreamStatus,
+		createdAt,
+		reapi.RedactUpstreamTaskID(output, upstreamTaskID),
+		reapi.RedactUpstreamTaskID(upstreamError, upstreamTaskID),
+	))
 }
 
 func RelayTask(c *gin.Context) {

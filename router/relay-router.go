@@ -102,6 +102,16 @@ func SetRelayRouter(router *gin.Engine) {
 		playgroundRelayRouter.POST("/videos", controller.PlaygroundVideo)
 		playgroundRelayRouter.GET("/videos/:task_id", controller.PlaygroundVideoFetch)
 	}
+
+	reTaskRouter := router.Group("/v1/re")
+	reTaskRouter.Use(middleware.RouteTag("relay"))
+	reTaskRouter.Use(middleware.SystemPerformanceCheck())
+	reTaskRouter.Use(middleware.TokenAuth())
+	{
+		reTaskRouter.POST("/generations", middleware.ModelRequestRateLimit(), middleware.Distribute(), controller.RelayTask)
+		reTaskRouter.GET("/tasks/:task_id", controller.RelayReAPITaskFetch)
+	}
+
 	relayV1Router := router.Group("/v1")
 	relayV1Router.Use(middleware.RouteTag("relay"))
 	relayV1Router.Use(middleware.SystemPerformanceCheck())
