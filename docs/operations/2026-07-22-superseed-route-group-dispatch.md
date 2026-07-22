@@ -1,7 +1,7 @@
 # Superseed 报价与派发路由组一致性
 
 - 日期：2026-07-22
-- 状态：待 Railway 与 Vercel Preview 部署后进行最低成本真实文本验收
+- 状态：已部署；完成无计费 relay 路由组验收
 - 代码分支：`codex/oem-api-hub`、`codex/canvas-runtime-p0-p2`
 
 ## 范围
@@ -25,15 +25,16 @@ TapLater 的分站目录和报价已确认超级种子使用 `gold` 路由组，
 
 | 资源 | 影响 |
 | --- | --- |
-| Railway `carlab-api/new-api` | 部署后 `api.carlab.top` 标准 Token relay 接受受校验的内部路由组 header |
-| Vercel `superseed` Preview | 使用既有 `CARLAB_SERVICE_TOKEN`、`CARLAB_ROUTE_TOKENS_JSON`、`CARLAB_SUBSITE_DOMAIN` 与 `CARLAB_SUBSITE_ROUTE_GROUP`；不增加明文凭据 |
+| Railway `carlab-api/new-api` | deployment `2c437c62-50b5-4c65-adde-7d6426dc0c10` 已部署；`api.carlab.top` 标准 Token relay 接受受校验的内部路由组 header/query |
+| Vercel `superseed` Preview | `dpl_Bd3SQEfigUdvGVD8skF3FcGr3pZk` 已 READY，使用既有 `CARLAB_SERVICE_TOKEN`、`CARLAB_ROUTE_TOKENS_JSON`、`CARLAB_SUBSITE_DOMAIN` 与 `CARLAB_SUBSITE_ROUTE_GROUP`；不增加明文凭据 |
 | Supabase generation runs | 已保存的 `expected_carlab_group` 作为异步恢复的可信来源 |
 
 ## 验证证据
 
 - CarLabAPI middleware 聚焦 Go 测试通过，确认标准 `/v1` 路径 header 优先、query fallback 仅作兜底，且两种内部载体已删除。
 - TapLater `generation-dispatch` 定向测试 8/8 通过，覆盖文字、Gemini 图片、异步视频提交/轮询、缺失组的提交前失败，以及客户端 body 不能覆盖服务端 route group。
-- 未执行付费图片或视频生成。部署后只执行一次 1-credit 文本生成，确认 CarLab 真实日志使用 `gold`，再清理临时验证用户和旧的未知提交 hold。
+- Railway 部署后，使用业务 Token 且只携带 `_carlab_route_group=gold` 的不存在模型探针返回 `No available channel ... under group gold`；该请求未命中渠道或模型，不产生费用，确认线上不会回退到 `auto`。
+- 按本轮低成本边界，未执行付费图片、视频或额外文本生成；旧的验证 run 不自动重发。
 
 ## 回滚
 
