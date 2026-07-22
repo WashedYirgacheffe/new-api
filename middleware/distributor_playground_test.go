@@ -52,13 +52,34 @@ func TestRequestedRelayGroupUsesTokenRelayHeaderAndDoesNotForwardIt(t *testing.T
 
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions?keep=1&_carlab_route_group=silver", nil)
 	ctx.Request.Header.Set(carLabRouteGroupHeader, "gold")
 
 	group := requestedRelayGroup(ctx, &ModelRequest{Group: "untrusted-body-group"})
 
 	assert.Equal(t, "gold", group)
 	assert.Empty(t, ctx.Request.Header.Get(carLabRouteGroupHeader))
+	assert.Empty(t, ctx.Request.URL.Query().Get(carLabRouteGroupQuery))
+	assert.Equal(t, "1", ctx.Request.URL.Query().Get("keep"))
+	assert.NotContains(t, ctx.Request.RequestURI, carLabRouteGroupQuery)
+	assert.Equal(t, ctx.Request.URL.RequestURI(), ctx.Request.RequestURI)
+}
+
+func TestRequestedRelayGroupUsesQueryFallbackAndDoesNotForwardIt(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions?keep=1&_carlab_route_group=gold", nil)
+
+	group := requestedRelayGroup(ctx, &ModelRequest{Group: "untrusted-body-group"})
+
+	assert.Equal(t, "gold", group)
+	assert.Empty(t, ctx.Request.URL.Query().Get(carLabRouteGroupQuery))
+	assert.Equal(t, "1", ctx.Request.URL.Query().Get("keep"))
+	assert.NotContains(t, ctx.Request.URL.String(), carLabRouteGroupQuery)
+	assert.NotContains(t, ctx.Request.RequestURI, carLabRouteGroupQuery)
+	assert.Equal(t, ctx.Request.URL.RequestURI(), ctx.Request.RequestURI)
 }
 
 func TestGetModelRequestParsesPlaygroundMediaEndpoints(t *testing.T) {

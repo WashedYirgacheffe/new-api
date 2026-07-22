@@ -29,16 +29,33 @@ type ModelRequest struct {
 	Group string `json:"group,omitempty"`
 }
 
-const carLabRouteGroupHeader = "X-CarLab-Route-Group"
+const (
+	carLabRouteGroupHeader = "X-CarLab-Route-Group"
+	carLabRouteGroupQuery  = "_carlab_route_group"
+)
 
 func requestedRelayGroup(c *gin.Context, modelRequest *ModelRequest) string {
+	requestPath := c.Request.URL.Path
 	requestedGroup := strings.TrimSpace(c.GetHeader(carLabRouteGroupHeader))
 	c.Request.Header.Del(carLabRouteGroupHeader)
-	if !strings.HasPrefix(c.Request.URL.Path, "/pg/") && !strings.HasPrefix(c.Request.URL.Path, "/v1") {
+	if !strings.HasPrefix(requestPath, "/pg/") && !strings.HasPrefix(requestPath, "/v1") {
 		return ""
 	}
-	if !strings.HasPrefix(c.Request.URL.Path, "/pg/") {
-		return requestedGroup
+	if !strings.HasPrefix(requestPath, "/pg/") {
+		if !strings.HasPrefix(requestPath, "/v1/") {
+			return requestedGroup
+		}
+		query := c.Request.URL.Query()
+		fallbackGroup := strings.TrimSpace(query.Get(carLabRouteGroupQuery))
+		if _, found := query[carLabRouteGroupQuery]; found {
+			query.Del(carLabRouteGroupQuery)
+			c.Request.URL.RawQuery = query.Encode()
+			c.Request.RequestURI = c.Request.URL.RequestURI()
+		}
+		if requestedGroup != "" {
+			return requestedGroup
+		}
+		return fallbackGroup
 	}
 	requestedGroup = strings.TrimSpace(modelRequest.Group)
 	if queryGroup := strings.TrimSpace(c.Query("group")); queryGroup != "" {
