@@ -3,7 +3,7 @@
 - 日期：2026-07-22
 - 状态：已部署并完成无付费线上验收
 - 代码分支：`codex/oem-api-hub`
-- 代码提交：`7feaa6df`
+- 代码提交：`7feaa6df`、`78fea327`、报价限流修复待部署提交
 
 ## 范围
 
@@ -30,6 +30,7 @@
 - `common/constants.go`、`middleware/auth.go`、`controller/user.go`：新增角色 5、即时角色校验和受限的普通用户/分站管理员角色切换。
 - `model/subsite.go`、`model/main.go`：新增 `subsites`、`subsite_admins`、`subsite_models`，并初始化 Superseed 站点和 17 个 canonical 模型。
 - `controller/subsite.go`、`router/api-router.go`：新增认领、平台 CRUD、模型集合和按域名 Token 目录接口；错误使用真实 HTTP 4xx/5xx 和稳定 code。
+- `router/api-router.go`：`/api/user/models/quote` 保留业务 Token 鉴权，但移除 IP 级 `CriticalRateLimit`。该接口由 TapLater Vercel Functions 代表用户请求，Vercel 共享出口 IP 会把 20 次/20 分钟的 CriticalRateLimit 放大成 Preview 级 429；全局 API 限流和生成提交的权威计费校验仍保留。
 - `web/default/src/features/subsites/`、`web/default/src/routes/_authenticated/subsites/`：新增认领、模型双栏筛选保存和管理员分站页面。
 - `web/default/src/features/users/`、侧栏、角色及 i18n 文件：用户管理支持角色 5，并按角色隐藏平台控制面。
 - Superseed 对应分支：TapLater 改读 `/api/subsites/by-domain/:domain/catalog`，TapDash 隐藏重复入口，Generation BFF 保留结构化错误和失败日志。
@@ -62,6 +63,7 @@ TapLater 使用的配置名称为 `CARLAB_SUBSITE_DOMAIN`、`CARLAB_SUBSITE_ROUT
 - CarLabAPI 分站 model、controller、middleware 聚焦 Go 测试通过；SQLite fixture 覆盖默认 seed、认领不改角色、真实 HTTP 错误和路由组隔离。
 - 默认前端 `bun run typecheck`、定向 lint/format 和 `bun run build` 通过。
 - TapLater 使用 Node 20.20.2 执行全量测试，331/331 通过；`vue-tsc --noEmit` 和 Vite build 通过。
+- CarLabAPI `go test ./router` 通过，覆盖 `/api/user/models/quote` 路由保留 `TokenAuth` 与 `QuoteTokenModel`，且不再挂接 rate-limit handler。
 - Railway deployment `1fe5b370-9a0b-4c0b-8340-8fa2182fac1a` 状态为 `SUCCESS`，服务为 `Online`；`GET https://api.carlab.top/api/status` 返回 HTTP 200。
 - 未登录访问 `GET /api/subsites/claimable` 返回 HTTP 401 和 `error.code=subsite_auth_required`；携带无效 access token 与用户 ID 返回 HTTP 401 和 `error.code=subsite_access_token_invalid`。
 - `https://api.carlab.top/` 和三个分站控制台 SPA 路径均返回 HTTP 200；TapLater Preview deployment `dpl_5ecDr89kYWoVQQ8y13AthxsHFXpd` 状态为 `READY`，对应 Superseed commit `74a3ddb`。

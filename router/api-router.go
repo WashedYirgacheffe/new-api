@@ -11,6 +11,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func tokenModelQuoteHandlers() []gin.HandlerFunc {
+	return []gin.HandlerFunc{
+		middleware.TokenAuth(),
+		controller.QuoteTokenModel,
+	}
+}
+
 func SetApiRouter(router *gin.Engine) {
 	apiRouter := router.Group("/api")
 	apiRouter.Use(middleware.RouteTag("api"))
@@ -87,7 +94,7 @@ func SetApiRouter(router *gin.Engine) {
 			userRoute.GET("/groups", controller.GetUserGroups)
 			userRoute.GET("/models/catalog", middleware.TokenAuth(), controller.GetTokenModelCatalog)
 			userRoute.GET("/models/profile", middleware.TokenAuth(), controller.GetTokenModelProfile)
-			userRoute.POST("/models/quote", middleware.TokenAuth(), middleware.CriticalRateLimit(), controller.QuoteTokenModel)
+			userRoute.POST("/models/quote", tokenModelQuoteHandlers()...)
 
 			selfRoute := userRoute.Group("/")
 			selfRoute.Use(middleware.UserAuth())
