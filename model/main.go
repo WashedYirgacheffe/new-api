@@ -261,6 +261,7 @@ func InitLogDB() (err error) {
 }
 
 func migrateDB() error {
+	hadSubsiteTable := DB.Migrator().HasTable(&Subsite{})
 	// Migrate price_amount column from float/double to decimal for existing tables
 	migrateSubscriptionPlanPriceAmount()
 	// Migrate model_limits column from varchar to text for existing tables
@@ -310,6 +311,9 @@ func migrateDB() error {
 		&SystemTaskLock{},
 		&CasbinRule{},
 		&AuthzRole{},
+		&Subsite{},
+		&SubsiteAdmin{},
+		&SubsiteModel{},
 	)
 	if err != nil {
 		return err
@@ -323,11 +327,16 @@ func migrateDB() error {
 			return err
 		}
 	}
+	if !hadSubsiteTable {
+		if err := SeedDefaultSubsite(); err != nil {
+			return err
+		}
+	}
 	return SeedDefaultModelOperationProfiles()
 }
 
 func migrateDBFast() error {
-
+	hadSubsiteTable := DB.Migrator().HasTable(&Subsite{})
 	var wg sync.WaitGroup
 
 	migrations := []struct {
@@ -373,6 +382,9 @@ func migrateDBFast() error {
 		{&SystemInstance{}, "SystemInstance"},
 		{&SystemTask{}, "SystemTask"},
 		{&SystemTaskLock{}, "SystemTaskLock"},
+		{&Subsite{}, "Subsite"},
+		{&SubsiteAdmin{}, "SubsiteAdmin"},
+		{&SubsiteModel{}, "SubsiteModel"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))
@@ -403,6 +415,11 @@ func migrateDBFast() error {
 		}
 	} else {
 		if err := DB.AutoMigrate(&SubscriptionPlan{}); err != nil {
+			return err
+		}
+	}
+	if !hadSubsiteTable {
+		if err := SeedDefaultSubsite(); err != nil {
 			return err
 		}
 	}

@@ -56,6 +56,16 @@ type tokenCatalogModel struct {
 	PriceReady             bool                         `json:"price_ready"`
 }
 
+type tokenCatalogPayload struct {
+	Items               []tokenCatalogModel             `json:"items"`
+	Profiles            []modelOperationProfileContract `json:"profiles"`
+	Total               int                             `json:"total"`
+	TokenGroup          string                          `json:"token_group"`
+	RoutingGroups       []string                        `json:"routing_groups"`
+	PricingVersion      string                          `json:"pricing_version"`
+	SupportedModelTypes []string                        `json:"supported_model_types"`
+}
+
 type modelQuoteRequest struct {
 	Model        string                 `json:"model"`
 	Operation    string                 `json:"operation"`
@@ -276,20 +286,14 @@ func catalogBrandIcon(item model.Pricing) string {
 	}
 }
 
-func GetTokenModelCatalog(c *gin.Context) {
-	pricing, groups, err := tokenScopedPricing(c)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
+func buildTokenCatalogPayload(pricing []model.Pricing, groups modelListGroups) (tokenCatalogPayload, error) {
 	modelNames := make([]string, 0, len(pricing))
 	for _, item := range pricing {
 		modelNames = append(modelNames, item.ModelName)
 	}
 	bindingsByModel, err := model.GetModelOperationBindings(modelNames, true)
 	if err != nil {
-		common.ApiError(c, err)
-		return
+		return tokenCatalogPayload{}, err
 	}
 	supportedEndpointsByModel := make(map[string][]constant.EndpointType, len(pricing))
 	for _, item := range pricing {
@@ -339,15 +343,29 @@ func GetTokenModelCatalog(c *gin.Context) {
 			PriceReady:             relayhelper.HasModelBillingConfig(item.ModelName),
 		})
 	}
-	common.ApiSuccess(c, gin.H{
-		"items":                 items,
-		"profiles":              profiles,
-		"total":                 len(items),
-		"token_group":           groups.tokenGroup,
-		"routing_groups":        groups.ownerGroups,
-		"pricing_version":       carLabPricingVersion,
-		"supported_model_types": model.GetSupportedTokenModelTypes(),
-	})
+	return tokenCatalogPayload{
+		Items:               items,
+		Profiles:            profiles,
+		Total:               len(items),
+		TokenGroup:          groups.tokenGroup,
+		RoutingGroups:       groups.ownerGroups,
+		PricingVersion:      carLabPricingVersion,
+		SupportedModelTypes: model.GetSupportedTokenModelTypes(),
+	}, nil
+}
+
+func GetTokenModelCatalog(c *gin.Context) {
+	pricing, groups, err := tokenScopedPricing(c)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	payload, err := buildTokenCatalogPayload(pricing, groups)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, payload)
 }
 
 func findTokenScopedPricing(c *gin.Context, modelName string) (*model.Pricing, modelListGroups, error) {

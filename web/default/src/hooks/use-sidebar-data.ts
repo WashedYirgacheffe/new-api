@@ -19,6 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Activity,
   Box,
+  Boxes,
+  Building2,
   CreditCard,
   FileCode2,
   FileText,
@@ -28,6 +30,7 @@ import {
   ListTodo,
   MessageSquare,
   Radio,
+  ShieldCheck,
   ServerCog,
   Settings,
   Ticket,
@@ -117,9 +120,32 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
+        id: 'subsites',
+        title: t('Subsite Model Management'),
+        items: [
+          {
+            title: t('Claim Subsite'),
+            url: '/subsites/claim',
+            icon: ShieldCheck,
+            requiredRole: ROLE.SUBSITE_ADMIN,
+          },
+          {
+            title: t('Enabled Models'),
+            url: '/subsites/models',
+            icon: Boxes,
+            requiredRole: ROLE.SUBSITE_ADMIN,
+          },
+        ],
+      },
+      {
         id: 'admin',
         title: t('Admin'),
         items: [
+          {
+            title: t('Subsites'),
+            url: '/subsites/admin',
+            icon: Building2,
+          },
           {
             title: t('Channels'),
             url: '/channels',

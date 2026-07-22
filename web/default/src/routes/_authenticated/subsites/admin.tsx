@@ -17,37 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import z from 'zod'
 
-import { Users } from '@/features/users'
+import { SubsiteAdminPage } from '@/features/subsites'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
-const usersSearchSchema = z.object({
-  page: z.number().optional().catch(1),
-  pageSize: z.number().optional().catch(undefined),
-  filter: z.string().optional().catch(''),
-  status: z
-    .array(z.enum(['-1', '1', '2']))
-    .optional()
-    .catch([]),
-  role: z
-    .array(z.enum(['1', '5', '10', '100']))
-    .optional()
-    .catch([]),
-  group: z.string().optional().catch(''),
-})
-
-export const Route = createFileRoute('/_authenticated/users/')({
+export const Route = createFileRoute('/_authenticated/subsites/admin')({
   beforeLoad: () => {
-    const { auth } = useAuthStore.getState()
-
-    if (!auth.user || auth.user.role < ROLE.ADMIN) {
-      throw redirect({
-        to: '/403',
-      })
-    }
+    const user = useAuthStore.getState().auth.user
+    if (!user || user.role < ROLE.ADMIN) throw redirect({ to: '/403' })
   },
-  validateSearch: usersSearchSchema,
-  component: Users,
+  component: SubsiteAdminPage,
 })

@@ -19,15 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 import { z } from 'zod'
 
 import {
-  type PermissionCatalog,
   type AdminPermissionMatrix,
   normalizeAdminPermissions,
+  type PermissionCatalog,
 } from '@/lib/admin-permissions'
 import { quotaUnitsToDollars } from '@/lib/format'
 import { ROLE } from '@/lib/roles'
 
 import { DEFAULT_GROUP } from '../constants'
-import { type UserFormData, type User } from '../types'
+import type { User, UserFormData } from '../types'
 
 // ============================================================================
 // Form Schema
@@ -94,10 +94,9 @@ export function transformFormDataToPayload(
     )
   }
 
-  // For create: only send required fields
-  if (userId === undefined) {
-    payload.role = role
-  } else {
+  payload.role = role
+
+  if (userId !== undefined) {
     // For update: quota is adjusted atomically via /api/user/manage, not sent here
     payload.group = data.group
     payload.remark = data.remark || undefined

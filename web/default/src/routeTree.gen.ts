@@ -51,6 +51,9 @@ import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
+import { Route as AuthenticatedSubsitesModelsRouteImport } from './routes/_authenticated/subsites/models'
+import { Route as AuthenticatedSubsitesClaimRouteImport } from './routes/_authenticated/subsites/claim'
+import { Route as AuthenticatedSubsitesAdminRouteImport } from './routes/_authenticated/subsites/admin'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
@@ -292,6 +295,24 @@ const AuthenticatedUsageLogsSectionRoute =
     path: '/usage-logs/$section',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSubsitesModelsRoute =
+  AuthenticatedSubsitesModelsRouteImport.update({
+    id: '/subsites/models',
+    path: '/subsites/models',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSubsitesClaimRoute =
+  AuthenticatedSubsitesClaimRouteImport.update({
+    id: '/subsites/claim',
+    path: '/subsites/claim',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSubsitesAdminRoute =
+  AuthenticatedSubsitesAdminRouteImport.update({
+    id: '/subsites/admin',
+    path: '/subsites/admin',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModelsSectionRoute =
   AuthenticatedModelsSectionRouteImport.update({
     id: '/models/$section',
@@ -436,6 +457,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
+  '/subsites/admin': typeof AuthenticatedSubsitesAdminRoute
+  '/subsites/claim': typeof AuthenticatedSubsitesClaimRoute
+  '/subsites/models': typeof AuthenticatedSubsitesModelsRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -496,6 +520,9 @@ export interface FileRoutesByTo {
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
+  '/subsites/admin': typeof AuthenticatedSubsitesAdminRoute
+  '/subsites/claim': typeof AuthenticatedSubsitesClaimRoute
+  '/subsites/models': typeof AuthenticatedSubsitesModelsRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -560,6 +587,9 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
+  '/_authenticated/subsites/admin': typeof AuthenticatedSubsitesAdminRoute
+  '/_authenticated/subsites/claim': typeof AuthenticatedSubsitesClaimRoute
+  '/_authenticated/subsites/models': typeof AuthenticatedSubsitesModelsRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -623,6 +653,9 @@ export interface FileRouteTypes {
     | '/dashboard/$section'
     | '/errors/$error'
     | '/models/$section'
+    | '/subsites/admin'
+    | '/subsites/claim'
+    | '/subsites/models'
     | '/usage-logs/$section'
     | '/channels/'
     | '/dashboard/'
@@ -683,6 +716,9 @@ export interface FileRouteTypes {
     | '/dashboard/$section'
     | '/errors/$error'
     | '/models/$section'
+    | '/subsites/admin'
+    | '/subsites/claim'
+    | '/subsites/models'
     | '/usage-logs/$section'
     | '/channels'
     | '/dashboard'
@@ -746,6 +782,9 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/$section'
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
+    | '/_authenticated/subsites/admin'
+    | '/_authenticated/subsites/claim'
+    | '/_authenticated/subsites/models'
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
@@ -1095,6 +1134,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsageLogsSectionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/subsites/models': {
+      id: '/_authenticated/subsites/models'
+      path: '/subsites/models'
+      fullPath: '/subsites/models'
+      preLoaderRoute: typeof AuthenticatedSubsitesModelsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/subsites/claim': {
+      id: '/_authenticated/subsites/claim'
+      path: '/subsites/claim'
+      fullPath: '/subsites/claim'
+      preLoaderRoute: typeof AuthenticatedSubsitesClaimRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/subsites/admin': {
+      id: '/_authenticated/subsites/admin'
+      path: '/subsites/admin'
+      fullPath: '/subsites/admin'
+      preLoaderRoute: typeof AuthenticatedSubsitesAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/models/$section': {
       id: '/_authenticated/models/$section'
       path: '/models/$section'
@@ -1321,6 +1381,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardSectionRoute: typeof AuthenticatedDashboardSectionRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
+  AuthenticatedSubsitesAdminRoute: typeof AuthenticatedSubsitesAdminRoute
+  AuthenticatedSubsitesClaimRoute: typeof AuthenticatedSubsitesClaimRoute
+  AuthenticatedSubsitesModelsRoute: typeof AuthenticatedSubsitesModelsRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -1344,6 +1407,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardSectionRoute: AuthenticatedDashboardSectionRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
+  AuthenticatedSubsitesAdminRoute: AuthenticatedSubsitesAdminRoute,
+  AuthenticatedSubsitesClaimRoute: AuthenticatedSubsitesClaimRoute,
+  AuthenticatedSubsitesModelsRoute: AuthenticatedSubsitesModelsRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,

@@ -34,17 +34,37 @@ func validUserInfo(username string, role int) bool {
 	return true
 }
 
+const contextKeySubsiteAuth = "subsite_auth"
+
+func abortSubsiteAuth(c *gin.Context, status int, code string, message string) {
+	c.JSON(status, gin.H{
+		"success": false,
+		"message": message,
+		"error": gin.H{
+			"code":    code,
+			"message": message,
+		},
+	})
+	c.Abort()
+}
+
 func authHelper(c *gin.Context, minRole int) {
+	subsiteAuth := c.GetBool(contextKeySubsiteAuth)
 	session := sessions.Default(c)
 	username := session.Get("username")
 	role := session.Get("role")
 	id := session.Get("id")
 	status := session.Get("status")
+	group := session.Get("group")
 	useAccessToken := false
 	if username == nil {
 		// Check access token
 		accessToken := c.Request.Header.Get("Authorization")
 		if accessToken == "" {
+			if subsiteAuth {
+				abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_auth_required", common.TranslateMessage(c, i18n.MsgAuthNotLoggedIn))
+				return
+			}
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"message": common.TranslateMessage(c, i18n.MsgAuthNotLoggedIn),
@@ -56,11 +76,19 @@ func authHelper(c *gin.Context, minRole int) {
 		if authErr != nil {
 			if errors.Is(authErr, model.ErrDatabase) {
 				common.SysLog("ValidateAccessToken database error: " + authErr.Error())
+				if subsiteAuth {
+					abortSubsiteAuth(c, http.StatusInternalServerError, "database_error", common.TranslateMessage(c, i18n.MsgDatabaseError))
+					return
+				}
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"success": false,
 					"message": common.TranslateMessage(c, i18n.MsgDatabaseError),
 				})
 			} else {
+				if subsiteAuth {
+					abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_access_token_invalid", common.TranslateMessage(c, i18n.MsgAuthAccessTokenInvalid))
+					return
+				}
 				c.JSON(http.StatusOK, gin.H{
 					"success": false,
 					"message": common.TranslateMessage(c, i18n.MsgAuthAccessTokenInvalid),
@@ -71,6 +99,10 @@ func authHelper(c *gin.Context, minRole int) {
 		}
 		if user != nil && user.Username != "" {
 			if !validUserInfo(user.Username, user.Role) {
+				if subsiteAuth {
+					abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_user_invalid", common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid))
+					return
+				}
 				c.JSON(http.StatusOK, gin.H{
 					"success": false,
 					"message": common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid),
@@ -83,8 +115,13 @@ func authHelper(c *gin.Context, minRole int) {
 			role = user.Role
 			id = user.Id
 			status = user.Status
+			group = user.Group
 			useAccessToken = true
 		} else {
+			if subsiteAuth {
+				abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_access_token_invalid", common.TranslateMessage(c, i18n.MsgAuthAccessTokenInvalid))
+				return
+			}
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
 				"message": common.TranslateMessage(c, i18n.MsgAuthAccessTokenInvalid),
@@ -96,6 +133,10 @@ func authHelper(c *gin.Context, minRole int) {
 	// get header New-Api-User
 	apiUserIdStr := c.Request.Header.Get("New-Api-User")
 	if apiUserIdStr == "" {
+		if subsiteAuth {
+			abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_user_id_required", common.TranslateMessage(c, i18n.MsgAuthUserIdNotProvided))
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserIdNotProvided),
@@ -105,6 +146,10 @@ func authHelper(c *gin.Context, minRole int) {
 	}
 	apiUserId, err := strconv.Atoi(apiUserIdStr)
 	if err != nil {
+		if subsiteAuth {
+			abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_user_id_invalid", common.TranslateMessage(c, i18n.MsgAuthUserIdFormatError))
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserIdFormatError),
@@ -114,6 +159,10 @@ func authHelper(c *gin.Context, minRole int) {
 
 	}
 	if id != apiUserId {
+		if subsiteAuth {
+			abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_user_id_mismatch", common.TranslateMessage(c, i18n.MsgAuthUserIdMismatch))
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserIdMismatch),
@@ -121,7 +170,26 @@ func authHelper(c *gin.Context, minRole int) {
 		c.Abort()
 		return
 	}
+	if subsiteAuth {
+		currentUser, currentErr := model.GetUserById(apiUserId, false)
+		if currentErr != nil {
+			if errors.Is(currentErr, gorm.ErrRecordNotFound) {
+				abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_user_invalid", common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid))
+			} else {
+				abortSubsiteAuth(c, http.StatusInternalServerError, "database_error", common.TranslateMessage(c, i18n.MsgDatabaseError))
+			}
+			return
+		}
+		username = currentUser.Username
+		role = currentUser.Role
+		status = currentUser.Status
+		group = currentUser.Group
+	}
 	if status.(int) == common.UserStatusDisabled {
+		if subsiteAuth {
+			abortSubsiteAuth(c, http.StatusForbidden, "subsite_user_disabled", common.TranslateMessage(c, i18n.MsgAuthUserBanned))
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserBanned),
@@ -130,14 +198,27 @@ func authHelper(c *gin.Context, minRole int) {
 		return
 	}
 	if role.(int) < minRole {
+		message := common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege)
+		if subsiteAuth {
+			code := "subsite_role_required"
+			if minRole >= common.RoleAdminUser {
+				code = "subsite_platform_admin_required"
+			}
+			abortSubsiteAuth(c, http.StatusForbidden, code, message)
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+			"message": message,
 		})
 		c.Abort()
 		return
 	}
 	if !validUserInfo(username.(string), role.(int)) {
+		if subsiteAuth {
+			abortSubsiteAuth(c, http.StatusUnauthorized, "subsite_user_invalid", common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid))
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid),
@@ -150,8 +231,8 @@ func authHelper(c *gin.Context, minRole int) {
 	c.Set("username", username)
 	c.Set("role", role)
 	c.Set("id", id)
-	c.Set("group", session.Get("group"))
-	c.Set("user_group", session.Get("group"))
+	c.Set("group", group)
+	c.Set("user_group", group)
 	c.Set("use_access_token", useAccessToken)
 
 	// 管理/root 写操作审计兜底：内聚在鉴权链路里，保证任何经过 AdminAuth/RootAuth
@@ -181,6 +262,20 @@ func TryUserAuth() func(c *gin.Context) {
 func UserAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		authHelper(c, common.RoleCommonUser)
+	}
+}
+
+func SubsiteAdminAuth() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.Set(contextKeySubsiteAuth, true)
+		authHelper(c, common.RoleSubsiteAdminUser)
+	}
+}
+
+func SubsitePlatformAdminAuth() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.Set(contextKeySubsiteAuth, true)
+		authHelper(c, common.RoleAdminUser)
 	}
 }
 
