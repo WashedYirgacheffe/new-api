@@ -34,7 +34,7 @@
 ## 发布步骤
 
 1. 提交并推送 CarLabAPI `main`，等待 Railway `new-api` 部署成功。
-2. 从 Railway `Postgres` 读取 `DATABASE_PUBLIC_URL` 到本机临时环境变量，通过 `railway run --service new-api --no-local` 注入已有 `REAPI_TASK_API_KEY`，执行 `go run ./cmd/reapi-onboard --publish-async`。
+2. 从 Railway `Postgres` 读取并非空校验 `DATABASE_PUBLIC_URL`，再通过 `railway run --service new-api --no-local` 注入已有 `REAPI_TASK_API_KEY`。仅对初始化子进程设置 `NODE_TYPE=slave` 后执行 `go run ./cmd/reapi-onboard --publish-async`，避免通用 `InitDB` 重跑全库迁移；不要永久修改 Railway 服务的 `NODE_TYPE`。
 3. 重启 `new-api`，让运行中实例重新加载渠道缓存、能力和 `ModelPrice`。
 4. 检查 `/api/pricing`：应出现 88 条 `re/*`，且不含 Chat、`re/seedance-2.5` 与 7 条 `deferred_billing` 模型。
 5. 使用受控 Token 提交一条低成本图片任务并轮询公开任务 ID，确认上游任务 ID 未泄露。

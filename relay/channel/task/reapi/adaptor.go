@@ -123,21 +123,28 @@ func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycom
 		return service.TaskErrorWrapperLocal(fmt.Errorf("model is required"), "missing_model", http.StatusBadRequest)
 	}
 	body := requestBodyValues(c)
-	if _, billedPerImage := perImageBillingModels[info.UpstreamModelName]; billedPerImage {
+	modelName := strings.TrimPrefix(info.UpstreamModelName, "re/")
+	if _, billedPerImage := perImageBillingModels[modelName]; billedPerImage {
 		if n, present, valid := integerRequestValue(body, "n"); present && (!valid || n < 1 || n > dto.MaxImageN) {
 			return service.TaskErrorWrapperLocal(fmt.Errorf("n must be between 1 and %d", dto.MaxImageN), "invalid_n", http.StatusBadRequest)
 		}
 	}
-	if _, billedPerSecond := perSecondBillingModels[info.UpstreamModelName]; billedPerSecond {
-		seconds, present, valid := firstIntegerRequestValue(body, "duration", "seconds")
+	if _, billedPerSecond := perSecondBillingModels[modelName]; billedPerSecond {
+		seconds, present, valid, conflict := requestDuration(body, req)
+		if conflict {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("duration and seconds must be one valid, matching value between 1 and %d", relaycommon.MaxTaskDurationSeconds), "invalid_duration", http.StatusBadRequest)
+		}
 		if !present {
 			return service.TaskErrorWrapperLocal(fmt.Errorf("duration is required for per-second billing"), "missing_duration", http.StatusBadRequest)
 		}
-		if !valid || seconds < 1 || seconds > relaycommon.MaxTaskDurationSeconds {
+		if !valid {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("duration must be a valid integer between 1 and %d seconds", relaycommon.MaxTaskDurationSeconds), "invalid_duration", http.StatusBadRequest)
+		}
+		if seconds < 1 || seconds > relaycommon.MaxTaskDurationSeconds {
 			return service.TaskErrorWrapperLocal(fmt.Errorf("duration must be between 1 and %d seconds", relaycommon.MaxTaskDurationSeconds), "invalid_duration", http.StatusBadRequest)
 		}
 	}
-	if info.UpstreamModelName == "ai-text-detector" || info.UpstreamModelName == "humanize" {
+	if modelName == "ai-text-detector" || modelName == "humanize" {
 		text := stringRequestValue(body, "text")
 		if text == "" {
 			text = stringRequestValue(body, "input")
@@ -194,13 +201,29 @@ func integerRequestValue(body map[string]any, key string) (int, bool, bool) {
 	}
 }
 
-func firstIntegerRequestValue(body map[string]any, keys ...string) (int, bool, bool) {
-	for _, key := range keys {
-		if value, present, valid := integerRequestValue(body, key); present {
-			return value, true, valid
-		}
+func requestDuration(body map[string]any, req relaycommon.TaskSubmitReq) (int, bool, bool, bool) {
+	duration, hasDuration, validDuration := integerRequestValue(body, "duration")
+	seconds, hasSeconds, validSeconds := integerRequestValue(body, "seconds")
+	if !hasDuration && req.Duration != 0 {
+		duration, hasDuration, validDuration = req.Duration, true, true
 	}
-	return 0, false, false
+	if !hasSeconds && strings.TrimSpace(req.Seconds) != "" {
+		parsed, err := strconv.Atoi(strings.TrimSpace(req.Seconds))
+		seconds, hasSeconds, validSeconds = parsed, true, err == nil
+	}
+	if hasDuration && hasSeconds {
+		if !validDuration || !validSeconds || duration != seconds {
+			return 0, true, false, true
+		}
+		return duration, true, true, false
+	}
+	if hasDuration {
+		return duration, true, validDuration, false
+	}
+	if hasSeconds {
+		return seconds, true, validSeconds, false
+	}
+	return 0, false, false, false
 }
 
 func stringRequestValue(body map[string]any, key string) string {
@@ -216,18 +239,20 @@ func stringRequestValue(body map[string]any, key string) string {
 
 func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInfo) map[string]float64 {
 	body := requestBodyValues(c)
+	req, _ := relaycommon.GetTaskRequest(c)
 	ratios := make(map[string]float64)
-	if _, billedPerSecond := perSecondBillingModels[info.UpstreamModelName]; billedPerSecond {
-		if seconds, present, valid := firstIntegerRequestValue(body, "duration", "seconds"); present && valid && seconds > 1 {
+	modelName := strings.TrimPrefix(info.UpstreamModelName, "re/")
+	if _, billedPerSecond := perSecondBillingModels[modelName]; billedPerSecond {
+		if seconds, present, valid, conflict := requestDuration(body, req); present && valid && !conflict && seconds > 1 {
 			ratios["seconds"] = float64(seconds)
 		}
 	}
-	if _, billedPerImage := perImageBillingModels[info.UpstreamModelName]; billedPerImage {
+	if _, billedPerImage := perImageBillingModels[modelName]; billedPerImage {
 		if n, present, valid := integerRequestValue(body, "n"); present && valid && n > 1 {
 			ratios["images"] = float64(n)
 		}
 	}
-	if info.UpstreamModelName == "ai-essay-writer" {
+	if modelName == "ai-essay-writer" {
 		length := stringRequestValue(body, "length")
 		words := map[string]float64{"short": 500, "medium": 1000, "long": 1500}[strings.ToLower(strings.TrimSpace(length))]
 		if words == 0 {
@@ -235,7 +260,7 @@ func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInf
 		}
 		ratios["words"] = words
 	}
-	if info.UpstreamModelName == "ai-text-detector" || info.UpstreamModelName == "humanize" {
+	if modelName == "ai-text-detector" || modelName == "humanize" {
 		text := stringRequestValue(body, "text")
 		if text == "" {
 			text = stringRequestValue(body, "input")

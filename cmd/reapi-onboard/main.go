@@ -17,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -436,19 +437,52 @@ func upsertModels(items []catalogModel, vendorIDs map[string]int, pricing map[st
 }
 
 func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
-	modelPrices := ratio_setting.GetModelPriceCopy()
-	for modelName, item := range pricing {
-		if asyncModelPublishReady(item) {
-			modelPrices[modelName] = item.BasePriceUSD
+	var encoded string
+	err := model.DB.Transaction(func(tx *gorm.DB) error {
+		var option model.Option
+		found := true
+		priceQuery := tx.Where("key = ?", "ModelPrice")
+		if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {
+			priceQuery = priceQuery.Clauses(clause.Locking{Strength: "UPDATE"})
 		}
-	}
-	encoded, err := common.Marshal(modelPrices)
+		err := priceQuery.First(&option).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			found = false
+			option = model.Option{Key: "ModelPrice"}
+		} else if err != nil {
+			return fmt.Errorf("load current ModelPrice: %w", err)
+		}
+		modelPrices := make(map[string]float64)
+		if strings.TrimSpace(option.Value) != "" {
+			if err := common.Unmarshal([]byte(option.Value), &modelPrices); err != nil {
+				return fmt.Errorf("decode current ModelPrice: %w", err)
+			}
+		}
+		for modelName, item := range pricing {
+			if asyncModelPublishReady(item) {
+				modelPrices[modelName] = item.BasePriceUSD
+			}
+		}
+		encodedBytes, err := common.Marshal(modelPrices)
+		if err != nil {
+			return fmt.Errorf("encode ModelPrice with RE async pricing: %w", err)
+		}
+		encoded = string(encodedBytes)
+		if !found {
+			option.Value = encoded
+			return tx.Create(&option).Error
+		}
+		return tx.Model(&model.Option{}).Where("key = ?", option.Key).Update("value", encoded).Error
+	})
 	if err != nil {
-		return fmt.Errorf("encode ModelPrice with RE async pricing: %w", err)
-	}
-	if err := model.UpdateOptionsBulk(map[string]string{"ModelPrice": string(encoded)}); err != nil {
 		return fmt.Errorf("persist RE async pricing: %w", err)
 	}
+	if err := ratio_setting.UpdateModelPriceByJSONString(encoded); err != nil {
+		return fmt.Errorf("refresh in-memory RE async pricing: %w", err)
+	}
+	common.OptionMapRWMutex.Lock()
+	common.OptionMap["ModelPrice"] = encoded
+	common.OptionMapRWMutex.Unlock()
 	for modelName, item := range pricing {
 		if !asyncModelPublishReady(item) {
 			continue
@@ -512,27 +546,35 @@ func upsertChannel(name string, channelType int, baseURL string, key string, mod
 		Group:           "default",
 		ModelMapping:    &mappingCopy,
 	}
-	var existing model.Channel
-	err = model.DB.Where("name = ? AND channel_provider = ?", name, channelProvider).First(&existing).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		if err := channel.Insert(); err != nil {
-			return fmt.Errorf("create channel %q: %w", name, err)
+	return model.DB.Transaction(func(tx *gorm.DB) error {
+		var existing model.Channel
+		err := tx.Where("name = ? AND channel_provider = ?", name, channelProvider).First(&existing).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := tx.Create(&channel).Error; err != nil {
+				return fmt.Errorf("create channel %q: %w", name, err)
+			}
+			if err := channel.AddAbilities(tx); err != nil {
+				return fmt.Errorf("create abilities for channel %q: %w", name, err)
+			}
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("load channel %q: %w", name, err)
+		}
+		channel.Id = existing.Id
+		if preserveExistingStatus {
+			channel.Status = existing.Status
+			channel.Models = existing.Models
+			channel.ModelMapping = existing.ModelMapping
+		}
+		if err := tx.Model(&channel).Updates(&channel).Error; err != nil {
+			return fmt.Errorf("update channel %q: %w", name, err)
+		}
+		if err := channel.UpdateAbilities(tx); err != nil {
+			return fmt.Errorf("update abilities for channel %q: %w", name, err)
 		}
 		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("load channel %q: %w", name, err)
-	}
-	channel.Id = existing.Id
-	if preserveExistingStatus {
-		channel.Status = existing.Status
-		channel.Models = existing.Models
-		channel.ModelMapping = existing.ModelMapping
-	}
-	if err := channel.Update(); err != nil {
-		return fmt.Errorf("update channel %q: %w", name, err)
-	}
-	return nil
+	})
 }
 
 func fatal(err error) {

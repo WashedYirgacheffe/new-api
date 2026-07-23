@@ -174,12 +174,30 @@ func TestTaskAdaptorRequiresDurationForPerSecondBilling(t *testing.T) {
 	info := &relaycommon.RelayInfo{
 		OriginModelName: "re/grok-imagine-1.0-video",
 		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
-		ChannelMeta:     &relaycommon.ChannelMeta{UpstreamModelName: "grok-imagine-1.0-video"},
+		ChannelMeta:     &relaycommon.ChannelMeta{UpstreamModelName: "re/grok-imagine-1.0-video"},
 	}
 
 	taskErr := (&TaskAdaptor{}).ValidateRequestAndSetAction(context, info)
 	require.NotNil(t, taskErr)
 	assert.Equal(t, "missing_duration", taskErr.Code)
+	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
+}
+
+func TestTaskAdaptorRejectsConflictingDurationFields(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{"model":"re/grok-imagine-1.0-video","prompt":"a moving train","duration":4,"seconds":"8"}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/grok-imagine-1.0-video",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta:     &relaycommon.ChannelMeta{UpstreamModelName: "re/grok-imagine-1.0-video"},
+	}
+
+	taskErr := (&TaskAdaptor{}).ValidateRequestAndSetAction(context, info)
+	require.NotNil(t, taskErr)
+	assert.Equal(t, "invalid_duration", taskErr.Code)
 	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
 }
 
