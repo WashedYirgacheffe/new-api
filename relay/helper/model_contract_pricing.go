@@ -515,6 +515,16 @@ func PrepareModelOperationContractRequest(
 	operation string,
 	request interface{},
 ) (*PreparedModelOperationContractRequest, error) {
+	return PrepareModelOperationContractRequestForEndpoint(c, info, operation, "", request)
+}
+
+func PrepareModelOperationContractRequestForEndpoint(
+	c *gin.Context,
+	info *relaycommon.RelayInfo,
+	operation string,
+	expectedEndpointType string,
+	request interface{},
+) (*PreparedModelOperationContractRequest, error) {
 	if info == nil {
 		return nil, errors.New("relay info is required")
 	}
@@ -524,6 +534,9 @@ func PrepareModelOperationContractRequest(
 	}
 	if err != nil {
 		return nil, err
+	}
+	if expectedEndpointType != "" && (contract.Operation != operation || contract.EndpointType != expectedEndpointType) {
+		return nil, nil
 	}
 	return prepareModelOperationContractRequestWithContract(c, contract, request)
 }

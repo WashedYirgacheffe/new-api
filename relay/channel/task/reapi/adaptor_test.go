@@ -60,6 +60,62 @@ func TestTaskAdaptorBuildsRERequestContract(t *testing.T) {
 	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
 }
 
+func TestTaskAdaptorPreservesAsyncFieldsWithoutPrompt(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{
+		"model":"re/audio-multistem",
+		"audio_url":"https://input.example/song.wav",
+		"stem_list":["vocals","drum"],
+		"group":"default",
+		"metadata":{"encoder_format":"mp3"}
+	}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/audio-multistem",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelBaseUrl:    "https://reapi.ai/api/v1",
+			ApiKey:            "task-key",
+			UpstreamModelName: "audio-multistem",
+		},
+	}
+	adaptor := &TaskAdaptor{}
+	adaptor.Init(info)
+
+	require.Nil(t, adaptor.ValidateRequestAndSetAction(context, info))
+	body, err := adaptor.BuildRequestBody(context, info)
+	require.NoError(t, err)
+	payload, err := io.ReadAll(body)
+	require.NoError(t, err)
+	var decoded map[string]any
+	require.NoError(t, common.Unmarshal(payload, &decoded))
+	assert.Equal(t, "audio-multistem", decoded["model"])
+	assert.Equal(t, "https://input.example/song.wav", decoded["audio_url"])
+	assert.Equal(t, []any{"vocals", "drum"}, decoded["stem_list"])
+	assert.Equal(t, "mp3", decoded["encoder_format"])
+	assert.NotContains(t, decoded, "prompt")
+	assert.NotContains(t, decoded, "group")
+	assert.NotContains(t, decoded, "metadata")
+}
+
+func TestOperationForModelMatchesAsyncCapability(t *testing.T) {
+	tests := map[string]string{
+		"gpt-image-2":      "image.generate",
+		"veo3.1-fast":      "video.generate",
+		"audio-multistem":  "audio.generate",
+		"ai-text-detector": "text.generate",
+	}
+	for modelName, expected := range tests {
+		operation, ok := OperationForModel(modelName)
+		assert.True(t, ok, modelName)
+		assert.Equal(t, expected, operation, modelName)
+	}
+	_, ok := OperationForModel("unknown-model")
+	assert.False(t, ok)
+}
+
 func TestTaskAdaptorDoesNotExposeUpstreamTaskID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()

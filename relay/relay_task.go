@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relay/channel"
+	taskreapi "github.com/QuantumNous/new-api/relay/channel/task/reapi"
 	"github.com/QuantumNous/new-api/relay/channel/task/taskcommon"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
@@ -183,7 +184,17 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 	if err != nil {
 		return nil, service.TaskErrorWrapperLocal(err, "task_request_missing", http.StatusBadRequest)
 	}
-	preparedContract, err := helper.PrepareModelOperationContractRequest(c, info, "video.generate", &taskRequest)
+	operation := "video.generate"
+	expectedEndpointType := ""
+	if info.ChannelType == constant.ChannelTypeReAPI {
+		var supported bool
+		operation, supported = taskreapi.OperationForModel(info.UpstreamModelName)
+		if !supported {
+			return nil, service.TaskErrorWrapperLocal(fmt.Errorf("RE does not support async model %q", info.UpstreamModelName), "unsupported_model", http.StatusBadRequest)
+		}
+		expectedEndpointType = string(constant.EndpointTypeReTask)
+	}
+	preparedContract, err := helper.PrepareModelOperationContractRequestForEndpoint(c, info, operation, expectedEndpointType, &taskRequest)
 	if err != nil {
 		return nil, service.TaskErrorWrapperLocal(err, "invalid_contract_parameters", http.StatusBadRequest)
 	}

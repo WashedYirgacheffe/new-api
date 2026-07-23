@@ -559,7 +559,7 @@ func RelayReAPITaskFetch(c *gin.Context) {
 	if createdAt == 0 {
 		createdAt = task.CreatedAt
 	}
-	if upstreamModel == "" {
+	if task.Properties.OriginModelName != "" {
 		upstreamModel = task.Properties.OriginModelName
 	}
 	if upstreamStatus == "" {

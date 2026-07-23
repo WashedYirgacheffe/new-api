@@ -90,7 +90,17 @@ func (a *TaskAdaptor) Init(info *relaycommon.RelayInfo) {
 }
 
 func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycommon.RelayInfo) *dto.TaskError {
-	return relaycommon.ValidateBasicTaskRequest(c, info, constant.TaskActionGenerate)
+	if taskErr := relaycommon.ValidateTaskRequest(c, info, constant.TaskActionGenerate, false); taskErr != nil {
+		return taskErr
+	}
+	req, err := relaycommon.GetTaskRequest(c)
+	if err != nil {
+		return service.TaskErrorWrapperLocal(err, "invalid_request", http.StatusBadRequest)
+	}
+	if strings.TrimSpace(req.Model) == "" && strings.TrimSpace(info.OriginModelName) == "" {
+		return service.TaskErrorWrapperLocal(fmt.Errorf("model is required"), "missing_model", http.StatusBadRequest)
+	}
+	return nil
 }
 
 func (a *TaskAdaptor) BuildRequestURL(info *relaycommon.RelayInfo) (string, error) {
@@ -109,6 +119,25 @@ func EndpointForModel(modelName string) (string, bool) {
 	return endpoint, ok
 }
 
+func OperationForModel(modelName string) (string, bool) {
+	endpoint, ok := EndpointForModel(modelName)
+	if !ok {
+		return "", false
+	}
+	switch endpoint {
+	case "/images/generations":
+		return "image.generate", true
+	case "/videos/generations":
+		return "video.generate", true
+	case "/audio/generations":
+		return "audio.generate", true
+	case "/essay", "/detect", "/humanize":
+		return "text.generate", true
+	default:
+		return "", false
+	}
+}
+
 func (a *TaskAdaptor) BuildRequestHeader(_ *gin.Context, req *http.Request, _ *relaycommon.RelayInfo) error {
 	req.Header.Set("Authorization", "Bearer "+a.apiKey)
 	req.Header.Set("Accept", "application/json")
@@ -121,17 +150,51 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 	if err != nil {
 		return nil, err
 	}
-	body := make(map[string]any, len(req.Metadata)+3)
+	body := make(map[string]any, len(req.Metadata)+8)
+	if c != nil && c.Request != nil && strings.HasPrefix(strings.ToLower(c.GetHeader("Content-Type")), "application/json") {
+		storage, storageErr := common.GetBodyStorage(c)
+		if storageErr != nil {
+			return nil, storageErr
+		}
+		raw, readErr := storage.Bytes()
+		if readErr != nil {
+			return nil, readErr
+		}
+		if len(raw) > 0 {
+			if decodeErr := common.Unmarshal(raw, &body); decodeErr != nil {
+				return nil, decodeErr
+			}
+		}
+	}
 	for key, value := range req.Metadata {
 		if key != "model" {
+			if _, exists := body[key]; exists {
+				continue
+			}
 			body[key] = value
 		}
 	}
+	delete(body, "metadata")
+	delete(body, "group")
+	delete(body, "image")
+	delete(body, "images")
+	delete(body, "input_reference")
 	body["model"] = info.UpstreamModelName
-	if strings.TrimSpace(req.Prompt) != "" {
+	if _, exists := body["prompt"]; !exists && strings.TrimSpace(req.Prompt) != "" {
 		body["prompt"] = req.Prompt
 	}
-	if len(req.Images) > 0 {
+	if _, exists := body["size"]; !exists && strings.TrimSpace(req.Size) != "" {
+		body["size"] = req.Size
+	}
+	if _, exists := body["seconds"]; !exists && strings.TrimSpace(req.Seconds) != "" {
+		body["seconds"] = req.Seconds
+	}
+	if _, hasDuration := body["duration"]; !hasDuration && req.Duration > 0 {
+		if _, hasSeconds := body["seconds"]; !hasSeconds {
+			body["duration"] = req.Duration
+		}
+	}
+	if _, exists := body["image_urls"]; !exists && len(req.Images) > 0 {
 		body["image_urls"] = req.Images
 	}
 	data, err := common.Marshal(body)

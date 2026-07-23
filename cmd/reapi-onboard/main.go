@@ -65,7 +65,7 @@ func main() {
 		fmt.Printf("RE catalog is valid: %d models (%d chat, %d async); no database changes made\n", len(catalog.Models), catalog.Integrity.ChatModelCount, catalog.Integrity.AsyncModelCount)
 		return
 	}
-	chatKey, taskKey, err := requiredKeys()
+	chatKey, taskKey, err := configuredKeys()
 	if err != nil {
 		fatal(err)
 	}
@@ -85,15 +85,22 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	if err := upsertChannel(chatChannelName, constant.ChannelTypeOpenAI, chatBaseURL, chatKey, chatModels); err != nil {
-		fatal(err)
+	initializedChannels := make([]string, 0, 2)
+	if chatKey != "" {
+		if err := upsertChannel(chatChannelName, constant.ChannelTypeOpenAI, chatBaseURL, chatKey, chatModels); err != nil {
+			fatal(err)
+		}
+		initializedChannels = append(initializedChannels, chatChannelName)
 	}
-	if err := upsertChannel(taskChannelName, constant.ChannelTypeReAPI, taskBaseURL, taskKey, taskModels); err != nil {
-		fatal(err)
+	if taskKey != "" {
+		if err := upsertChannel(taskChannelName, constant.ChannelTypeReAPI, taskBaseURL, taskKey, taskModels); err != nil {
+			fatal(err)
+		}
+		initializedChannels = append(initializedChannels, taskChannelName)
 	}
 	model.RefreshPricing()
 
-	fmt.Printf("RE onboarding complete: %d catalog models, %d chat mappings, %d async mappings; both channels are manually disabled\n", len(catalog.Models), len(chatModels), len(taskModels))
+	fmt.Printf("RE onboarding complete: %d catalog models, %d chat mappings, %d async mappings; initialized %s as manually disabled\n", len(catalog.Models), len(chatModels), len(taskModels), strings.Join(initializedChannels, ", "))
 }
 
 func loadCatalog(path string) (catalog, error) {
@@ -137,7 +144,7 @@ func validateCatalog(catalog catalog) error {
 		switch item.Protocol {
 		case "chat-completions":
 			chatCount++
-			if item.Endpoint != "/v1/chat/completions" {
+			if item.Endpoint != "/v1/chat/completions" || item.ModelType != "text" {
 				return fmt.Errorf("RE chat model %q has invalid endpoint %q", item.ModelName, item.Endpoint)
 			}
 		case "re-task":
@@ -145,6 +152,16 @@ func validateCatalog(catalog catalog) error {
 			endpoint, supported := reapi.EndpointForModel(item.UpstreamModel)
 			if !supported || endpoint != item.Endpoint {
 				return fmt.Errorf("RE async model %q does not match the runtime adaptor", item.ModelName)
+			}
+			operation, supported := reapi.OperationForModel(item.UpstreamModel)
+			expectedOperation := map[string]string{
+				"image": "image.generate",
+				"video": "video.generate",
+				"audio": "audio.generate",
+				"text":  "text.generate",
+			}[item.ModelType]
+			if !supported || operation != expectedOperation {
+				return fmt.Errorf("RE async model %q has invalid model type %q for operation %q", item.ModelName, item.ModelType, operation)
 			}
 		default:
 			return fmt.Errorf("RE model %q has unsupported protocol %q", item.ModelName, item.Protocol)
@@ -161,11 +178,11 @@ func validateCatalog(catalog catalog) error {
 	return nil
 }
 
-func requiredKeys() (string, string, error) {
+func configuredKeys() (string, string, error) {
 	chatKey := strings.TrimSpace(os.Getenv("REAPI_CHAT_API_KEY"))
 	taskKey := strings.TrimSpace(os.Getenv("REAPI_TASK_API_KEY"))
-	if chatKey == "" || taskKey == "" {
-		return "", "", errors.New("RE onboarding requires both REAPI_CHAT_API_KEY and REAPI_TASK_API_KEY; no database changes were made")
+	if chatKey == "" && taskKey == "" {
+		return "", "", errors.New("RE onboarding requires REAPI_CHAT_API_KEY or REAPI_TASK_API_KEY; no database changes were made")
 	}
 	return chatKey, taskKey, nil
 }
