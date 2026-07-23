@@ -75,6 +75,9 @@ func main() {
 	if err := model.InitDB(); err != nil {
 		fatal(fmt.Errorf("initialize database: %w", err))
 	}
+	if err := model.InitLogDB(); err != nil {
+		fatal(fmt.Errorf("initialize log database: %w", err))
+	}
 	defer func() { _ = model.CloseDB() }()
 
 	vendorIDs, err := ensureVendors(catalog.Models)
