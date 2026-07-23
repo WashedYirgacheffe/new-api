@@ -126,6 +126,52 @@ func TestPrepareModelOperationContractRequestRejectsRawUnknownParameter(t *testi
 	assert.Contains(t, err.Error(), "unknown parameter bogus")
 }
 
+func TestRawRETaskContractParametersRejectMetadataEnvelope(t *testing.T) {
+	contract := &model.ModelOperationEffectiveContract{
+		InputSchema: map[string]interface{}{
+			"type":                 "object",
+			"additionalProperties": false,
+			"properties": map[string]interface{}{
+				"prompt": map[string]interface{}{"type": "string"},
+			},
+		},
+		RequestContract: model.ModelOperationRequestContract{Adapter: "re-task"},
+	}
+
+	err := validateRawModelOperationContractParameters(contract, map[string]interface{}{
+		"prompt": "draw", "metadata": map[string]interface{}{"duration": float64(999)},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown parameter metadata")
+}
+
+func TestRawContractParametersAllowEveryMaterialRequestSlot(t *testing.T) {
+	contract := &model.ModelOperationEffectiveContract{
+		InputSchema: map[string]interface{}{
+			"type":                 "object",
+			"additionalProperties": false,
+			"properties": map[string]interface{}{
+				"prompt": map[string]interface{}{"type": "string"},
+			},
+		},
+		MaterialSchema: map[string]interface{}{
+			"image": map[string]interface{}{
+				"request_fields": []interface{}{
+					map[string]interface{}{"slot": "source", "request_field": "image_urls"},
+					map[string]interface{}{"slot": "mask", "request_field": "mask_url"},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, validateRawModelOperationContractParameters(contract, map[string]interface{}{
+		"prompt": "draw", "image_urls": []interface{}{"https://media.example/source.png"}, "mask_url": "https://media.example/mask.png",
+	}))
+	err := validateRawModelOperationContractParameters(contract, map[string]interface{}{"rogue_url": "https://example.com"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown parameter rogue_url")
+}
+
 func TestPrepareOpenAIImageRequestWritesEffectiveParametersToDTOAndBody(t *testing.T) {
 	contract := &model.ModelOperationEffectiveContract{
 		InputSchema: map[string]interface{}{

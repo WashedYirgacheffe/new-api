@@ -21,13 +21,16 @@ import (
 )
 
 const (
-	defaultCatalogPath        = "docs/catalog/reapi-model-catalog.json"
-	defaultPricingCatalogPath = "docs/catalog/reapi-async-pricing.json"
-	channelProvider           = "re"
-	chatChannelName           = "RE Chat"
-	taskChannelName           = "RE Async"
-	chatBaseURL               = "https://api.reapi.ai"
-	taskBaseURL               = "https://reapi.ai/api/v1"
+	defaultCatalogPath          = "docs/catalog/reapi-model-catalog.json"
+	defaultPricingCatalogPath   = "docs/catalog/reapi-async-pricing.json"
+	defaultContractCatalogPath  = "docs/catalog/reapi-async-contracts.json"
+	asyncContractModelCount     = 88
+	asyncContractExclusionCount = 8
+	channelProvider             = "re"
+	chatChannelName             = "RE Chat"
+	taskChannelName             = "RE Async"
+	chatBaseURL                 = "https://api.reapi.ai"
+	taskBaseURL                 = "https://reapi.ai/api/v1"
 )
 
 type catalog struct {
@@ -84,6 +87,55 @@ type asyncPricingModel struct {
 	SourceURL     string  `json:"source_url"`
 }
 
+type asyncContractCatalog struct {
+	SchemaVersion int                             `json:"schema_version"`
+	GeneratedAt   string                          `json:"generated_at"`
+	Sources       map[string]interface{}          `json:"sources"`
+	Integrity     map[string]interface{}          `json:"integrity"`
+	Exclusions    []asyncContractCatalogExclusion `json:"exclusions"`
+	Models        []asyncContractModel            `json:"models"`
+}
+
+type asyncContractCatalogExclusion struct {
+	ModelName string `json:"model_name"`
+	Reason    string `json:"reason"`
+}
+
+type asyncContractModel struct {
+	ModelName           string                              `json:"model_name"`
+	UpstreamModel       string                              `json:"upstream_model_id"`
+	ModelType           string                              `json:"model_type"`
+	Operation           string                              `json:"operation"`
+	EndpointType        string                              `json:"endpoint_type"`
+	ExecutionMode       string                              `json:"execution_mode"`
+	ResponseContract    string                              `json:"response_contract"`
+	SchemaMode          string                              `json:"schema_mode"`
+	InputSchema         map[string]interface{}              `json:"input_schema"`
+	UISchema            map[string]interface{}              `json:"ui_schema"`
+	MaterialSchema      map[string]interface{}              `json:"material_schema"`
+	RequestContract     model.ModelOperationRequestContract `json:"request_contract"`
+	ParameterDefaults   map[string]interface{}              `json:"parameter_defaults"`
+	DispatchPath        string                              `json:"dispatch_path"`
+	PollPath            string                              `json:"poll_path"`
+	Evidence            interface{}                         `json:"evidence"`
+	normalizedOverrides string
+}
+
+type reAsyncProfileDefinition struct {
+	ModelType        string
+	ProfileKey       string
+	DisplayName      string
+	Operation        string
+	ResponseContract string
+}
+
+var reAsyncProfileDefinitions = []reAsyncProfileDefinition{
+	{ModelType: "image", ProfileKey: "re.image.generate", DisplayName: "RE image generation", Operation: "image.generate", ResponseContract: "re-image-task-v1"},
+	{ModelType: "video", ProfileKey: "re.video.generate", DisplayName: "RE video generation", Operation: "video.generate", ResponseContract: "re-video-task-v1"},
+	{ModelType: "audio", ProfileKey: "re.audio.generate", DisplayName: "RE audio generation", Operation: "audio.generate", ResponseContract: "re-audio-task-v1"},
+	{ModelType: "text", ProfileKey: "re.text.generate", DisplayName: "RE text generation", Operation: "text.generate", ResponseContract: "re-text-task-v1"},
+}
+
 var deferredBillingModels = map[string]struct{}{
 	"re/audio-multistem":       {},
 	"re/audio-music-extractor": {},
@@ -97,6 +149,7 @@ var deferredBillingModels = map[string]struct{}{
 func main() {
 	catalogPath := flag.String("catalog", defaultCatalogPath, "RE catalog JSON path")
 	pricingCatalogPath := flag.String("pricing-catalog", defaultPricingCatalogPath, "RE async pricing catalog JSON path")
+	contractCatalogPath := flag.String("contract-catalog", defaultContractCatalogPath, "RE async operation contract catalog JSON path")
 	dryRun := flag.Bool("dry-run", false, "validate the catalog and required secrets without writing to the database")
 	publishAsync := flag.Bool("publish-async", false, "price and enable all currently publishable RE async models; chat remains disabled")
 	flag.Parse()
@@ -109,14 +162,12 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	publishReadyCount := 0
-	for _, item := range pricing.Models {
-		if asyncModelPublishReady(item) {
-			publishReadyCount++
-		}
+	contracts, err := loadAsyncContractCatalog(*contractCatalogPath, pricing)
+	if err != nil {
+		fatal(err)
 	}
 	if *dryRun {
-		fmt.Printf("RE catalogs are valid: %d models (%d chat, %d async), %d upstream-publishable, %d CarLab-ready, %d deferred for billing; no database changes made\n", len(catalog.Models), catalog.Integrity.ChatModelCount, catalog.Integrity.AsyncModelCount, pricing.Integrity.PublishableModelCount, publishReadyCount, len(deferredBillingModels))
+		fmt.Printf("RE catalogs are valid: %d models (%d chat, %d async), %d upstream-publishable, %d CarLab-ready with exact contracts, %d deferred for billing, %d coming soon; no database changes made\n", len(catalog.Models), catalog.Integrity.ChatModelCount, catalog.Integrity.AsyncModelCount, pricing.Integrity.PublishableModelCount, len(contracts.Models), len(deferredBillingModels), pricing.Integrity.ComingSoonModelCount)
 		return
 	}
 	chatKey, taskKey, err := configuredKeys()
@@ -157,6 +208,11 @@ func main() {
 	chatModels, taskModels, err := upsertModels(catalog.Models, vendorIDs, pricingByModel, *publishAsync)
 	if err != nil {
 		fatal(err)
+	}
+	if *publishAsync {
+		if err := upsertREAsyncContracts(contracts, taskModels); err != nil {
+			fatal(err)
+		}
 	}
 	initializedChannels := make([]string, 0, 2)
 	if chatKey != "" && !*publishAsync {
@@ -327,6 +383,335 @@ func validateAsyncPricingCatalog(pricing asyncPricingCatalog, models catalog) er
 	return nil
 }
 
+func loadAsyncContractCatalog(path string, pricing asyncPricingCatalog) (asyncContractCatalog, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return asyncContractCatalog{}, fmt.Errorf("read RE async contract catalog: %w", err)
+	}
+	var loaded asyncContractCatalog
+	if err := common.Unmarshal(data, &loaded); err != nil {
+		return asyncContractCatalog{}, fmt.Errorf("decode RE async contract catalog: %w", err)
+	}
+	if err := validateAsyncContractCatalog(&loaded, pricing); err != nil {
+		return asyncContractCatalog{}, err
+	}
+	return loaded, nil
+}
+
+func validateAsyncContractCatalog(contracts *asyncContractCatalog, pricing asyncPricingCatalog) error {
+	if contracts == nil {
+		return errors.New("RE async contract catalog is required")
+	}
+	if contracts.SchemaVersion <= 0 || strings.TrimSpace(contracts.GeneratedAt) == "" || len(contracts.Sources) == 0 || len(contracts.Integrity) == 0 {
+		return errors.New("RE async contract catalog must declare schema version, generation time, sources, and integrity")
+	}
+	if len(contracts.Models) != asyncContractModelCount {
+		return fmt.Errorf("RE async contract catalog must contain %d models, got %d", asyncContractModelCount, len(contracts.Models))
+	}
+	if len(contracts.Exclusions) != asyncContractExclusionCount {
+		return fmt.Errorf("RE async contract catalog must contain %d exclusions, got %d", asyncContractExclusionCount, len(contracts.Exclusions))
+	}
+	if err := validateAsyncContractIntegrity(*contracts); err != nil {
+		return err
+	}
+
+	publishReady := make(map[string]asyncPricingModel, asyncContractModelCount)
+	expectedExclusions := make(map[string]struct{}, asyncContractExclusionCount)
+	for _, item := range pricing.Models {
+		if asyncModelPublishReady(item) {
+			publishReady[item.ModelName] = item
+			continue
+		}
+		expectedExclusions[item.ModelName] = struct{}{}
+	}
+	if len(publishReady) != asyncContractModelCount || len(expectedExclusions) != asyncContractExclusionCount {
+		return fmt.Errorf("RE pricing publish-ready split must be %d contracts and %d exclusions, got %d and %d", asyncContractModelCount, asyncContractExclusionCount, len(publishReady), len(expectedExclusions))
+	}
+
+	excluded := make(map[string]struct{}, len(contracts.Exclusions))
+	for _, item := range contracts.Exclusions {
+		item.ModelName = strings.TrimSpace(item.ModelName)
+		if _, exists := expectedExclusions[item.ModelName]; !exists {
+			return fmt.Errorf("RE async contract catalog excludes unknown or publish-ready model %q", item.ModelName)
+		}
+		if strings.TrimSpace(item.Reason) == "" {
+			return fmt.Errorf("RE async contract exclusion %q is missing a reason", item.ModelName)
+		}
+		if _, exists := excluded[item.ModelName]; exists {
+			return fmt.Errorf("RE async contract catalog contains duplicate exclusion %q", item.ModelName)
+		}
+		excluded[item.ModelName] = struct{}{}
+	}
+	for modelName := range expectedExclusions {
+		if _, exists := excluded[modelName]; !exists {
+			return fmt.Errorf("RE async contract catalog is missing exclusion %q", modelName)
+		}
+	}
+
+	seen := make(map[string]struct{}, len(contracts.Models))
+	for index := range contracts.Models {
+		item := &contracts.Models[index]
+		price, exists := publishReady[item.ModelName]
+		if !exists {
+			return fmt.Errorf("RE async contract contains non-publish-ready or unknown model %q", item.ModelName)
+		}
+		if _, exists := seen[item.ModelName]; exists {
+			return fmt.Errorf("RE async contract contains duplicate model %q", item.ModelName)
+		}
+		seen[item.ModelName] = struct{}{}
+		if item.ModelName != "re/"+item.UpstreamModel || item.UpstreamModel != price.UpstreamModel || item.ModelType != price.ModelType {
+			return fmt.Errorf("RE async contract identity does not match pricing for %q", item.ModelName)
+		}
+		definition, exists := reAsyncProfileDefinitionForType(item.ModelType)
+		if !exists || item.Operation != definition.Operation || item.EndpointType != string(constant.EndpointTypeReTask) || item.ExecutionMode != "async" || item.ResponseContract != definition.ResponseContract {
+			return fmt.Errorf("RE async contract routing metadata is invalid for %q", item.ModelName)
+		}
+		if item.SchemaMode != model.ModelOperationSchemaModeReplace || item.InputSchema == nil || item.UISchema == nil || item.MaterialSchema == nil {
+			return fmt.Errorf("RE async contract %q must provide complete replace schemas", item.ModelName)
+		}
+		if additionalProperties, ok := item.InputSchema["additionalProperties"].(bool); !ok || additionalProperties {
+			return fmt.Errorf("RE async contract %q must reject undeclared input parameters", item.ModelName)
+		}
+		if item.RequestContract.Adapter != "re-task" || item.DispatchPath != "/v1/re/generations" || item.PollPath != "/v1/re/tasks/{task_id}" {
+			return fmt.Errorf("RE async contract dispatch metadata is invalid for %q", item.ModelName)
+		}
+		if item.Evidence == nil {
+			return fmt.Errorf("RE async contract %q is missing evidence", item.ModelName)
+		}
+		if err := validateAsyncContractSelectionUI(*item); err != nil {
+			return err
+		}
+
+		profile, version := reAsyncProfileContract(definition)
+		overrides, err := marshalAsyncContractOverrides(*item)
+		if err != nil {
+			return fmt.Errorf("encode RE async contract %q: %w", item.ModelName, err)
+		}
+		normalized, err := model.NormalizeAndValidateModelOperationBindingOverrides(overrides, profile, version)
+		if err != nil {
+			return fmt.Errorf("validate RE async contract %q: %w", item.ModelName, err)
+		}
+		item.normalizedOverrides = normalized
+	}
+	for modelName := range publishReady {
+		if _, exists := seen[modelName]; !exists {
+			return fmt.Errorf("RE async contract catalog is missing publish-ready model %q", modelName)
+		}
+	}
+	return nil
+}
+
+func validateAsyncContractIntegrity(contracts asyncContractCatalog) error {
+	modelCount, ok := contractCatalogInteger(contracts.Integrity["model_count"])
+	if !ok || modelCount != len(contracts.Models) {
+		return errors.New("RE async contract integrity model_count does not match models")
+	}
+	exclusionCount, ok := contractCatalogInteger(contracts.Integrity["exclusion_count"])
+	if !ok || exclusionCount != len(contracts.Exclusions) {
+		return errors.New("RE async contract integrity exclusion_count does not match exclusions")
+	}
+	names := make([]string, 0, len(contracts.Models))
+	for _, item := range contracts.Models {
+		names = append(names, item.ModelName)
+	}
+	sort.Strings(names)
+	expectedDigest := fmt.Sprintf("%x", sha256.Sum256([]byte(strings.Join(names, "\n")+"\n")))
+	digest, ok := contracts.Integrity["sorted_model_name_sha256"].(string)
+	if !ok || digest != expectedDigest {
+		return errors.New("RE async contract catalog integrity hash does not match models")
+	}
+	return nil
+}
+
+func contractCatalogInteger(value interface{}) (int, bool) {
+	number, ok := value.(float64)
+	if !ok || number < 0 || math.Trunc(number) != number {
+		return 0, false
+	}
+	return int(number), true
+}
+
+func validateAsyncContractSelectionUI(item asyncContractModel) error {
+	properties, ok := item.InputSchema["properties"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("RE async contract %q input_schema.properties must be an object", item.ModelName)
+	}
+	if field := findAsyncContractMaterialURLField(item.InputSchema, ""); field != "" {
+		return fmt.Errorf("RE async contract %q material URL field %s must not be exposed in input_schema", item.ModelName, field)
+	}
+	widgets, _ := item.UISchema["widgets"].(map[string]interface{})
+	for field, rawSchema := range properties {
+		fieldSchema, ok := rawSchema.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if asyncContractSelectorField(field) {
+			enumValues, hasEnum := fieldSchema["enum"].([]interface{})
+			if !hasEnum || len(enumValues) == 0 {
+				return fmt.Errorf("RE async contract %q field %s must use finite enum choices", item.ModelName, field)
+			}
+			widget := asyncContractWidgetType(widgets[field])
+			switch widget {
+			case "select", "segmented", "menu", "hidden":
+			default:
+				return fmt.Errorf("RE async contract %q field %s must use a choice widget, got %q", item.ModelName, field, widget)
+			}
+		}
+	}
+	for materialType, rawRule := range item.MaterialSchema {
+		rule, ok := rawRule.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		requestField, _ := rule["request_field"].(string)
+		if requestField != "" {
+			if _, exists := properties[requestField]; exists {
+				return fmt.Errorf("RE async contract %q material field %s for %s must not be exposed in input_schema", item.ModelName, requestField, materialType)
+			}
+		}
+		requestFields, _ := rule["request_fields"].([]interface{})
+		for index, rawRequestField := range requestFields {
+			requestFieldRule, ok := rawRequestField.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			nestedRequestField, _ := requestFieldRule["request_field"].(string)
+			if _, exists := properties[nestedRequestField]; exists {
+				return fmt.Errorf("RE async contract %q material field %s for %s slot %d must not be exposed in input_schema", item.ModelName, nestedRequestField, materialType, index)
+			}
+		}
+	}
+	return nil
+}
+
+func findAsyncContractMaterialURLField(schema map[string]interface{}, path string) string {
+	properties, _ := schema["properties"].(map[string]interface{})
+	for field, rawFieldSchema := range properties {
+		fieldSchema, ok := rawFieldSchema.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		fieldPath := field
+		if path != "" {
+			fieldPath = path + "." + field
+		}
+		if asyncContractMaterialURLField(fieldPath, fieldSchema) {
+			return fieldPath
+		}
+		if nested := findAsyncContractMaterialURLField(fieldSchema, fieldPath); nested != "" {
+			return nested
+		}
+		if items, ok := fieldSchema["items"].(map[string]interface{}); ok {
+			if nested := findAsyncContractMaterialURLField(items, fieldPath+"[]"); nested != "" {
+				return nested
+			}
+		}
+	}
+	for _, branchKey := range []string{"allOf", "anyOf", "oneOf"} {
+		branches, _ := schema[branchKey].([]interface{})
+		for _, rawBranch := range branches {
+			branch, ok := rawBranch.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if nested := findAsyncContractMaterialURLField(branch, path); nested != "" {
+				return nested
+			}
+		}
+	}
+	return ""
+}
+
+func asyncContractMaterialURLField(field string, schema map[string]interface{}) bool {
+	name := strings.ToLower(strings.TrimSpace(field))
+	if (strings.HasSuffix(name, "url") || strings.HasSuffix(name, "urls")) &&
+		(schema["type"] == "string" || schema["type"] == "array") {
+		return true
+	}
+	if schema["format"] == "uri" {
+		return true
+	}
+	items, _ := schema["items"].(map[string]interface{})
+	if items["format"] == "uri" {
+		return true
+	}
+	itemProperties, _ := items["properties"].(map[string]interface{})
+	urlSchema, _ := itemProperties["url"].(map[string]interface{})
+	return urlSchema["format"] == "uri"
+}
+
+func asyncContractSelectorField(field string) bool {
+	field = strings.ToLower(strings.TrimSpace(field))
+	switch field {
+	case "n", "count", "quantity", "duration", "seconds", "aspect_ratio", "aspectratio", "ratio", "size", "resolution", "quality", "image_count", "video_count", "output_count", "num_images", "num_videos", "num_outputs", "batch_size":
+		return true
+	}
+	return strings.HasSuffix(field, "_duration") || strings.HasSuffix(field, "_seconds") ||
+		strings.HasSuffix(field, "_aspect_ratio") || strings.HasSuffix(field, "_size") ||
+		strings.HasSuffix(field, "_resolution") || strings.Contains(field, "aspectratio") ||
+		strings.HasSuffix(field, "_quality") || strings.HasSuffix(field, "_count") ||
+		strings.HasPrefix(field, "num_") || strings.HasPrefix(field, "number_of_")
+}
+
+func asyncContractWidgetType(raw interface{}) string {
+	switch value := raw.(type) {
+	case string:
+		return value
+	case map[string]interface{}:
+		widget, _ := value["type"].(string)
+		return widget
+	default:
+		return ""
+	}
+}
+
+func reAsyncProfileDefinitionForType(modelType string) (reAsyncProfileDefinition, bool) {
+	for _, definition := range reAsyncProfileDefinitions {
+		if definition.ModelType == modelType {
+			return definition, true
+		}
+	}
+	return reAsyncProfileDefinition{}, false
+}
+
+func reAsyncProfileContract(definition reAsyncProfileDefinition) (*model.ModelOperationProfile, *model.ModelOperationProfileVersion) {
+	profile := &model.ModelOperationProfile{
+		ProfileKey:  definition.ProfileKey,
+		DisplayName: definition.DisplayName,
+		Description: "RE async model contracts; model-specific schemas are stored in binding replacements.",
+	}
+	version := &model.ModelOperationProfileVersion{
+		Version:          1,
+		Operation:        definition.Operation,
+		EndpointType:     string(constant.EndpointTypeReTask),
+		ExecutionMode:    "async",
+		InputSchema:      `{"additionalProperties":false,"properties":{},"type":"object"}`,
+		UISchema:         `{}`,
+		MaterialSchema:   `{}`,
+		ResponseContract: definition.ResponseContract,
+		SmokeTest:        `{}`,
+		Status:           model.ModelOperationProfileStatusPublished,
+	}
+	return profile, version
+}
+
+func marshalAsyncContractOverrides(item asyncContractModel) (string, error) {
+	payload := map[string]interface{}{
+		"schema_mode":      item.SchemaMode,
+		"input_schema":     item.InputSchema,
+		"ui_schema":        item.UISchema,
+		"material_schema":  item.MaterialSchema,
+		"request_contract": item.RequestContract,
+		"dispatch_path":    item.DispatchPath,
+		"poll_path":        item.PollPath,
+	}
+	if item.ParameterDefaults != nil {
+		payload["parameter_defaults"] = item.ParameterDefaults
+	}
+	encoded, err := common.Marshal(payload)
+	return string(encoded), err
+}
+
 func asyncModelPublishReady(item asyncPricingModel) bool {
 	if !item.Publishable {
 		return false
@@ -434,6 +819,91 @@ func upsertModels(items []catalogModel, vendorIDs map[string]int, pricing map[st
 	sort.Strings(chatModels)
 	sort.Strings(taskModels)
 	return chatModels, taskModels, nil
+}
+
+func upsertREAsyncContracts(contracts asyncContractCatalog, taskModels []string) error {
+	taskModelSet := make(map[string]struct{}, len(taskModels))
+	for _, modelName := range taskModels {
+		if _, exists := taskModelSet[modelName]; exists {
+			return fmt.Errorf("RE async task model list contains duplicate %q", modelName)
+		}
+		taskModelSet[modelName] = struct{}{}
+	}
+	if len(taskModelSet) != len(contracts.Models) {
+		return fmt.Errorf("RE async contract bindings require %d task models, got %d", len(contracts.Models), len(taskModelSet))
+	}
+	for _, item := range contracts.Models {
+		if _, exists := taskModelSet[item.ModelName]; !exists {
+			return fmt.Errorf("RE async contract binding is not an active task model: %q", item.ModelName)
+		}
+		if strings.TrimSpace(item.normalizedOverrides) == "" {
+			return fmt.Errorf("RE async contract %q was not validated before database initialization", item.ModelName)
+		}
+	}
+	if err := ensureREAsyncProfiles(); err != nil {
+		return err
+	}
+	for _, item := range contracts.Models {
+		definition, _ := reAsyncProfileDefinitionForType(item.ModelType)
+		binding := model.ModelOperationBinding{
+			ModelName:      item.ModelName,
+			Operation:      definition.Operation,
+			ProfileKey:     definition.ProfileKey,
+			ProfileVersion: 1,
+			Overrides:      item.normalizedOverrides,
+			Enabled:        true,
+		}
+		if err := model.SaveModelOperationBinding(&binding); err != nil {
+			return fmt.Errorf("upsert RE async contract binding %q: %w", item.ModelName, err)
+		}
+	}
+	for _, item := range contracts.Models {
+		if item.Operation != "text.generate" {
+			continue
+		}
+		var legacy model.ModelOperationBinding
+		err := model.DB.Where("model_name = ? AND operation = ?", item.ModelName, "text.chat").First(&legacy).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("load legacy RE text binding %q: %w", item.ModelName, err)
+		}
+		if err := model.DeleteModelOperationBinding(item.ModelName, "text.chat", legacy.ContractHash); err != nil {
+			return fmt.Errorf("delete legacy RE text binding %q: %w", item.ModelName, err)
+		}
+	}
+	return nil
+}
+
+func ensureREAsyncProfiles() error {
+	for _, definition := range reAsyncProfileDefinitions {
+		expectedProfile, expectedVersion := reAsyncProfileContract(definition)
+		storedProfile, storedVersion, err := model.GetModelOperationProfileVersion(definition.ProfileKey, expectedVersion.Version, false)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := model.SaveModelOperationProfileVersion(expectedProfile, expectedVersion); err != nil {
+				return fmt.Errorf("create RE async profile %q: %w", definition.ProfileKey, err)
+			}
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("load RE async profile %q: %w", definition.ProfileKey, err)
+		}
+		if storedProfile.ProfileKey != expectedProfile.ProfileKey ||
+			storedVersion.Version != expectedVersion.Version ||
+			storedVersion.Operation != expectedVersion.Operation ||
+			storedVersion.EndpointType != expectedVersion.EndpointType ||
+			storedVersion.ExecutionMode != expectedVersion.ExecutionMode ||
+			storedVersion.InputSchema != expectedVersion.InputSchema ||
+			storedVersion.UISchema != expectedVersion.UISchema ||
+			storedVersion.MaterialSchema != expectedVersion.MaterialSchema ||
+			storedVersion.ResponseContract != expectedVersion.ResponseContract ||
+			storedVersion.SmokeTest != expectedVersion.SmokeTest ||
+			storedVersion.Status != expectedVersion.Status {
+			return fmt.Errorf("published RE async profile %q version %d differs from onboarding definition", definition.ProfileKey, expectedVersion.Version)
+		}
+	}
+	return nil
 }
 
 func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
@@ -546,7 +1016,7 @@ func upsertChannel(name string, channelType int, baseURL string, key string, mod
 		ChannelProvider: channelProvider,
 		BaseURL:         &baseURLCopy,
 		Models:          strings.Join(modelNames, ","),
-		Group:           "default",
+		Group:           reChannelGroups(channelType),
 		ModelMapping:    &mappingCopy,
 	}
 	return model.DB.Transaction(func(tx *gorm.DB) error {
@@ -581,6 +1051,13 @@ func upsertChannel(name string, channelType int, baseURL string, key string, mod
 		}
 		return nil
 	})
+}
+
+func reChannelGroups(channelType int) string {
+	if channelType == constant.ChannelTypeReAPI {
+		return "default,gold"
+	}
+	return "default"
 }
 
 func fatal(err error) {

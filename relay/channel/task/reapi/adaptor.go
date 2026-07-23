@@ -330,7 +330,8 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 	if err != nil {
 		return nil, err
 	}
-	body := make(map[string]any, len(req.Metadata)+8)
+	body := make(map[string]any, 8)
+	hasJSONBody := false
 	if c != nil && c.Request != nil && strings.HasPrefix(strings.ToLower(c.GetHeader("Content-Type")), "application/json") {
 		storage, storageErr := common.GetBodyStorage(c)
 		if storageErr != nil {
@@ -344,37 +345,32 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 			if decodeErr := common.Unmarshal(raw, &body); decodeErr != nil {
 				return nil, decodeErr
 			}
-		}
-	}
-	for key, value := range req.Metadata {
-		if key != "model" {
-			if _, exists := body[key]; exists {
-				continue
-			}
-			body[key] = value
+			hasJSONBody = true
 		}
 	}
 	delete(body, "metadata")
 	delete(body, "group")
-	delete(body, "image")
-	delete(body, "images")
-	delete(body, "input_reference")
 	body["model"] = info.UpstreamModelName
-	if _, exists := body["prompt"]; !exists && strings.TrimSpace(req.Prompt) != "" {
+	if _, exists := body["prompt"]; !hasJSONBody && !exists && strings.TrimSpace(req.Prompt) != "" {
 		body["prompt"] = req.Prompt
 	}
-	if _, exists := body["size"]; !exists && strings.TrimSpace(req.Size) != "" {
+	if _, exists := body["size"]; !hasJSONBody && !exists && strings.TrimSpace(req.Size) != "" {
 		body["size"] = req.Size
 	}
-	if _, exists := body["seconds"]; !exists && strings.TrimSpace(req.Seconds) != "" {
+	if _, exists := body["seconds"]; !hasJSONBody && !exists && strings.TrimSpace(req.Seconds) != "" {
 		body["seconds"] = req.Seconds
 	}
-	if _, hasDuration := body["duration"]; !hasDuration && req.Duration > 0 {
+	if _, hasDuration := body["duration"]; !hasJSONBody && !hasDuration && req.Duration > 0 {
 		if _, hasSeconds := body["seconds"]; !hasSeconds {
 			body["duration"] = req.Duration
 		}
 	}
-	if _, exists := body["image_urls"]; !exists && len(req.Images) > 0 {
+	_, hasImage := body["image"]
+	_, hasImages := body["images"]
+	_, hasImageURL := body["image_url"]
+	_, hasImageURLs := body["image_urls"]
+	_, hasInputReference := body["input_reference"]
+	if !hasJSONBody && !hasImage && !hasImages && !hasImageURL && !hasImageURLs && !hasInputReference && len(req.Images) > 0 {
 		body["image_urls"] = req.Images
 	}
 	data, err := common.Marshal(body)

@@ -146,6 +146,113 @@ func TestValidateModelOperationContractMaterialsExecutesTransportRolesAndDuratio
 	assert.Contains(t, err.Error(), "cannot be verified")
 }
 
+func TestValidateModelOperationContractMaterialsRoutesMixedRequestFieldSlots(t *testing.T) {
+	originalProbe := probeModelOperationPublicMaterialURL
+	probeModelOperationPublicMaterialURL = func(_ context.Context, _ string) (service.PublicMaterialMetadata, error) {
+		return service.PublicMaterialMetadata{MIMEType: "image/png", Size: 1024}, nil
+	}
+	t.Cleanup(func() { probeModelOperationPublicMaterialURL = originalProbe })
+
+	contract := &model.ModelOperationEffectiveContract{
+		MaterialSchema: map[string]interface{}{
+			"image": map[string]interface{}{
+				"min_items":  float64(1),
+				"max_items":  float64(3),
+				"mime_types": []interface{}{"image/png"},
+				"request_fields": []interface{}{
+					map[string]interface{}{
+						"slot": "reference_image", "request_field": "media", "transport": "url",
+						"min_items": float64(0), "max_items": float64(2), "value_type": "array",
+						"item_template": map[string]interface{}{"type": "reference_image"}, "url_field": "url",
+					},
+					map[string]interface{}{
+						"slot": "last_frame", "request_field": "media", "transport": "url",
+						"min_items": float64(0), "max_items": float64(1), "value_type": "array",
+						"item_template": map[string]interface{}{"type": "last_frame"}, "url_field": "url",
+					},
+				},
+			},
+			"video": map[string]interface{}{
+				"min_items": float64(0),
+				"max_items": float64(1),
+				"request_fields": []interface{}{
+					map[string]interface{}{
+						"slot": "video", "request_field": "media", "transport": "url",
+						"min_items": float64(0), "max_items": float64(1), "value_type": "array",
+						"item_template": map[string]interface{}{"type": "video"}, "url_field": "url",
+					},
+				},
+			},
+		},
+	}
+	parameters := map[string]interface{}{
+		"media": []interface{}{
+			map[string]interface{}{"type": "reference_image", "url": "https://media.example/reference.png"},
+			map[string]interface{}{"type": "last_frame", "url": "https://media.example/last.png"},
+			map[string]interface{}{"type": "video", "url": "https://media.example/video.mp4"},
+		},
+	}
+
+	require.NoError(t, ValidateModelOperationContractMaterials(nil, contract, parameters))
+
+	parameters["media"] = []interface{}{
+		map[string]interface{}{"type": "last_frame", "url": "https://media.example/last-1.png"},
+		map[string]interface{}{"type": "last_frame", "url": "https://media.example/last-2.png"},
+	}
+	err := ValidateModelOperationContractMaterials(nil, contract, parameters)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "at most 1")
+}
+
+func TestValidateModelOperationContractMaterialsRejectsMalformedMixedSlots(t *testing.T) {
+	originalProbe := probeModelOperationPublicMaterialURL
+	probeModelOperationPublicMaterialURL = func(_ context.Context, _ string) (service.PublicMaterialMetadata, error) {
+		return service.PublicMaterialMetadata{MIMEType: "audio/wav", Size: 1024}, nil
+	}
+	t.Cleanup(func() { probeModelOperationPublicMaterialURL = originalProbe })
+
+	contract := &model.ModelOperationEffectiveContract{
+		MaterialSchema: map[string]interface{}{
+			"audio": map[string]interface{}{
+				"min_items": float64(0), "max_items": float64(2),
+				"request_fields": []interface{}{
+					map[string]interface{}{
+						"slot": "driving_audio", "request_field": "media", "transport": "url",
+						"min_items": float64(0), "max_items": float64(1), "value_type": "array",
+						"item_template": map[string]interface{}{"type": "driving_audio"}, "url_field": "url",
+					},
+					map[string]interface{}{
+						"slot": "reference_voice", "request_field": "media", "transport": "url",
+						"min_items": float64(0), "max_items": float64(1), "value_type": "array",
+						"item_template": map[string]interface{}{"type": "driving_audio"}, "url_field": "reference_voice",
+						"requires_slot": "driving_audio",
+					},
+				},
+			},
+		},
+	}
+
+	err := ValidateModelOperationContractMaterials(nil, contract, map[string]interface{}{
+		"media": []interface{}{map[string]interface{}{
+			"type": "driving_audio", "reference_voice": "https://media.example/voice.wav",
+		}},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "requires a matching driving_audio")
+
+	err = ValidateModelOperationContractMaterials(nil, contract, map[string]interface{}{
+		"media": []interface{}{map[string]interface{}{"type": "unknown", "url": "https://media.example/audio.wav"}},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not match a configured slot")
+
+	err = ValidateModelOperationContractMaterials(nil, contract, map[string]interface{}{
+		"media": []interface{}{map[string]interface{}{"type": "driving_audio"}},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "non-empty URL")
+}
+
 func TestModelOperationRequestParametersPreservesRawContractFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	context, _ := gin.CreateTestContext(httptest.NewRecorder())

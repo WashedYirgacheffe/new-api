@@ -160,6 +160,30 @@ func TestModelOperationContractAcceptsGeminiImageAdapterAndPath(t *testing.T) {
 	assert.Contains(t, normalized, `/v1beta/models/{model}:generateContent`)
 }
 
+func TestModelOperationContractAcceptsRETaskAdapter(t *testing.T) {
+	profile := &ModelOperationProfile{ProfileKey: "re.video.generate", DisplayName: "RE video generation"}
+	version := &ModelOperationProfileVersion{
+		Version:          1,
+		Operation:        "video.generate",
+		EndpointType:     "re-task",
+		ExecutionMode:    "async",
+		InputSchema:      `{"type":"object","properties":{"prompt":{"type":"string"}},"required":["prompt"],"additionalProperties":false}`,
+		UISchema:         `{"order":["prompt"],"widgets":{"prompt":"textarea"}}`,
+		MaterialSchema:   `{}`,
+		ResponseContract: "re-video-task-v1",
+	}
+
+	normalized, _, err := normalizeModelOperationBindingOverrides(
+		`{"request_contract":{"adapter":"re-task","field_map":{},"coercions":{}},"dispatch_path":"/v1/re/generations","poll_path":"/v1/re/tasks/{task_id}"}`,
+		profile,
+		version,
+	)
+
+	require.NoError(t, err)
+	assert.Contains(t, normalized, `"adapter":"re-task"`)
+	assert.Contains(t, normalized, `/v1/re/tasks/{task_id}`)
+}
+
 func TestModelOperationContractHashIsCanonical(t *testing.T) {
 	first := `{"branding":{"description":"Image model","icon_key":"openai"},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","quantity_field":"n","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.5,"4K":2}}]}}`
 	second := `{"pricing_rule":{"multipliers":[{"values":{"4K":2,"2K":1.5,"1K":1},"field":"resolution"}],"quantity_field":"n","mode":"newapi-base-with-parameter-multipliers"},"branding":{"icon_key":"openai","description":"Image model"}}`
@@ -460,4 +484,33 @@ func TestModelOperationSchemaModeReplaceRemovesInheritedParameters(t *testing.T)
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "supported type")
+}
+
+func TestValidateModelOperationMaterialSchemaAcceptsMultipleCanvasSlots(t *testing.T) {
+	schema := map[string]interface{}{
+		"image": map[string]interface{}{
+			"min_items": float64(0),
+			"max_items": float64(3),
+			"request_fields": []interface{}{
+				map[string]interface{}{
+					"slot": "reference_image", "request_field": "media", "transport": "url",
+					"min_items": float64(0), "max_items": float64(2), "value_type": "array",
+					"item_template": map[string]interface{}{"type": "reference_image"}, "url_field": "url",
+				},
+				map[string]interface{}{
+					"slot": "last_frame", "request_field": "media", "transport": "url",
+					"min_items": float64(0), "max_items": float64(1), "value_type": "array",
+					"item_template": map[string]interface{}{"type": "last_frame"}, "url_field": "url",
+				},
+			},
+		},
+	}
+
+	require.NoError(t, validateModelOperationMaterialSchema(schema, true))
+
+	fields := schema["image"].(map[string]interface{})["request_fields"].([]interface{})
+	fields[1].(map[string]interface{})["slot"] = "reference_image"
+	err := validateModelOperationMaterialSchema(schema, true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate slot")
 }

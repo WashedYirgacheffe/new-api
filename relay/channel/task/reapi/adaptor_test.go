@@ -23,9 +23,9 @@ func TestTaskAdaptorBuildsRERequestContract(t *testing.T) {
 	context.Set("task_request", relaycommon.TaskSubmitReq{
 		Prompt: "draw a lighthouse",
 		Images: []string{"https://input.example/reference.png"},
+		Size:   "1024x1024",
 		Metadata: map[string]any{
 			"model": "malicious-override",
-			"size":  "1024x1024",
 		},
 	})
 
@@ -68,8 +68,9 @@ func TestTaskAdaptorPreservesAsyncFieldsWithoutPrompt(t *testing.T) {
 		"model":"re/audio-multistem",
 		"audio_url":"https://input.example/song.wav",
 		"stem_list":["vocals","drum"],
+		"encoder_format":"mp3",
 		"group":"default",
-		"metadata":{"encoder_format":"mp3"}
+		"metadata":{"duration":12,"media":[{"type":"video","url":"https://input.example/bypass.mp4"}]}
 	}`))
 	context.Request.Header.Set("Content-Type", "application/json")
 	info := &relaycommon.RelayInfo{
@@ -98,6 +99,91 @@ func TestTaskAdaptorPreservesAsyncFieldsWithoutPrompt(t *testing.T) {
 	assert.NotContains(t, decoded, "prompt")
 	assert.NotContains(t, decoded, "group")
 	assert.NotContains(t, decoded, "metadata")
+}
+
+func TestTaskAdaptorDoesNotFlattenMetadataIntoPreparedRequest(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{
+		"model":"re/wan2.7-video",
+		"prompt":"animate the scene",
+		"aspect_ratio":"16:9",
+		"resolution":"720p",
+		"metadata":{"duration":12,"media":[{"type":"video","url":"https://input.example/bypass.mp4"}]}
+	}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	context.Set("task_request", relaycommon.TaskSubmitReq{
+		Prompt:   "animate the scene",
+		Duration: 12,
+		Metadata: map[string]any{
+			"duration": 12,
+			"media": []any{
+				map[string]any{"type": "video", "url": "https://input.example/bypass.mp4"},
+			},
+		},
+	})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/wan2.7-video",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelBaseUrl:    "https://reapi.ai/api/v1",
+			ApiKey:            "task-key",
+			UpstreamModelName: "wan2.7-video",
+		},
+	}
+	adaptor := &TaskAdaptor{}
+	adaptor.Init(info)
+
+	body, err := adaptor.BuildRequestBody(context, info)
+	require.NoError(t, err)
+	payload, err := io.ReadAll(body)
+	require.NoError(t, err)
+	var decoded map[string]any
+	require.NoError(t, common.Unmarshal(payload, &decoded))
+	assert.Equal(t, "wan2.7-video", decoded["model"])
+	assert.Equal(t, "animate the scene", decoded["prompt"])
+	assert.Equal(t, "16:9", decoded["aspect_ratio"])
+	assert.Equal(t, "720p", decoded["resolution"])
+	assert.NotContains(t, decoded, "duration")
+	assert.NotContains(t, decoded, "media")
+	assert.NotContains(t, decoded, "metadata")
+}
+
+func TestTaskAdaptorPreservesContractMaterialFieldNames(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{
+		"model":"re/flux-2",
+		"prompt":"combine references",
+		"images":["https://input.example/one.png","https://input.example/two.png"]
+	}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	context.Set("task_request", relaycommon.TaskSubmitReq{
+		Prompt: "combine references",
+		Images: []string{"https://input.example/one.png", "https://input.example/two.png"},
+	})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/flux-2",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelBaseUrl:    "https://reapi.ai/api/v1",
+			ApiKey:            "task-key",
+			UpstreamModelName: "flux-2",
+		},
+	}
+	adaptor := &TaskAdaptor{}
+	adaptor.Init(info)
+
+	body, err := adaptor.BuildRequestBody(context, info)
+	require.NoError(t, err)
+	payload, err := io.ReadAll(body)
+	require.NoError(t, err)
+	var decoded map[string]any
+	require.NoError(t, common.Unmarshal(payload, &decoded))
+	assert.Equal(t, []any{"https://input.example/one.png", "https://input.example/two.png"}, decoded["images"])
+	assert.NotContains(t, decoded, "image_urls")
 }
 
 func TestOperationForModelMatchesAsyncCapability(t *testing.T) {

@@ -179,7 +179,10 @@ func validateRawModelOperationContractParameters(contract *model.ModelOperationE
 		"tools": {}, "toolConfig": {}, "tool_config": {},
 		"systemInstruction": {}, "system_instruction": {},
 		"cachedContent": {}, "cached_content": {},
-		"metadata": {}, "group": {}, "mode": {},
+		"group": {}, "mode": {},
+	}
+	if contract.RequestContract.Adapter != "re-task" {
+		allowed["metadata"] = struct{}{}
 	}
 	for field := range properties {
 		allowed[field] = struct{}{}
@@ -196,6 +199,20 @@ func validateRawModelOperationContractParameters(contract *model.ModelOperationE
 	for _, materialType := range []string{"image", "video", "audio"} {
 		rule, ok := contract.MaterialSchema[materialType].(map[string]interface{})
 		if !ok {
+			continue
+		}
+		if requestFields, ok := rule["request_fields"].([]interface{}); ok {
+			for _, rawRequestField := range requestFields {
+				requestFieldRule, ok := rawRequestField.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				requestField, _ := requestFieldRule["request_field"].(string)
+				requestField = strings.TrimSpace(requestField)
+				if requestField != "" {
+					allowed[requestField] = struct{}{}
+				}
+			}
 			continue
 		}
 		requestField, _ := rule["request_field"].(string)

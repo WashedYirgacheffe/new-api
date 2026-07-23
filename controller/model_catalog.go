@@ -190,11 +190,16 @@ func profileDispatchReady(operation, endpointType, executionMode, responseContra
 	case "image.generate":
 		return (endpointType == string(constant.EndpointTypeImageGeneration) && executionMode == "sync" && responseContract == "openai-image-generation-v1") ||
 			(endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync" && responseContract == "openai-chat-markdown-images-v1") ||
-			(endpointType == string(constant.EndpointTypeGemini) && executionMode == "sync" && responseContract == "gemini-image-generation-v1")
+			(endpointType == string(constant.EndpointTypeGemini) && executionMode == "sync" && responseContract == "gemini-image-generation-v1") ||
+			(endpointType == string(constant.EndpointTypeReTask) && executionMode == "async" && responseContract == "re-image-task-v1")
 	case "video.generate":
-		return endpointType == string(constant.EndpointTypeOpenAIVideo) && executionMode == "async" && responseContract == "openai-video-task-v1"
+		return (endpointType == string(constant.EndpointTypeOpenAIVideo) && executionMode == "async" && responseContract == "openai-video-task-v1") ||
+			(endpointType == string(constant.EndpointTypeReTask) && executionMode == "async" && responseContract == "re-video-task-v1")
 	case "audio.generate":
-		return endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync"
+		return (endpointType == string(constant.EndpointTypeOpenAI) && executionMode == "sync") ||
+			(endpointType == string(constant.EndpointTypeReTask) && executionMode == "async" && responseContract == "re-audio-task-v1")
+	case "text.generate":
+		return endpointType == string(constant.EndpointTypeReTask) && executionMode == "async" && responseContract == "re-text-task-v1"
 	case "embedding.create":
 		return endpointType == string(constant.EndpointTypeEmbeddings) && executionMode == "sync"
 	case "rerank.create":

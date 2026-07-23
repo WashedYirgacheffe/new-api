@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -300,13 +301,178 @@ func materialInputs(
 	return inputs, count, nil
 }
 
+func materialSlotValues(value interface{}, rule map[string]interface{}) []interface{} {
+	values := materialValues(value)
+	template, hasTemplate := rule["item_template"].(map[string]interface{})
+	if !hasTemplate || len(template) == 0 {
+		return values
+	}
+	urlField, _ := rule["url_field"].(string)
+	urlField = strings.TrimSpace(urlField)
+	if urlField == "" {
+		urlField = "url"
+	}
+	filtered := make([]interface{}, 0, len(values))
+	for _, value := range values {
+		object, ok := value.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		matches := true
+		for field, expected := range template {
+			if actual, exists := object[field]; !exists || !reflect.DeepEqual(actual, expected) {
+				matches = false
+				break
+			}
+		}
+		if !matches {
+			continue
+		}
+		if materialURL, exists := object[urlField]; exists {
+			filtered = append(filtered, materialURL)
+		}
+	}
+	return filtered
+}
+
+func validateMaterialSlotRequestFields(contract *model.ModelOperationEffectiveContract, parameters map[string]interface{}) error {
+	rulesByField := make(map[string][]map[string]interface{})
+	for _, materialType := range []string{"image", "video", "audio"} {
+		rule, _ := contract.MaterialSchema[materialType].(map[string]interface{})
+		requestFields, _ := rule["request_fields"].([]interface{})
+		for _, rawRequestField := range requestFields {
+			requestFieldRule, ok := rawRequestField.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			requestField, _ := requestFieldRule["request_field"].(string)
+			requestField = strings.TrimSpace(requestField)
+			if requestField != "" {
+				rulesByField[requestField] = append(rulesByField[requestField], requestFieldRule)
+			}
+		}
+	}
+
+	for requestField, requestFieldRules := range rulesByField {
+		for index, value := range materialValues(parameters[requestField]) {
+			object, isObject := value.(map[string]interface{})
+			claimed := false
+			allowedObjectFields := make(map[string]struct{})
+			for _, requestFieldRule := range requestFieldRules {
+				template, hasTemplate := requestFieldRule["item_template"].(map[string]interface{})
+				if !hasTemplate || len(template) == 0 {
+					claimed = true
+					continue
+				}
+				if !isObject {
+					continue
+				}
+				matches := true
+				for field, expected := range template {
+					if actual, exists := object[field]; !exists || !reflect.DeepEqual(actual, expected) {
+						matches = false
+						break
+					}
+				}
+				if !matches {
+					continue
+				}
+				for field := range template {
+					allowedObjectFields[field] = struct{}{}
+				}
+				urlField, _ := requestFieldRule["url_field"].(string)
+				urlField = strings.TrimSpace(urlField)
+				if urlField == "" {
+					urlField = "url"
+				}
+				allowedObjectFields[urlField] = struct{}{}
+				materialURL, exists := object[urlField].(string)
+				if exists && strings.TrimSpace(materialURL) != "" {
+					claimed = true
+				}
+			}
+			if !claimed {
+				return fmt.Errorf("material field %s item %d does not match a configured slot with a non-empty URL", requestField, index)
+			}
+			if isObject && len(allowedObjectFields) > 0 {
+				for field := range object {
+					if _, allowed := allowedObjectFields[field]; !allowed {
+						return fmt.Errorf("material field %s item %d contains unsupported field %s", requestField, index, field)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func ValidateModelOperationContractMaterials(c *gin.Context, contract *model.ModelOperationEffectiveContract, parameters map[string]interface{}) error {
 	if contract == nil {
 		return nil
 	}
+	if err := validateMaterialSlotRequestFields(contract, parameters); err != nil {
+		return err
+	}
 	for _, materialType := range []string{"image", "video", "audio"} {
 		rule, ok := contract.MaterialSchema[materialType].(map[string]interface{})
 		if !ok {
+			continue
+		}
+		if requestFields, ok := rule["request_fields"].([]interface{}); ok {
+			totalCount := 0
+			slotCounts := make(map[string]int, len(requestFields))
+			requiredSlots := make(map[string]string)
+			for index, rawRequestField := range requestFields {
+				requestFieldRule, ok := rawRequestField.(map[string]interface{})
+				if !ok {
+					return fmt.Errorf("material_schema.%s.request_fields[%d] must be an object", materialType, index)
+				}
+				mergedRule := make(map[string]interface{}, len(requestFieldRule)+4)
+				for _, field := range []string{"roles", "mime_types", "max_size_mb", "max_total_duration"} {
+					if value, exists := rule[field]; exists {
+						mergedRule[field] = value
+					}
+				}
+				for field, value := range requestFieldRule {
+					if field != "value_type" && field != "label" {
+						mergedRule[field] = value
+					}
+				}
+				requestField, _ := mergedRule["request_field"].(string)
+				requestField = strings.TrimSpace(requestField)
+				slotValues := materialSlotValues(parameters[requestField], requestFieldRule)
+				totalCount += len(slotValues)
+				slot, _ := requestFieldRule["slot"].(string)
+				slot = strings.TrimSpace(slot)
+				slotCounts[slot] = len(slotValues)
+				if requiredSlot, _ := requestFieldRule["requires_slot"].(string); strings.TrimSpace(requiredSlot) != "" {
+					requiredSlots[slot] = strings.TrimSpace(requiredSlot)
+				}
+
+				nestedContract := *contract
+				nestedContract.MaterialSchema = map[string]interface{}{materialType: mergedRule}
+				nestedParameters := make(map[string]interface{}, len(parameters))
+				for field, value := range parameters {
+					nestedParameters[field] = value
+				}
+				nestedParameters[requestField] = slotValues
+				if err := ValidateModelOperationContractMaterials(c, &nestedContract, nestedParameters); err != nil {
+					return fmt.Errorf("material_schema.%s.request_fields[%d]: %w", materialType, index, err)
+				}
+			}
+			for slot, requiredSlot := range requiredSlots {
+				if slotCounts[slot] > slotCounts[requiredSlot] {
+					return fmt.Errorf("material_schema.%s slot %s requires a matching %s item", materialType, slot, requiredSlot)
+				}
+			}
+			minimum, hasMinimum := materialRuleNumber(rule, "min_items")
+			maximum, hasMaximum := materialRuleNumber(rule, "max_items")
+			if hasMinimum && float64(totalCount) < minimum {
+				return fmt.Errorf("material_schema.%s requires at least %s item(s)", materialType, strconvFormatNumber(minimum))
+			}
+			if hasMaximum && float64(totalCount) > maximum {
+				return fmt.Errorf("material_schema.%s allows at most %s item(s)", materialType, strconvFormatNumber(maximum))
+			}
 			continue
 		}
 		requestField, _ := rule["request_field"].(string)

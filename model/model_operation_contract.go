@@ -586,7 +586,7 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 			return fmt.Errorf("material_schema.%s must be an object", materialType)
 		}
 		if err := validateContractObjectKeys("material_schema."+materialType, rule,
-			"min_items", "max_items", "roles", "mime_types", "max_size_mb", "max_total_duration", "request_field", "transport"); err != nil {
+			"min_items", "max_items", "roles", "mime_types", "max_size_mb", "max_total_duration", "request_field", "request_fields", "transport"); err != nil {
 			return err
 		}
 		minItemsRaw, hasMin := rule["min_items"]
@@ -687,7 +687,109 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 		if hasRequestField != hasTransport {
 			return fmt.Errorf("material_schema.%s.request_field and transport must be configured together", materialType)
 		}
-		if requireRequestMapping && hasMax && maxItems > 0 && (requestField == "" || transport == "") {
+		rawRequestFields, hasRequestFields := rule["request_fields"]
+		if hasRequestFields {
+			if hasRequestField || hasTransport {
+				return fmt.Errorf("material_schema.%s cannot combine request_field with request_fields", materialType)
+			}
+			requestFields, ok := rawRequestFields.([]interface{})
+			if !ok || len(requestFields) == 0 || len(requestFields) > 20 {
+				return fmt.Errorf("material_schema.%s.request_fields must be a non-empty array with at most 20 entries", materialType)
+			}
+			seenSlots := make(map[string]struct{}, len(requestFields))
+			requiredSlots := make([]string, 0)
+			for index, rawRequestField := range requestFields {
+				requestFieldRule, ok := contractObject(rawRequestField)
+				if !ok {
+					return fmt.Errorf("material_schema.%s.request_fields[%d] must be an object", materialType, index)
+				}
+				if err := validateContractObjectKeys(fmt.Sprintf("material_schema.%s.request_fields[%d]", materialType, index), requestFieldRule,
+					"slot", "min_items", "max_items", "roles", "mime_types", "max_size_mb", "request_field", "transport", "value_type", "label", "url_field", "item_template", "requires_slot"); err != nil {
+					return err
+				}
+				slot, _ := requestFieldRule["slot"].(string)
+				slot = strings.TrimSpace(slot)
+				if slot == "" {
+					return fmt.Errorf("material_schema.%s.request_fields[%d].slot is required", materialType, index)
+				}
+				if _, err := normalizeContractIdentifier(slot, 128); err != nil {
+					return fmt.Errorf("material_schema.%s.request_fields[%d].slot: %w", materialType, index, err)
+				}
+				if _, duplicate := seenSlots[slot]; duplicate {
+					return fmt.Errorf("material_schema.%s.request_fields contains duplicate slot %s", materialType, slot)
+				}
+				seenSlots[slot] = struct{}{}
+				nestedRequestField, _ := requestFieldRule["request_field"].(string)
+				nestedRequestField = strings.TrimSpace(nestedRequestField)
+				if nestedRequestField == "" {
+					return fmt.Errorf("material_schema.%s.request_fields[%d].request_field is required", materialType, index)
+				}
+				valueType, _ := requestFieldRule["value_type"].(string)
+				if valueType != "string" && valueType != "array" {
+					return fmt.Errorf("material_schema.%s.request_fields[%d].value_type must be string or array", materialType, index)
+				}
+				urlFieldRaw, hasURLField := requestFieldRule["url_field"]
+				urlField, urlFieldValid := urlFieldRaw.(string)
+				urlField = strings.TrimSpace(urlField)
+				if hasURLField {
+					if !urlFieldValid || valueType != "array" || urlField == "" {
+						return fmt.Errorf("material_schema.%s.request_fields[%d].url_field requires an array value type", materialType, index)
+					}
+					if _, err := normalizeContractIdentifier(urlField, 128); err != nil {
+						return fmt.Errorf("material_schema.%s.request_fields[%d].url_field: %w", materialType, index, err)
+					}
+				}
+				if rawTemplate, exists := requestFieldRule["item_template"]; exists {
+					template, ok := contractObject(rawTemplate)
+					if !ok || len(template) == 0 || valueType != "array" {
+						return fmt.Errorf("material_schema.%s.request_fields[%d].item_template must be a non-empty object for an array value", materialType, index)
+					}
+					for field, value := range template {
+						if _, err := normalizeContractIdentifier(field, 128); err != nil {
+							return fmt.Errorf("material_schema.%s.request_fields[%d].item_template: %w", materialType, index, err)
+						}
+						switch value.(type) {
+						case string, bool, float64:
+						default:
+							return fmt.Errorf("material_schema.%s.request_fields[%d].item_template.%s must be a scalar", materialType, index, field)
+						}
+					}
+				}
+				if requiredSlot, exists := requestFieldRule["requires_slot"]; exists {
+					requiredSlotText, ok := requiredSlot.(string)
+					requiredSlotText = strings.TrimSpace(requiredSlotText)
+					if !ok || requiredSlotText == "" {
+						return fmt.Errorf("material_schema.%s.request_fields[%d].requires_slot must be a non-empty string", materialType, index)
+					}
+					if _, err := normalizeContractIdentifier(requiredSlotText, 128); err != nil {
+						return fmt.Errorf("material_schema.%s.request_fields[%d].requires_slot: %w", materialType, index, err)
+					}
+					requiredSlots = append(requiredSlots, requiredSlotText)
+				}
+				if label, exists := requestFieldRule["label"]; exists {
+					labelText, ok := label.(string)
+					if !ok || strings.TrimSpace(labelText) == "" || len([]rune(labelText)) > 128 {
+						return fmt.Errorf("material_schema.%s.request_fields[%d].label must be a non-empty string with at most 128 characters", materialType, index)
+					}
+				}
+
+				legacyRule := make(map[string]interface{}, len(requestFieldRule))
+				for field, value := range requestFieldRule {
+					if field != "slot" && field != "value_type" && field != "label" && field != "url_field" && field != "item_template" && field != "requires_slot" {
+						legacyRule[field] = value
+					}
+				}
+				if err := validateModelOperationMaterialSchema(map[string]interface{}{materialType: legacyRule}, true); err != nil {
+					return fmt.Errorf("material_schema.%s.request_fields[%d]: %w", materialType, index, err)
+				}
+			}
+			for _, requiredSlot := range requiredSlots {
+				if _, exists := seenSlots[requiredSlot]; !exists {
+					return fmt.Errorf("material_schema.%s.request_fields requires unknown slot %s", materialType, requiredSlot)
+				}
+			}
+		}
+		if requireRequestMapping && hasMax && maxItems > 0 && !hasRequestFields && (requestField == "" || transport == "") {
 			return fmt.Errorf("material_schema.%s requires request_field and transport when materials are enabled", materialType)
 		}
 	}
@@ -892,6 +994,10 @@ func normalizeModelOperationBindingOverrides(value string, profile *ModelOperati
 			if version.EndpointType != "openai-video" {
 				return "", ModelOperationBindingOverrides{}, errors.New("openai-video request adapter requires openai-video endpoint_type")
 			}
+		case "re-task":
+			if version.EndpointType != "re-task" {
+				return "", ModelOperationBindingOverrides{}, errors.New("re-task request adapter requires re-task endpoint_type")
+			}
 		default:
 			return "", ModelOperationBindingOverrides{}, fmt.Errorf("request_contract adapter %q is not registered", overrides.RequestContract.Adapter)
 		}
@@ -997,6 +1103,13 @@ func normalizeModelOperationBindingOverrides(value string, profile *ModelOperati
 		}
 	}
 	return string(normalized), overrides, nil
+}
+
+// NormalizeAndValidateModelOperationBindingOverrides exposes the same validation
+// used by persisted bindings for trusted initialization tools.
+func NormalizeAndValidateModelOperationBindingOverrides(value string, profile *ModelOperationProfile, version *ModelOperationProfileVersion) (string, error) {
+	normalized, _, err := normalizeModelOperationBindingOverrides(value, profile, version)
+	return normalized, err
 }
 
 func BuildModelOperationEffectiveContract(binding ModelOperationBinding, profile *ModelOperationProfile, version *ModelOperationProfileVersion) (*ModelOperationEffectiveContract, error) {
