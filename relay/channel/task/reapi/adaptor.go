@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -61,6 +63,26 @@ var endpointByModel = func() map[string]string {
 	return endpoints
 }()
 
+var perSecondBillingModels = map[string]struct{}{
+	"doubao-seedance-2.0": {}, "doubao-seedance-2.0-face": {}, "doubao-seedance-2.0-fast": {},
+	"doubao-seedance-2.0-fast-face": {}, "doubao-seedance-2.0-fast-official": {}, "doubao-seedance-2.0-official": {},
+	"enhance-video-1.0": {}, "grok-imagine-1.0-video": {}, "grok-imagine-video-1.5-beta": {},
+	"grok-imagine-video-1.5-official": {}, "happyhorse-1-1": {}, "happyhorse-1.0": {}, "happyhorse-1.0-official": {},
+	"kling-3-0": {}, "kling-3-0-turbo": {}, "kling-3-0-turbo-beta": {}, "kling-v2-6-motion-control": {},
+	"kling-v3-motion-control": {}, "music-video-1-0": {}, "pixverse-v6": {}, "seedance-2.0-beta": {},
+	"seedance-2.0-fast-beta": {}, "seedance-2.0-mini": {}, "topaz-video-upscaler": {}, "viduq3-pro": {},
+	"viduq3-turbo": {}, "wan2.7-video": {}, "wan2.7-video-official": {},
+}
+
+var perImageBillingModels = map[string]struct{}{
+	"doubao-seedream-5-0-lite": {}, "doubao-seedream-5-0-pro": {}, "flux-2": {}, "flux-2-flex": {},
+	"gemini-2.5-flash-image-preview": {}, "gemini-2.5-flash-image-preview-official": {},
+	"gemini-3-pro-image-preview": {}, "gemini-3-pro-image-preview-official": {},
+	"gemini-3.1-flash-image-preview": {}, "gemini-3.1-flash-image-preview-official": {},
+	"gpt-image-2": {}, "gpt-image-2-beta": {}, "gpt-image-2-official": {}, "imagen-4-0": {},
+	"nano-banana-2-lite": {}, "qwen-image-2": {}, "wan2.7-image": {}, "wan2.7-image-pro": {}, "z-image": {},
+}
+
 type TaskAdaptor struct {
 	taskcommon.BaseBilling
 	apiKey  string
@@ -100,7 +122,134 @@ func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycom
 	if strings.TrimSpace(req.Model) == "" && strings.TrimSpace(info.OriginModelName) == "" {
 		return service.TaskErrorWrapperLocal(fmt.Errorf("model is required"), "missing_model", http.StatusBadRequest)
 	}
+	body := requestBodyValues(c)
+	if _, billedPerImage := perImageBillingModels[info.UpstreamModelName]; billedPerImage {
+		if n, present, valid := integerRequestValue(body, "n"); present && (!valid || n < 1 || n > dto.MaxImageN) {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("n must be between 1 and %d", dto.MaxImageN), "invalid_n", http.StatusBadRequest)
+		}
+	}
+	if _, billedPerSecond := perSecondBillingModels[info.UpstreamModelName]; billedPerSecond {
+		seconds, present, valid := firstIntegerRequestValue(body, "duration", "seconds")
+		if !present {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("duration is required for per-second billing"), "missing_duration", http.StatusBadRequest)
+		}
+		if !valid || seconds < 1 || seconds > relaycommon.MaxTaskDurationSeconds {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("duration must be between 1 and %d seconds", relaycommon.MaxTaskDurationSeconds), "invalid_duration", http.StatusBadRequest)
+		}
+	}
+	if info.UpstreamModelName == "ai-text-detector" || info.UpstreamModelName == "humanize" {
+		text := stringRequestValue(body, "text")
+		if text == "" {
+			text = stringRequestValue(body, "input")
+		}
+		if len(strings.Fields(text)) > 30000 {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("text must contain no more than 30000 words"), "text_too_long", http.StatusBadRequest)
+		}
+	}
 	return nil
+}
+
+func requestBodyValues(c *gin.Context) map[string]any {
+	if c == nil || c.Request == nil || !strings.HasPrefix(strings.ToLower(c.GetHeader("Content-Type")), "application/json") {
+		return nil
+	}
+	storage, err := common.GetBodyStorage(c)
+	if err != nil {
+		return nil
+	}
+	raw, err := storage.Bytes()
+	if err != nil || len(raw) == 0 {
+		return nil
+	}
+	var body map[string]any
+	if err := common.Unmarshal(raw, &body); err != nil {
+		return nil
+	}
+	return body
+}
+
+func integerRequestValue(body map[string]any, key string) (int, bool, bool) {
+	value, present := body[key]
+	if !present {
+		if metadata, ok := body["metadata"].(map[string]any); ok {
+			value, present = metadata[key]
+		}
+	}
+	if !present {
+		return 0, false, false
+	}
+	switch typed := value.(type) {
+	case float64:
+		if math.IsNaN(typed) || math.IsInf(typed, 0) || math.Trunc(typed) != typed || typed > float64(math.MaxInt) || typed < float64(math.MinInt) {
+			return 0, true, false
+		}
+		return int(typed), true, true
+	case int:
+		return typed, true, true
+	case string:
+		parsed, err := strconv.Atoi(strings.TrimSpace(typed))
+		return parsed, true, err == nil
+	default:
+		return 0, true, false
+	}
+}
+
+func firstIntegerRequestValue(body map[string]any, keys ...string) (int, bool, bool) {
+	for _, key := range keys {
+		if value, present, valid := integerRequestValue(body, key); present {
+			return value, true, valid
+		}
+	}
+	return 0, false, false
+}
+
+func stringRequestValue(body map[string]any, key string) string {
+	if value, ok := body[key].(string); ok {
+		return value
+	}
+	if metadata, ok := body["metadata"].(map[string]any); ok {
+		value, _ := metadata[key].(string)
+		return value
+	}
+	return ""
+}
+
+func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInfo) map[string]float64 {
+	body := requestBodyValues(c)
+	ratios := make(map[string]float64)
+	if _, billedPerSecond := perSecondBillingModels[info.UpstreamModelName]; billedPerSecond {
+		if seconds, present, valid := firstIntegerRequestValue(body, "duration", "seconds"); present && valid && seconds > 1 {
+			ratios["seconds"] = float64(seconds)
+		}
+	}
+	if _, billedPerImage := perImageBillingModels[info.UpstreamModelName]; billedPerImage {
+		if n, present, valid := integerRequestValue(body, "n"); present && valid && n > 1 {
+			ratios["images"] = float64(n)
+		}
+	}
+	if info.UpstreamModelName == "ai-essay-writer" {
+		length := stringRequestValue(body, "length")
+		words := map[string]float64{"short": 500, "medium": 1000, "long": 1500}[strings.ToLower(strings.TrimSpace(length))]
+		if words == 0 {
+			words = 1000
+		}
+		ratios["words"] = words
+	}
+	if info.UpstreamModelName == "ai-text-detector" || info.UpstreamModelName == "humanize" {
+		text := stringRequestValue(body, "text")
+		if text == "" {
+			text = stringRequestValue(body, "input")
+		}
+		words := len(strings.Fields(text))
+		if words < 50 {
+			words = 50
+		}
+		ratios["words"] = float64(words)
+	}
+	if len(ratios) == 0 {
+		return nil
+	}
+	return ratios
 }
 
 func (a *TaskAdaptor) BuildRequestURL(info *relaycommon.RelayInfo) (string, error) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"strings"
@@ -19,12 +20,13 @@ import (
 )
 
 const (
-	defaultCatalogPath = "docs/catalog/reapi-model-catalog.json"
-	channelProvider    = "re"
-	chatChannelName    = "RE Chat"
-	taskChannelName    = "RE Async"
-	chatBaseURL        = "https://api.reapi.ai"
-	taskBaseURL        = "https://reapi.ai/api/v1"
+	defaultCatalogPath        = "docs/catalog/reapi-model-catalog.json"
+	defaultPricingCatalogPath = "docs/catalog/reapi-async-pricing.json"
+	channelProvider           = "re"
+	chatChannelName           = "RE Chat"
+	taskChannelName           = "RE Async"
+	chatBaseURL               = "https://api.reapi.ai"
+	taskBaseURL               = "https://reapi.ai/api/v1"
 )
 
 type catalog struct {
@@ -52,22 +54,76 @@ type catalogModel struct {
 	Status         string         `json:"status"`
 }
 
+type asyncPricingCatalog struct {
+	SchemaVersion int                          `json:"schema_version"`
+	Currency      string                       `json:"currency"`
+	Integrity     asyncPricingCatalogIntegrity `json:"integrity"`
+	Models        []asyncPricingModel          `json:"models"`
+}
+
+type asyncPricingCatalogIntegrity struct {
+	AsyncModelCount       int `json:"async_model_count"`
+	PricedModelCount      int `json:"priced_model_count"`
+	PublishableModelCount int `json:"publishable_model_count"`
+	ComingSoonModelCount  int `json:"coming_soon_model_count"`
+	ExcludedChatCount     int `json:"excluded_chat_model_count"`
+}
+
+type asyncPricingModel struct {
+	ModelName     string  `json:"model_name"`
+	UpstreamModel string  `json:"upstream_model_id"`
+	ModelType     string  `json:"model_type"`
+	Publishable   bool    `json:"publishable"`
+	ComingSoon    bool    `json:"coming_soon"`
+	PricingBasis  string  `json:"pricing_basis"`
+	BasePriceUSD  float64 `json:"base_price_usd"`
+	MinPriceUSD   float64 `json:"min_price_usd"`
+	MaxPriceUSD   float64 `json:"max_price_usd"`
+	Unit          string  `json:"unit"`
+	SourceURL     string  `json:"source_url"`
+}
+
+var deferredBillingModels = map[string]struct{}{
+	"re/audio-multistem":       {},
+	"re/audio-music-extractor": {},
+	"re/audio-stem-separator":  {},
+	"re/audio-voice-change":    {},
+	"re/audio-voice-clean":     {},
+	"re/enhance-video-1.0":     {},
+	"re/topaz-video-upscaler":  {},
+}
+
 func main() {
 	catalogPath := flag.String("catalog", defaultCatalogPath, "RE catalog JSON path")
+	pricingCatalogPath := flag.String("pricing-catalog", defaultPricingCatalogPath, "RE async pricing catalog JSON path")
 	dryRun := flag.Bool("dry-run", false, "validate the catalog and required secrets without writing to the database")
+	publishAsync := flag.Bool("publish-async", false, "price and enable all currently publishable RE async models; chat remains disabled")
 	flag.Parse()
 
 	catalog, err := loadCatalog(*catalogPath)
 	if err != nil {
 		fatal(err)
 	}
+	pricing, err := loadAsyncPricingCatalog(*pricingCatalogPath, catalog)
+	if err != nil {
+		fatal(err)
+	}
+	publishReadyCount := 0
+	for _, item := range pricing.Models {
+		if asyncModelPublishReady(item) {
+			publishReadyCount++
+		}
+	}
 	if *dryRun {
-		fmt.Printf("RE catalog is valid: %d models (%d chat, %d async); no database changes made\n", len(catalog.Models), catalog.Integrity.ChatModelCount, catalog.Integrity.AsyncModelCount)
+		fmt.Printf("RE catalogs are valid: %d models (%d chat, %d async), %d upstream-publishable, %d CarLab-ready, %d deferred for billing; no database changes made\n", len(catalog.Models), catalog.Integrity.ChatModelCount, catalog.Integrity.AsyncModelCount, pricing.Integrity.PublishableModelCount, publishReadyCount, len(deferredBillingModels))
 		return
 	}
 	chatKey, taskKey, err := configuredKeys()
 	if err != nil {
 		fatal(err)
+	}
+	if *publishAsync && taskKey == "" {
+		fatal(errors.New("--publish-async requires REAPI_TASK_API_KEY; no database changes were made"))
 	}
 
 	common.InitEnv()
@@ -79,31 +135,54 @@ func main() {
 		fatal(fmt.Errorf("initialize log database: %w", err))
 	}
 	defer func() { _ = model.CloseDB() }()
+	model.InitOptionMap()
 
 	vendorIDs, err := ensureVendors(catalog.Models)
 	if err != nil {
 		fatal(err)
 	}
-	chatModels, taskModels, err := upsertModels(catalog.Models, vendorIDs)
+	pricingByModel := make(map[string]asyncPricingModel, len(pricing.Models))
+	for _, item := range pricing.Models {
+		pricingByModel[item.ModelName] = item
+	}
+	if *publishAsync {
+		if err := disableExistingREChannels(); err != nil {
+			fatal(err)
+		}
+		if err := publishAsyncPrices(pricingByModel); err != nil {
+			fatal(err)
+		}
+	}
+	chatModels, taskModels, err := upsertModels(catalog.Models, vendorIDs, pricingByModel, *publishAsync)
 	if err != nil {
 		fatal(err)
 	}
 	initializedChannels := make([]string, 0, 2)
-	if chatKey != "" {
-		if err := upsertChannel(chatChannelName, constant.ChannelTypeOpenAI, chatBaseURL, chatKey, chatModels); err != nil {
+	if chatKey != "" && !*publishAsync {
+		if err := upsertChannel(chatChannelName, constant.ChannelTypeOpenAI, chatBaseURL, chatKey, chatModels, common.ChannelStatusManuallyDisabled, true); err != nil {
 			fatal(err)
 		}
 		initializedChannels = append(initializedChannels, chatChannelName)
 	}
 	if taskKey != "" {
-		if err := upsertChannel(taskChannelName, constant.ChannelTypeReAPI, taskBaseURL, taskKey, taskModels); err != nil {
+		status := common.ChannelStatusManuallyDisabled
+		preserveExistingStatus := true
+		if *publishAsync {
+			status = common.ChannelStatusEnabled
+			preserveExistingStatus = false
+		}
+		if err := upsertChannel(taskChannelName, constant.ChannelTypeReAPI, taskBaseURL, taskKey, taskModels, status, preserveExistingStatus); err != nil {
 			fatal(err)
 		}
 		initializedChannels = append(initializedChannels, taskChannelName)
 	}
 	model.RefreshPricing()
 
-	fmt.Printf("RE onboarding complete: %d catalog models, %d chat mappings, %d async mappings; initialized %s as manually disabled\n", len(catalog.Models), len(chatModels), len(taskModels), strings.Join(initializedChannels, ", "))
+	if *publishAsync {
+		fmt.Printf("RE async publishing complete: %d models priced and enabled, %d billing-deferred and %d upstream-unavailable models kept disabled; chat disabled\n", len(taskModels), len(deferredBillingModels), pricing.Integrity.ComingSoonModelCount)
+		return
+	}
+	fmt.Printf("RE onboarding complete: %d catalog models, %d chat mappings, %d publishable async mappings; initialized or refreshed %s without enabling new channels\n", len(catalog.Models), len(chatModels), len(taskModels), strings.Join(initializedChannels, ", "))
 }
 
 func loadCatalog(path string) (catalog, error) {
@@ -181,6 +260,80 @@ func validateCatalog(catalog catalog) error {
 	return nil
 }
 
+func loadAsyncPricingCatalog(path string, models catalog) (asyncPricingCatalog, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return asyncPricingCatalog{}, fmt.Errorf("read RE async pricing catalog: %w", err)
+	}
+	var loaded asyncPricingCatalog
+	if err := common.Unmarshal(data, &loaded); err != nil {
+		return asyncPricingCatalog{}, fmt.Errorf("decode RE async pricing catalog: %w", err)
+	}
+	if err := validateAsyncPricingCatalog(loaded, models); err != nil {
+		return asyncPricingCatalog{}, err
+	}
+	return loaded, nil
+}
+
+func validateAsyncPricingCatalog(pricing asyncPricingCatalog, models catalog) error {
+	asyncModels := make(map[string]catalogModel, models.Integrity.AsyncModelCount)
+	for _, item := range models.Models {
+		if item.Protocol == "re-task" {
+			asyncModels[item.ModelName] = item
+		}
+	}
+	if pricing.SchemaVersion <= 0 || pricing.Currency != "USD" {
+		return errors.New("RE async pricing catalog must declare a schema version and USD currency")
+	}
+	if len(pricing.Models) != len(asyncModels) || pricing.Integrity.AsyncModelCount != len(asyncModels) {
+		return fmt.Errorf("RE async pricing catalog must contain %d models, got %d", len(asyncModels), len(pricing.Models))
+	}
+	seen := make(map[string]struct{}, len(pricing.Models))
+	publishableCount := 0
+	comingSoonCount := 0
+	for _, item := range pricing.Models {
+		catalogItem, exists := asyncModels[item.ModelName]
+		if !exists {
+			return fmt.Errorf("RE async pricing contains unknown or chat model %q", item.ModelName)
+		}
+		if _, exists := seen[item.ModelName]; exists {
+			return fmt.Errorf("RE async pricing contains duplicate model %q", item.ModelName)
+		}
+		seen[item.ModelName] = struct{}{}
+		if item.ModelName != "re/"+item.UpstreamModel || item.UpstreamModel != catalogItem.UpstreamModel || item.ModelType != catalogItem.ModelType {
+			return fmt.Errorf("RE async pricing identity does not match model catalog for %q", item.ModelName)
+		}
+		if item.PricingBasis == "" || item.Unit == "" || item.SourceURL == "" {
+			return fmt.Errorf("RE async pricing evidence is incomplete for %q", item.ModelName)
+		}
+		if item.BasePriceUSD <= 0 || item.MinPriceUSD <= 0 || item.MaxPriceUSD <= 0 ||
+			math.IsNaN(item.BasePriceUSD) || math.IsInf(item.BasePriceUSD, 0) || item.MinPriceUSD > item.MaxPriceUSD || item.BasePriceUSD != item.MaxPriceUSD {
+			return fmt.Errorf("RE async pricing for %q must use its finite, non-zero maximum price as the base price", item.ModelName)
+		}
+		if item.Publishable == item.ComingSoon {
+			return fmt.Errorf("RE async pricing for %q must be either publishable or coming soon", item.ModelName)
+		}
+		if item.Publishable {
+			publishableCount++
+		} else {
+			comingSoonCount++
+		}
+	}
+	if publishableCount != pricing.Integrity.PublishableModelCount || comingSoonCount != pricing.Integrity.ComingSoonModelCount ||
+		pricing.Integrity.PricedModelCount != len(pricing.Models) || pricing.Integrity.ExcludedChatCount != models.Integrity.ChatModelCount {
+		return errors.New("RE async pricing integrity counts do not match its model entries")
+	}
+	return nil
+}
+
+func asyncModelPublishReady(item asyncPricingModel) bool {
+	if !item.Publishable {
+		return false
+	}
+	_, deferred := deferredBillingModels[item.ModelName]
+	return !deferred
+}
+
 func configuredKeys() (string, string, error) {
 	chatKey := strings.TrimSpace(os.Getenv("REAPI_CHAT_API_KEY"))
 	taskKey := strings.TrimSpace(os.Getenv("REAPI_TASK_API_KEY"))
@@ -211,7 +364,7 @@ func ensureVendors(items []catalogModel) (map[string]int, error) {
 	return vendorIDs, nil
 }
 
-func upsertModels(items []catalogModel, vendorIDs map[string]int) ([]string, []string, error) {
+func upsertModels(items []catalogModel, vendorIDs map[string]int, pricing map[string]asyncPricingModel, publishAsync bool) ([]string, []string, error) {
 	chatModels := make([]string, 0, 8)
 	taskModels := make([]string, 0, 96)
 	for _, item := range items {
@@ -223,16 +376,37 @@ func upsertModels(items []catalogModel, vendorIDs map[string]int) ([]string, []s
 		if err != nil {
 			return nil, nil, fmt.Errorf("encode source metadata for %q: %w", item.ModelName, err)
 		}
+		status := 0
+		tags := "re,disabled_pending_pricing," + item.Protocol
+		if item.Protocol == "re-task" {
+			price := pricing[item.ModelName]
+			if asyncModelPublishReady(price) {
+				taskModels = append(taskModels, item.ModelName)
+				if publishAsync {
+					status = 1
+					tags = "re,re-task"
+				}
+			} else if price.ComingSoon {
+				tags = "re,coming_soon,re-task"
+			} else {
+				tags = "re,deferred_billing,re-task"
+			}
+		} else {
+			chatModels = append(chatModels, item.ModelName)
+			if publishAsync {
+				tags = "re,disabled_not_requested,chat-completions"
+			}
+		}
 		metadata := model.Model{
 			ModelName:        item.ModelName,
 			DisplayName:      item.DisplayName,
 			ModelType:        item.ModelType,
 			SourceURL:        item.SourceURL,
 			SourceMetadata:   string(sourceMetadata),
-			Tags:             "re,disabled_pending_pricing," + item.Protocol,
+			Tags:             tags,
 			VendorID:         vendorIDs[item.Vendor],
 			Endpoints:        endpoints,
-			Status:           0,
+			Status:           status,
 			SyncOfficial:     0,
 			ChannelProviders: []string{channelProvider},
 			NameRule:         model.NameRuleExact,
@@ -247,19 +421,62 @@ func upsertModels(items []catalogModel, vendorIDs map[string]int) ([]string, []s
 			return nil, nil, fmt.Errorf("load model %q: %w", item.ModelName, err)
 		} else {
 			metadata.Id = existing.Id
+			if !publishAsync {
+				metadata.Status = existing.Status
+				metadata.Tags = existing.Tags
+			}
 			if err := metadata.Update(); err != nil {
 				return nil, nil, fmt.Errorf("update model %q: %w", item.ModelName, err)
 			}
-		}
-		if item.Protocol == "chat-completions" {
-			chatModels = append(chatModels, item.ModelName)
-		} else {
-			taskModels = append(taskModels, item.ModelName)
 		}
 	}
 	sort.Strings(chatModels)
 	sort.Strings(taskModels)
 	return chatModels, taskModels, nil
+}
+
+func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
+	modelPrices := ratio_setting.GetModelPriceCopy()
+	for modelName, item := range pricing {
+		if asyncModelPublishReady(item) {
+			modelPrices[modelName] = item.BasePriceUSD
+		}
+	}
+	encoded, err := common.Marshal(modelPrices)
+	if err != nil {
+		return fmt.Errorf("encode ModelPrice with RE async pricing: %w", err)
+	}
+	if err := model.UpdateOptionsBulk(map[string]string{"ModelPrice": string(encoded)}); err != nil {
+		return fmt.Errorf("persist RE async pricing: %w", err)
+	}
+	for modelName, item := range pricing {
+		if !asyncModelPublishReady(item) {
+			continue
+		}
+		price, ok := ratio_setting.GetModelPrice(modelName, false)
+		if !ok || price != item.BasePriceUSD {
+			return fmt.Errorf("verify persisted RE async price for %q", modelName)
+		}
+	}
+	return nil
+}
+
+func disableExistingREChannels() error {
+	return model.DB.Transaction(func(tx *gorm.DB) error {
+		var channels []model.Channel
+		if err := tx.Where("name IN ? AND channel_provider = ?", []string{chatChannelName, taskChannelName}, channelProvider).Find(&channels).Error; err != nil {
+			return fmt.Errorf("load existing RE channels before publishing: %w", err)
+		}
+		for _, channel := range channels {
+			if err := tx.Model(&model.Channel{}).Where("id = ?", channel.Id).Update("status", common.ChannelStatusManuallyDisabled).Error; err != nil {
+				return fmt.Errorf("disable channel %q before publishing: %w", channel.Name, err)
+			}
+			if err := tx.Model(&model.Ability{}).Where("channel_id = ?", channel.Id).Update("enabled", false).Error; err != nil {
+				return fmt.Errorf("disable abilities for channel %q before publishing: %w", channel.Name, err)
+			}
+		}
+		return nil
+	})
 }
 
 func endpointsFor(item catalogModel) (string, error) {
@@ -273,7 +490,7 @@ func endpointsFor(item catalogModel) (string, error) {
 	return string(endpoints), err
 }
 
-func upsertChannel(name string, channelType int, baseURL string, key string, modelNames []string) error {
+func upsertChannel(name string, channelType int, baseURL string, key string, modelNames []string, status int, preserveExistingStatus bool) error {
 	mapping := make(map[string]string, len(modelNames))
 	for _, modelName := range modelNames {
 		mapping[modelName] = strings.TrimPrefix(modelName, "re/")
@@ -287,7 +504,7 @@ func upsertChannel(name string, channelType int, baseURL string, key string, mod
 	channel := model.Channel{
 		Type:            channelType,
 		Key:             key,
-		Status:          common.ChannelStatusManuallyDisabled,
+		Status:          status,
 		Name:            name,
 		ChannelProvider: channelProvider,
 		BaseURL:         &baseURLCopy,
@@ -307,6 +524,11 @@ func upsertChannel(name string, channelType int, baseURL string, key string, mod
 		return fmt.Errorf("load channel %q: %w", name, err)
 	}
 	channel.Id = existing.Id
+	if preserveExistingStatus {
+		channel.Status = existing.Status
+		channel.Models = existing.Models
+		channel.ModelMapping = existing.ModelMapping
+	}
 	if err := channel.Update(); err != nil {
 		return fmt.Errorf("update channel %q: %w", name, err)
 	}

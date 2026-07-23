@@ -1,0 +1,3686 @@
+{
+  "schema_version": 1,
+  "retrieved_at": "2026-07-23T21:07:00+08:00",
+  "currency": "USD",
+  "source": {
+    "models_url": "https://reapi.ai/models",
+    "pricing_snapshot_version": 1784623693334,
+    "pricing_snapshot_sha256": "2ecde5f1777b9380b7f4915b16341ba520c39b2cba902ed022d42df8911e1e33"
+  },
+  "integrity": {
+    "async_model_count": 96,
+    "priced_model_count": 96,
+    "snapshot_priced_model_count": 95,
+    "publishable_model_count": 95,
+    "coming_soon_model_count": 1,
+    "excluded_chat_model_count": 8,
+    "snapshot_sku_count": 476,
+    "matched_sku_count": 386
+  },
+  "models": [
+    {
+      "model_name": "re/ai-essay-writer",
+      "upstream_model_id": "ai-essay-writer",
+      "model_type": "text",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.000894,
+      "min_price_usd": 0.000894,
+      "max_price_usd": 0.000894,
+      "unit": "per essay",
+      "sku_prefix": "ai-essay-writer",
+      "skus": [
+        {
+          "key": "ai-essay-writer:flat",
+          "price_usd": 0.000894
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.447,
+        "max_price_usd": 1.341,
+        "unit": "per essay"
+      },
+      "source_url": "https://reapi.ai/models/ai-essay-writer",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/ai-text-detector",
+      "upstream_model_id": "ai-text-detector",
+      "model_type": "text",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.000089,
+      "min_price_usd": 0.000089,
+      "max_price_usd": 0.000089,
+      "unit": "per 1,000 words",
+      "sku_prefix": "ai-text-detector",
+      "skus": [
+        {
+          "key": "ai-text-detector:flat",
+          "price_usd": 0.000089
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.089,
+        "max_price_usd": 0.089,
+        "unit": "per 1,000 words"
+      },
+      "source_url": "https://reapi.ai/models/ai-text-detector",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/audio-multistem",
+      "upstream_model_id": "audio-multistem",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.2,
+      "min_price_usd": 0.2,
+      "max_price_usd": 0.2,
+      "unit": "per selected stem minute",
+      "sku_prefix": "audio-multistem",
+      "skus": [
+        {
+          "key": "audio-multistem:flat",
+          "price_usd": 0.2
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.2,
+        "max_price_usd": 0.2,
+        "unit": "per selected stem minute"
+      },
+      "source_url": "https://reapi.ai/models/multistem-splitter",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/audio-music-extractor",
+      "upstream_model_id": "audio-music-extractor",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.2,
+      "min_price_usd": 0.2,
+      "max_price_usd": 0.2,
+      "unit": "per started minute",
+      "sku_prefix": "audio-music-extractor",
+      "skus": [
+        {
+          "key": "audio-music-extractor:flat",
+          "price_usd": 0.2
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.2,
+        "max_price_usd": 0.2,
+        "unit": "per started minute"
+      },
+      "source_url": "https://reapi.ai/models/music-extractor",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/audio-stem-separator",
+      "upstream_model_id": "audio-stem-separator",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.2,
+      "min_price_usd": 0.2,
+      "max_price_usd": 0.2,
+      "unit": "per started minute",
+      "sku_prefix": "audio-stem-separator",
+      "skus": [
+        {
+          "key": "audio-stem-separator:flat",
+          "price_usd": 0.2
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.2,
+        "max_price_usd": 0.2,
+        "unit": "per started minute"
+      },
+      "source_url": "https://reapi.ai/models/vocal-remover",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/audio-voice-change",
+      "upstream_model_id": "audio-voice-change",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.2,
+      "min_price_usd": 0.2,
+      "max_price_usd": 0.2,
+      "unit": "per started minute",
+      "sku_prefix": "audio-voice-change",
+      "skus": [
+        {
+          "key": "audio-voice-change:flat",
+          "price_usd": 0.2
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.2,
+        "max_price_usd": 0.2,
+        "unit": "per started minute"
+      },
+      "source_url": "https://reapi.ai/models/voice-changer",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/audio-voice-clean",
+      "upstream_model_id": "audio-voice-clean",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.2,
+      "min_price_usd": 0.2,
+      "max_price_usd": 0.2,
+      "unit": "per started minute",
+      "sku_prefix": "audio-voice-clean",
+      "skus": [
+        {
+          "key": "audio-voice-clean:flat",
+          "price_usd": 0.2
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.2,
+        "max_price_usd": 0.2,
+        "unit": "per started minute"
+      },
+      "source_url": "https://reapi.ai/models/voice-cleaner",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0",
+      "upstream_model_id": "doubao-seedance-2.0",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.817559,
+      "min_price_usd": 0.0484,
+      "max_price_usd": 0.817559,
+      "unit": "per second",
+      "sku_prefix": "doubao-seedance-2.0",
+      "skus": [
+        {
+          "key": "doubao-seedance-2.0:1080p:ref",
+          "price_usd": 0.23496
+        },
+        {
+          "key": "doubao-seedance-2.0:1080p:text",
+          "price_usd": 0.3872
+        },
+        {
+          "key": "doubao-seedance-2.0:480p:ref",
+          "price_usd": 0.0484
+        },
+        {
+          "key": "doubao-seedance-2.0:480p:text",
+          "price_usd": 0.079816
+        },
+        {
+          "key": "doubao-seedance-2.0:4k:ref",
+          "price_usd": 0.503112
+        },
+        {
+          "key": "doubao-seedance-2.0:4k:text",
+          "price_usd": 0.817559
+        },
+        {
+          "key": "doubao-seedance-2.0:720p:ref",
+          "price_usd": 0.10384
+        },
+        {
+          "key": "doubao-seedance-2.0:720p:text",
+          "price_usd": 0.171776
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-face",
+      "upstream_model_id": "doubao-seedance-2.0-face",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.817559,
+      "min_price_usd": 0.066,
+      "max_price_usd": 0.817559,
+      "unit": "per second",
+      "sku_prefix": "doubao-seedance-2.0-face",
+      "skus": [
+        {
+          "key": "doubao-seedance-2.0-face:1080p:ref",
+          "price_usd": 0.33
+        },
+        {
+          "key": "doubao-seedance-2.0-face:1080p:text",
+          "price_usd": 0.55
+        },
+        {
+          "key": "doubao-seedance-2.0-face:480p:ref",
+          "price_usd": 0.066
+        },
+        {
+          "key": "doubao-seedance-2.0-face:480p:text",
+          "price_usd": 0.10912
+        },
+        {
+          "key": "doubao-seedance-2.0-face:4k:ref",
+          "price_usd": 0.503112
+        },
+        {
+          "key": "doubao-seedance-2.0-face:4k:text",
+          "price_usd": 0.817559
+        },
+        {
+          "key": "doubao-seedance-2.0-face:720p:ref",
+          "price_usd": 0.14168
+        },
+        {
+          "key": "doubao-seedance-2.0-face:720p:text",
+          "price_usd": 0.23496
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-fast",
+      "upstream_model_id": "doubao-seedance-2.0-fast",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.13816,
+      "min_price_usd": 0.03828,
+      "max_price_usd": 0.13816,
+      "unit": "per second",
+      "sku_prefix": "doubao-seedance-2.0-fast",
+      "skus": [
+        {
+          "key": "doubao-seedance-2.0-fast:480p:ref",
+          "price_usd": 0.03828
+        },
+        {
+          "key": "doubao-seedance-2.0-fast:480p:text",
+          "price_usd": 0.06424
+        },
+        {
+          "key": "doubao-seedance-2.0-fast:720p:ref",
+          "price_usd": 0.08272
+        },
+        {
+          "key": "doubao-seedance-2.0-fast:720p:text",
+          "price_usd": 0.13816
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-fast-face",
+      "upstream_model_id": "doubao-seedance-2.0-fast-face",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.1892,
+      "min_price_usd": 0.0528,
+      "max_price_usd": 0.1892,
+      "unit": "per second",
+      "sku_prefix": "doubao-seedance-2.0-fast-face",
+      "skus": [
+        {
+          "key": "doubao-seedance-2.0-fast-face:480p:ref",
+          "price_usd": 0.0528
+        },
+        {
+          "key": "doubao-seedance-2.0-fast-face:480p:text",
+          "price_usd": 0.088
+        },
+        {
+          "key": "doubao-seedance-2.0-fast-face:720p:ref",
+          "price_usd": 0.11352
+        },
+        {
+          "key": "doubao-seedance-2.0-fast-face:720p:text",
+          "price_usd": 0.1892
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-fast-official",
+      "upstream_model_id": "doubao-seedance-2.0-fast-official",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.141176,
+      "min_price_usd": 0.039034,
+      "max_price_usd": 0.141176,
+      "unit": "per second",
+      "sku_prefix": "doubao-seedance-2.0-fast-official",
+      "skus": [
+        {
+          "key": "doubao-seedance-2.0-fast-official:480p:ref",
+          "price_usd": 0.039034
+        },
+        {
+          "key": "doubao-seedance-2.0-fast-official:480p:text",
+          "price_usd": 0.065647
+        },
+        {
+          "key": "doubao-seedance-2.0-fast-official:720p:ref",
+          "price_usd": 0.083942
+        },
+        {
+          "key": "doubao-seedance-2.0-fast-official:720p:text",
+          "price_usd": 0.141176
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedance-2.0-official",
+      "upstream_model_id": "doubao-seedance-2.0-official",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.85472,
+      "min_price_usd": 0.048209,
+      "max_price_usd": 0.85472,
+      "unit": "per second",
+      "sku_prefix": "doubao-seedance-2.0-official",
+      "skus": [
+        {
+          "key": "doubao-seedance-2.0-official:1080p:ref",
+          "price_usd": 0.258211
+        },
+        {
+          "key": "doubao-seedance-2.0-official:1080p:text",
+          "price_usd": 0.4248
+        },
+        {
+          "key": "doubao-seedance-2.0-official:480p:ref",
+          "price_usd": 0.048209
+        },
+        {
+          "key": "doubao-seedance-2.0-official:480p:text",
+          "price_usd": 0.0792
+        },
+        {
+          "key": "doubao-seedance-2.0-official:4k:ref",
+          "price_usd": 0.525981
+        },
+        {
+          "key": "doubao-seedance-2.0-official:4k:text",
+          "price_usd": 0.85472
+        },
+        {
+          "key": "doubao-seedance-2.0-official:720p:ref",
+          "price_usd": 0.103722
+        },
+        {
+          "key": "doubao-seedance-2.0-official:720p:text",
+          "price_usd": 0.1704
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedream-5-0-lite",
+      "upstream_model_id": "doubao-seedream-5-0-lite",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.0308,
+      "min_price_usd": 0.0308,
+      "max_price_usd": 0.0308,
+      "unit": "per image",
+      "sku_prefix": "doubao-seedream-5-0-lite",
+      "skus": [
+        {
+          "key": "doubao-seedream-5-0-lite:2k",
+          "price_usd": 0.0308
+        },
+        {
+          "key": "doubao-seedream-5-0-lite:3k",
+          "price_usd": 0.0308
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0308,
+        "max_price_usd": 0.0308,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/seedream-5-0-lite",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/doubao-seedream-5-0-pro",
+      "upstream_model_id": "doubao-seedream-5-0-pro",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.114706,
+      "min_price_usd": 0.031324,
+      "max_price_usd": 0.114706,
+      "unit": "per image",
+      "sku_prefix": "doubao-seedream-5-0-pro",
+      "skus": [
+        {
+          "key": "doubao-seedream-5-0-pro:1k",
+          "price_usd": 0.031324
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw",
+          "price_usd": 0.044118
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs10",
+          "price_usd": 0.070588
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs2",
+          "price_usd": 0.047059
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs3",
+          "price_usd": 0.05
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs4",
+          "price_usd": 0.052941
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs5",
+          "price_usd": 0.055882
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs6",
+          "price_usd": 0.058824
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs7",
+          "price_usd": 0.061765
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs8",
+          "price_usd": 0.064706
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_nsfw_refs9",
+          "price_usd": 0.067647
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs10",
+          "price_usd": 0.050118
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs2",
+          "price_usd": 0.033412
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs3",
+          "price_usd": 0.0355
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs4",
+          "price_usd": 0.037588
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs5",
+          "price_usd": 0.039676
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs6",
+          "price_usd": 0.041765
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs7",
+          "price_usd": 0.043853
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs8",
+          "price_usd": 0.045941
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:1k_refs9",
+          "price_usd": 0.048029
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k",
+          "price_usd": 0.062647
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw",
+          "price_usd": 0.088235
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs10",
+          "price_usd": 0.114706
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs2",
+          "price_usd": 0.091176
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs3",
+          "price_usd": 0.094118
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs4",
+          "price_usd": 0.097059
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs5",
+          "price_usd": 0.1
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs6",
+          "price_usd": 0.102941
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs7",
+          "price_usd": 0.105882
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs8",
+          "price_usd": 0.108824
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_nsfw_refs9",
+          "price_usd": 0.111765
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs10",
+          "price_usd": 0.081441
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs2",
+          "price_usd": 0.064735
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs3",
+          "price_usd": 0.066824
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs4",
+          "price_usd": 0.068912
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs5",
+          "price_usd": 0.071
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs6",
+          "price_usd": 0.073088
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs7",
+          "price_usd": 0.075176
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs8",
+          "price_usd": 0.077265
+        },
+        {
+          "key": "doubao-seedream-5-0-pro:2k_refs9",
+          "price_usd": 0.079353
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.031324,
+        "max_price_usd": 0.088235,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/seedream-5-0-pro",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/enhance-video-1.0",
+      "upstream_model_id": "enhance-video-1.0",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.328571,
+      "min_price_usd": 0.002055,
+      "max_price_usd": 0.328571,
+      "unit": "per second",
+      "sku_prefix": "enhance-video-1.0",
+      "skus": [
+        {
+          "key": "enhance-video-1.0:professional:1080p:gt30",
+          "price_usd": 0.082143
+        },
+        {
+          "key": "enhance-video-1.0:professional:1080p:le30",
+          "price_usd": 0.041071
+        },
+        {
+          "key": "enhance-video-1.0:professional:2k:gt30",
+          "price_usd": 0.164286
+        },
+        {
+          "key": "enhance-video-1.0:professional:2k:le30",
+          "price_usd": 0.082143
+        },
+        {
+          "key": "enhance-video-1.0:professional:4k:gt30",
+          "price_usd": 0.328571
+        },
+        {
+          "key": "enhance-video-1.0:professional:4k:le30",
+          "price_usd": 0.164286
+        },
+        {
+          "key": "enhance-video-1.0:professional:720p:gt30",
+          "price_usd": 0.041071
+        },
+        {
+          "key": "enhance-video-1.0:professional:720p:le30",
+          "price_usd": 0.020536
+        },
+        {
+          "key": "enhance-video-1.0:standard:1080p:gt30",
+          "price_usd": 0.008214
+        },
+        {
+          "key": "enhance-video-1.0:standard:1080p:le30",
+          "price_usd": 0.004107
+        },
+        {
+          "key": "enhance-video-1.0:standard:2k:gt30",
+          "price_usd": 0.016429
+        },
+        {
+          "key": "enhance-video-1.0:standard:2k:le30",
+          "price_usd": 0.008214
+        },
+        {
+          "key": "enhance-video-1.0:standard:4k:gt30",
+          "price_usd": 0.032857
+        },
+        {
+          "key": "enhance-video-1.0:standard:4k:le30",
+          "price_usd": 0.016429
+        },
+        {
+          "key": "enhance-video-1.0:standard:720p:gt30",
+          "price_usd": 0.004107
+        },
+        {
+          "key": "enhance-video-1.0:standard:720p:le30",
+          "price_usd": 0.002055
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.002055,
+        "max_price_usd": 0.164286,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/enhance-video-1-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/flux-2",
+      "upstream_model_id": "flux-2",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.0385,
+      "min_price_usd": 0.0275,
+      "max_price_usd": 0.0385,
+      "unit": "per image",
+      "sku_prefix": "flux-2",
+      "skus": [
+        {
+          "key": "flux-2:1K",
+          "price_usd": 0.0275
+        },
+        {
+          "key": "flux-2:2K",
+          "price_usd": 0.0385
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0275,
+        "max_price_usd": 0.132,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/flux-2",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/flux-2-flex",
+      "upstream_model_id": "flux-2-flex",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.132,
+      "min_price_usd": 0.077,
+      "max_price_usd": 0.132,
+      "unit": "per image",
+      "sku_prefix": "flux-2-flex",
+      "skus": [
+        {
+          "key": "flux-2-flex:1K",
+          "price_usd": 0.077
+        },
+        {
+          "key": "flux-2-flex:2K",
+          "price_usd": 0.132
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0275,
+        "max_price_usd": 0.132,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/flux-2",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-2.5-flash-image-preview",
+      "upstream_model_id": "gemini-2.5-flash-image-preview",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.014375,
+      "min_price_usd": 0.014375,
+      "max_price_usd": 0.014375,
+      "unit": "per image",
+      "sku_prefix": "gemini-2.5-flash-image-preview",
+      "skus": [
+        {
+          "key": "gemini-2.5-flash-image-preview:flat",
+          "price_usd": 0.014375
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.014375,
+        "max_price_usd": 0.03588,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gemini-2-5-flash-image-preview",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-2.5-flash-image-preview-official",
+      "upstream_model_id": "gemini-2.5-flash-image-preview-official",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.03588,
+      "min_price_usd": 0.03588,
+      "max_price_usd": 0.03588,
+      "unit": "per image",
+      "sku_prefix": "gemini-2.5-flash-image-preview-official",
+      "skus": [
+        {
+          "key": "gemini-2.5-flash-image-preview-official:flat",
+          "price_usd": 0.03588
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.014375,
+        "max_price_usd": 0.03588,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gemini-2-5-flash-image-preview",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-3-pro-image-preview",
+      "upstream_model_id": "gemini-3-pro-image-preview",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.045,
+      "min_price_usd": 0.0414,
+      "max_price_usd": 0.045,
+      "unit": "per image",
+      "sku_prefix": "gemini-3-pro-image-preview",
+      "skus": [
+        {
+          "key": "gemini-3-pro-image-preview:1k",
+          "price_usd": 0.0414
+        },
+        {
+          "key": "gemini-3-pro-image-preview:2k",
+          "price_usd": 0.0414
+        },
+        {
+          "key": "gemini-3-pro-image-preview:4k",
+          "price_usd": 0.045
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0414,
+        "max_price_usd": 0.2208,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gemini-3-pro-image-preview",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-3-pro-image-preview-official",
+      "upstream_model_id": "gemini-3-pro-image-preview-official",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.2208,
+      "min_price_usd": 0.12328,
+      "max_price_usd": 0.2208,
+      "unit": "per image",
+      "sku_prefix": "gemini-3-pro-image-preview-official",
+      "skus": [
+        {
+          "key": "gemini-3-pro-image-preview-official:1k",
+          "price_usd": 0.12328
+        },
+        {
+          "key": "gemini-3-pro-image-preview-official:2k",
+          "price_usd": 0.12328
+        },
+        {
+          "key": "gemini-3-pro-image-preview-official:4k",
+          "price_usd": 0.2208
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0414,
+        "max_price_usd": 0.2208,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gemini-3-pro-image-preview",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-3.1-flash-image-preview",
+      "upstream_model_id": "gemini-3.1-flash-image-preview",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.0711,
+      "min_price_usd": 0.0315,
+      "max_price_usd": 0.0711,
+      "unit": "per image",
+      "sku_prefix": "gemini-3.1-flash-image-preview",
+      "skus": [
+        {
+          "key": "gemini-3.1-flash-image-preview:0.5k",
+          "price_usd": 0.0315
+        },
+        {
+          "key": "gemini-3.1-flash-image-preview:1k",
+          "price_usd": 0.0315
+        },
+        {
+          "key": "gemini-3.1-flash-image-preview:2k",
+          "price_usd": 0.0477
+        },
+        {
+          "key": "gemini-3.1-flash-image-preview:4k",
+          "price_usd": 0.0711
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0315,
+        "max_price_usd": 0.13288,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gemini-3-1-flash-image-preview",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-3.1-flash-image-preview-official",
+      "upstream_model_id": "gemini-3.1-flash-image-preview-official",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.13288,
+      "min_price_usd": 0.05896,
+      "max_price_usd": 0.13288,
+      "unit": "per image",
+      "sku_prefix": "gemini-3.1-flash-image-preview-official",
+      "skus": [
+        {
+          "key": "gemini-3.1-flash-image-preview-official:0.5k",
+          "price_usd": 0.05896
+        },
+        {
+          "key": "gemini-3.1-flash-image-preview-official:1k",
+          "price_usd": 0.05896
+        },
+        {
+          "key": "gemini-3.1-flash-image-preview-official:2k",
+          "price_usd": 0.08888
+        },
+        {
+          "key": "gemini-3.1-flash-image-preview-official:4k",
+          "price_usd": 0.13288
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0315,
+        "max_price_usd": 0.13288,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gemini-3-1-flash-image-preview",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-omni",
+      "upstream_model_id": "gemini-omni",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 1.98,
+      "min_price_usd": 0.495,
+      "max_price_usd": 1.98,
+      "unit": "per generation",
+      "sku_prefix": "gemini-omni",
+      "skus": [
+        {
+          "key": "gemini-omni:gen:1080p:10",
+          "price_usd": 0.99
+        },
+        {
+          "key": "gemini-omni:gen:1080p:4",
+          "price_usd": 0.495
+        },
+        {
+          "key": "gemini-omni:gen:1080p:6",
+          "price_usd": 0.66
+        },
+        {
+          "key": "gemini-omni:gen:1080p:8",
+          "price_usd": 0.825
+        },
+        {
+          "key": "gemini-omni:gen:4k:10",
+          "price_usd": 1.65
+        },
+        {
+          "key": "gemini-omni:gen:4k:4",
+          "price_usd": 1.155
+        },
+        {
+          "key": "gemini-omni:gen:4k:6",
+          "price_usd": 1.32
+        },
+        {
+          "key": "gemini-omni:gen:4k:8",
+          "price_usd": 1.485
+        },
+        {
+          "key": "gemini-omni:gen:720p:10",
+          "price_usd": 0.99
+        },
+        {
+          "key": "gemini-omni:gen:720p:4",
+          "price_usd": 0.495
+        },
+        {
+          "key": "gemini-omni:gen:720p:6",
+          "price_usd": 0.66
+        },
+        {
+          "key": "gemini-omni:gen:720p:8",
+          "price_usd": 0.825
+        },
+        {
+          "key": "gemini-omni:ref:1080p",
+          "price_usd": 1.32
+        },
+        {
+          "key": "gemini-omni:ref:4k",
+          "price_usd": 1.98
+        },
+        {
+          "key": "gemini-omni:ref:720p",
+          "price_usd": 1.32
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.495,
+        "max_price_usd": 1.98,
+        "unit": "per generation"
+      },
+      "source_url": "https://reapi.ai/models/gemini-omni",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gemini-omni-beta",
+      "upstream_model_id": "gemini-omni-beta",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 1.98,
+      "min_price_usd": 0.495,
+      "max_price_usd": 1.98,
+      "unit": "per generation",
+      "sku_prefix": "gemini-omni-beta",
+      "skus": [
+        {
+          "key": "gemini-omni-beta:gen:1080p:10",
+          "price_usd": 0.99
+        },
+        {
+          "key": "gemini-omni-beta:gen:1080p:4",
+          "price_usd": 0.495
+        },
+        {
+          "key": "gemini-omni-beta:gen:1080p:6",
+          "price_usd": 0.66
+        },
+        {
+          "key": "gemini-omni-beta:gen:1080p:8",
+          "price_usd": 0.825
+        },
+        {
+          "key": "gemini-omni-beta:gen:4k:10",
+          "price_usd": 1.65
+        },
+        {
+          "key": "gemini-omni-beta:gen:4k:4",
+          "price_usd": 1.155
+        },
+        {
+          "key": "gemini-omni-beta:gen:4k:6",
+          "price_usd": 1.32
+        },
+        {
+          "key": "gemini-omni-beta:gen:4k:8",
+          "price_usd": 1.485
+        },
+        {
+          "key": "gemini-omni-beta:gen:720p:10",
+          "price_usd": 0.99
+        },
+        {
+          "key": "gemini-omni-beta:gen:720p:4",
+          "price_usd": 0.495
+        },
+        {
+          "key": "gemini-omni-beta:gen:720p:6",
+          "price_usd": 0.66
+        },
+        {
+          "key": "gemini-omni-beta:gen:720p:8",
+          "price_usd": 0.825
+        },
+        {
+          "key": "gemini-omni-beta:ref:1080p",
+          "price_usd": 1.32
+        },
+        {
+          "key": "gemini-omni-beta:ref:4k",
+          "price_usd": 1.98
+        },
+        {
+          "key": "gemini-omni-beta:ref:720p",
+          "price_usd": 1.32
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.495,
+        "max_price_usd": 1.98,
+        "unit": "per generation"
+      },
+      "source_url": "https://reapi.ai/models/gemini-omni",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gpt-image-2",
+      "upstream_model_id": "gpt-image-2",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.08,
+      "min_price_usd": 0.03,
+      "max_price_usd": 0.08,
+      "unit": "per image",
+      "sku_prefix": "gpt-image-2",
+      "skus": [
+        {
+          "key": "gpt-image-2:1k",
+          "price_usd": 0.03
+        },
+        {
+          "key": "gpt-image-2:2k",
+          "price_usd": 0.05
+        },
+        {
+          "key": "gpt-image-2:4k",
+          "price_usd": 0.08
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0048,
+        "max_price_usd": 1.3328,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gpt-image-2",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gpt-image-2-beta",
+      "upstream_model_id": "gpt-image-2-beta",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.08,
+      "min_price_usd": 0.03,
+      "max_price_usd": 0.08,
+      "unit": "per image",
+      "sku_prefix": "gpt-image-2-beta",
+      "skus": [
+        {
+          "key": "gpt-image-2-beta:1k",
+          "price_usd": 0.03
+        },
+        {
+          "key": "gpt-image-2-beta:2k",
+          "price_usd": 0.05
+        },
+        {
+          "key": "gpt-image-2-beta:4k",
+          "price_usd": 0.08
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0048,
+        "max_price_usd": 1.3328,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gpt-image-2",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/gpt-image-2-official",
+      "upstream_model_id": "gpt-image-2-official",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 1.3328,
+      "min_price_usd": 0.0036,
+      "max_price_usd": 1.3328,
+      "unit": "per image",
+      "sku_prefix": "gpt-image-2-official",
+      "skus": [
+        {
+          "key": "gpt-image-2-official:16:9@1k_high",
+          "price_usd": 0.2136
+        },
+        {
+          "key": "gpt-image-2-official:16:9@1k_low",
+          "price_usd": 0.00608
+        },
+        {
+          "key": "gpt-image-2-official:16:9@1k_medium",
+          "price_usd": 0.0536
+        },
+        {
+          "key": "gpt-image-2-official:16:9@2k_high",
+          "price_usd": 0.3792
+        },
+        {
+          "key": "gpt-image-2-official:16:9@2k_low",
+          "price_usd": 0.0108
+        },
+        {
+          "key": "gpt-image-2-official:16:9@2k_medium",
+          "price_usd": 0.0952
+        },
+        {
+          "key": "gpt-image-2-official:16:9@4k_high",
+          "price_usd": 1.3328
+        },
+        {
+          "key": "gpt-image-2-official:16:9@4k_low",
+          "price_usd": 0.03792
+        },
+        {
+          "key": "gpt-image-2-official:16:9@4k_medium",
+          "price_usd": 0.3344
+        },
+        {
+          "key": "gpt-image-2-official:1:1@1k_high",
+          "price_usd": 0.1688
+        },
+        {
+          "key": "gpt-image-2-official:1:1@1k_low",
+          "price_usd": 0.0048
+        },
+        {
+          "key": "gpt-image-2-official:1:1@1k_medium",
+          "price_usd": 0.0424
+        },
+        {
+          "key": "gpt-image-2-official:1:1@2k_high",
+          "price_usd": 0.6736
+        },
+        {
+          "key": "gpt-image-2-official:1:1@2k_low",
+          "price_usd": 0.01912
+        },
+        {
+          "key": "gpt-image-2-official:1:1@2k_medium",
+          "price_usd": 0.1688
+        },
+        {
+          "key": "gpt-image-2-official:1:2@1k_high",
+          "price_usd": 0.3376
+        },
+        {
+          "key": "gpt-image-2-official:1:2@1k_low",
+          "price_usd": 0.0096
+        },
+        {
+          "key": "gpt-image-2-official:1:2@1k_medium",
+          "price_usd": 0.0848
+        },
+        {
+          "key": "gpt-image-2-official:1:2@2k_high",
+          "price_usd": 0.58
+        },
+        {
+          "key": "gpt-image-2-official:1:2@2k_low",
+          "price_usd": 0.01648
+        },
+        {
+          "key": "gpt-image-2-official:1:2@2k_medium",
+          "price_usd": 0.1456
+        },
+        {
+          "key": "gpt-image-2-official:1:2@4k_high",
+          "price_usd": 1.1848
+        },
+        {
+          "key": "gpt-image-2-official:1:2@4k_low",
+          "price_usd": 0.03368
+        },
+        {
+          "key": "gpt-image-2-official:1:2@4k_medium",
+          "price_usd": 0.2976
+        },
+        {
+          "key": "gpt-image-2-official:21:9@1k_high",
+          "price_usd": 0.28
+        },
+        {
+          "key": "gpt-image-2-official:21:9@1k_low",
+          "price_usd": 0.00792
+        },
+        {
+          "key": "gpt-image-2-official:21:9@1k_medium",
+          "price_usd": 0.0704
+        },
+        {
+          "key": "gpt-image-2-official:21:9@2k_high",
+          "price_usd": 0.4984
+        },
+        {
+          "key": "gpt-image-2-official:21:9@2k_low",
+          "price_usd": 0.01416
+        },
+        {
+          "key": "gpt-image-2-official:21:9@2k_medium",
+          "price_usd": 0.1248
+        },
+        {
+          "key": "gpt-image-2-official:21:9@4k_high",
+          "price_usd": 1.0176
+        },
+        {
+          "key": "gpt-image-2-official:21:9@4k_low",
+          "price_usd": 0.02896
+        },
+        {
+          "key": "gpt-image-2-official:21:9@4k_medium",
+          "price_usd": 0.256
+        },
+        {
+          "key": "gpt-image-2-official:2:1@1k_high",
+          "price_usd": 0.3376
+        },
+        {
+          "key": "gpt-image-2-official:2:1@1k_low",
+          "price_usd": 0.0096
+        },
+        {
+          "key": "gpt-image-2-official:2:1@1k_medium",
+          "price_usd": 0.0848
+        },
+        {
+          "key": "gpt-image-2-official:2:1@2k_high",
+          "price_usd": 0.58
+        },
+        {
+          "key": "gpt-image-2-official:2:1@2k_low",
+          "price_usd": 0.01648
+        },
+        {
+          "key": "gpt-image-2-official:2:1@2k_medium",
+          "price_usd": 0.1456
+        },
+        {
+          "key": "gpt-image-2-official:2:1@4k_high",
+          "price_usd": 1.1848
+        },
+        {
+          "key": "gpt-image-2-official:2:1@4k_low",
+          "price_usd": 0.03368
+        },
+        {
+          "key": "gpt-image-2-official:2:1@4k_medium",
+          "price_usd": 0.2976
+        },
+        {
+          "key": "gpt-image-2-official:2:3@1k_high",
+          "price_usd": 0.252
+        },
+        {
+          "key": "gpt-image-2-official:2:3@1k_low",
+          "price_usd": 0.0072
+        },
+        {
+          "key": "gpt-image-2-official:2:3@1k_medium",
+          "price_usd": 0.0632
+        },
+        {
+          "key": "gpt-image-2-official:2:3@2k_high",
+          "price_usd": 0.4472
+        },
+        {
+          "key": "gpt-image-2-official:2:3@2k_low",
+          "price_usd": 0.01272
+        },
+        {
+          "key": "gpt-image-2-official:2:3@2k_medium",
+          "price_usd": 0.112
+        },
+        {
+          "key": "gpt-image-2-official:3:2@1k_high",
+          "price_usd": 0.252
+        },
+        {
+          "key": "gpt-image-2-official:3:2@1k_low",
+          "price_usd": 0.0072
+        },
+        {
+          "key": "gpt-image-2-official:3:2@1k_medium",
+          "price_usd": 0.0632
+        },
+        {
+          "key": "gpt-image-2-official:3:2@2k_high",
+          "price_usd": 0.4472
+        },
+        {
+          "key": "gpt-image-2-official:3:2@2k_low",
+          "price_usd": 0.01272
+        },
+        {
+          "key": "gpt-image-2-official:3:2@2k_medium",
+          "price_usd": 0.112
+        },
+        {
+          "key": "gpt-image-2-official:3:4@1k_high",
+          "price_usd": 0.1272
+        },
+        {
+          "key": "gpt-image-2-official:3:4@1k_low",
+          "price_usd": 0.0036
+        },
+        {
+          "key": "gpt-image-2-official:3:4@1k_medium",
+          "price_usd": 0.032
+        },
+        {
+          "key": "gpt-image-2-official:3:4@2k_high",
+          "price_usd": 0.5064
+        },
+        {
+          "key": "gpt-image-2-official:3:4@2k_low",
+          "price_usd": 0.0144
+        },
+        {
+          "key": "gpt-image-2-official:3:4@2k_medium",
+          "price_usd": 0.1272
+        },
+        {
+          "key": "gpt-image-2-official:4:3@1k_high",
+          "price_usd": 0.1272
+        },
+        {
+          "key": "gpt-image-2-official:4:3@1k_low",
+          "price_usd": 0.0036
+        },
+        {
+          "key": "gpt-image-2-official:4:3@1k_medium",
+          "price_usd": 0.032
+        },
+        {
+          "key": "gpt-image-2-official:4:3@2k_high",
+          "price_usd": 0.5064
+        },
+        {
+          "key": "gpt-image-2-official:4:3@2k_low",
+          "price_usd": 0.0144
+        },
+        {
+          "key": "gpt-image-2-official:4:3@2k_medium",
+          "price_usd": 0.1272
+        },
+        {
+          "key": "gpt-image-2-official:4:5@1k_high",
+          "price_usd": 0.2104
+        },
+        {
+          "key": "gpt-image-2-official:4:5@1k_low",
+          "price_usd": 0.006
+        },
+        {
+          "key": "gpt-image-2-official:4:5@1k_medium",
+          "price_usd": 0.0528
+        },
+        {
+          "key": "gpt-image-2-official:4:5@2k_high",
+          "price_usd": 0.8424
+        },
+        {
+          "key": "gpt-image-2-official:4:5@2k_low",
+          "price_usd": 0.02392
+        },
+        {
+          "key": "gpt-image-2-official:4:5@2k_medium",
+          "price_usd": 0.2112
+        },
+        {
+          "key": "gpt-image-2-official:5:4@1k_high",
+          "price_usd": 0.2104
+        },
+        {
+          "key": "gpt-image-2-official:5:4@1k_low",
+          "price_usd": 0.006
+        },
+        {
+          "key": "gpt-image-2-official:5:4@1k_medium",
+          "price_usd": 0.0528
+        },
+        {
+          "key": "gpt-image-2-official:5:4@2k_high",
+          "price_usd": 0.8424
+        },
+        {
+          "key": "gpt-image-2-official:5:4@2k_low",
+          "price_usd": 0.02392
+        },
+        {
+          "key": "gpt-image-2-official:5:4@2k_medium",
+          "price_usd": 0.2112
+        },
+        {
+          "key": "gpt-image-2-official:9:16@1k_high",
+          "price_usd": 0.2136
+        },
+        {
+          "key": "gpt-image-2-official:9:16@1k_low",
+          "price_usd": 0.00608
+        },
+        {
+          "key": "gpt-image-2-official:9:16@1k_medium",
+          "price_usd": 0.0536
+        },
+        {
+          "key": "gpt-image-2-official:9:16@2k_high",
+          "price_usd": 0.3792
+        },
+        {
+          "key": "gpt-image-2-official:9:16@2k_low",
+          "price_usd": 0.0108
+        },
+        {
+          "key": "gpt-image-2-official:9:16@2k_medium",
+          "price_usd": 0.0952
+        },
+        {
+          "key": "gpt-image-2-official:9:16@4k_high",
+          "price_usd": 1.3328
+        },
+        {
+          "key": "gpt-image-2-official:9:16@4k_low",
+          "price_usd": 0.03792
+        },
+        {
+          "key": "gpt-image-2-official:9:16@4k_medium",
+          "price_usd": 0.3344
+        },
+        {
+          "key": "gpt-image-2-official:9:21@1k_high",
+          "price_usd": 0.28
+        },
+        {
+          "key": "gpt-image-2-official:9:21@1k_low",
+          "price_usd": 0.00792
+        },
+        {
+          "key": "gpt-image-2-official:9:21@1k_medium",
+          "price_usd": 0.0704
+        },
+        {
+          "key": "gpt-image-2-official:9:21@2k_high",
+          "price_usd": 0.4984
+        },
+        {
+          "key": "gpt-image-2-official:9:21@2k_low",
+          "price_usd": 0.01416
+        },
+        {
+          "key": "gpt-image-2-official:9:21@2k_medium",
+          "price_usd": 0.1248
+        },
+        {
+          "key": "gpt-image-2-official:9:21@4k_high",
+          "price_usd": 1.0176
+        },
+        {
+          "key": "gpt-image-2-official:9:21@4k_low",
+          "price_usd": 0.02896
+        },
+        {
+          "key": "gpt-image-2-official:9:21@4k_medium",
+          "price_usd": 0.256
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0048,
+        "max_price_usd": 1.3328,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/gpt-image-2",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/grok-imagine-1.0-video",
+      "upstream_model_id": "grok-imagine-1.0-video",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.00805,
+      "min_price_usd": 0.00805,
+      "max_price_usd": 0.00805,
+      "unit": "per second",
+      "sku_prefix": "grok-imagine-1.0-video",
+      "skus": [
+        {
+          "key": "grok-imagine-1.0-video:flat",
+          "price_usd": 0.00805
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.00805,
+        "max_price_usd": 0.00805,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/grok-imagine-1-0-video",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/grok-imagine-video-1.5-beta",
+      "upstream_model_id": "grok-imagine-video-1.5-beta",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.14375,
+      "min_price_usd": 0.083375,
+      "max_price_usd": 0.14375,
+      "unit": "per second",
+      "sku_prefix": "grok-imagine-video-1.5-beta",
+      "skus": [
+        {
+          "key": "grok-imagine-video-1.5-beta:480p",
+          "price_usd": 0.083375
+        },
+        {
+          "key": "grok-imagine-video-1.5-beta:720p",
+          "price_usd": 0.14375
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.02,
+        "max_price_usd": 0.14375,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/grok-imagine-video-1-5",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/grok-imagine-video-1.5-official",
+      "upstream_model_id": "grok-imagine-video-1.5-official",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.04,
+      "min_price_usd": 0.02,
+      "max_price_usd": 0.04,
+      "unit": "per second",
+      "sku_prefix": "grok-imagine-video-1.5-official",
+      "skus": [
+        {
+          "key": "grok-imagine-video-1.5-official:480p",
+          "price_usd": 0.02
+        },
+        {
+          "key": "grok-imagine-video-1.5-official:720p",
+          "price_usd": 0.04
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.02,
+        "max_price_usd": 0.14375,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/grok-imagine-video-1-5",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/happyhorse-1-1",
+      "upstream_model_id": "happyhorse-1-1",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.242,
+      "min_price_usd": 0.1815,
+      "max_price_usd": 0.242,
+      "unit": "per second",
+      "sku_prefix": "happyhorse-1-1",
+      "skus": [
+        {
+          "key": "happyhorse-1-1:1080p",
+          "price_usd": 0.242
+        },
+        {
+          "key": "happyhorse-1-1:720p",
+          "price_usd": 0.1815
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.1815,
+        "max_price_usd": 0.242,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/happyhorse-1-1",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/happyhorse-1.0",
+      "upstream_model_id": "happyhorse-1.0",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.2875,
+      "min_price_usd": 0.1625,
+      "max_price_usd": 0.2875,
+      "unit": "per second",
+      "sku_prefix": "happyhorse-1.0",
+      "skus": [
+        {
+          "key": "happyhorse-1.0:1080P",
+          "price_usd": 0.2875
+        },
+        {
+          "key": "happyhorse-1.0:720P",
+          "price_usd": 0.1625
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.14625,
+        "max_price_usd": 0.2875,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/happyhorse-1-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/happyhorse-1.0-official",
+      "upstream_model_id": "happyhorse-1.0-official",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.25875,
+      "min_price_usd": 0.14625,
+      "max_price_usd": 0.25875,
+      "unit": "per second",
+      "sku_prefix": "happyhorse-1.0-official",
+      "skus": [
+        {
+          "key": "happyhorse-1.0-official:1080P",
+          "price_usd": 0.25875
+        },
+        {
+          "key": "happyhorse-1.0-official:720P",
+          "price_usd": 0.14625
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.14625,
+        "max_price_usd": 0.2875,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/happyhorse-1-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/humanize",
+      "upstream_model_id": "humanize",
+      "model_type": "text",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.000894,
+      "min_price_usd": 0.000894,
+      "max_price_usd": 0.000894,
+      "unit": "per 1,000 words",
+      "sku_prefix": "humanize",
+      "skus": [
+        {
+          "key": "humanize:flat",
+          "price_usd": 0.000894
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.894,
+        "max_price_usd": 0.894,
+        "unit": "per 1,000 words"
+      },
+      "source_url": "https://reapi.ai/models/humanize",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/imagen-4-0",
+      "upstream_model_id": "imagen-4-0",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.046,
+      "min_price_usd": 0.046,
+      "max_price_usd": 0.046,
+      "unit": "per image",
+      "sku_prefix": "imagen-4-0",
+      "skus": [
+        {
+          "key": "imagen-4-0:flat",
+          "price_usd": 0.046
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.046,
+        "max_price_usd": 0.046,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/imagen-4-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/kling-3-0",
+      "upstream_model_id": "kling-3-0",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.3685,
+      "min_price_usd": 0.077,
+      "max_price_usd": 0.3685,
+      "unit": "per second",
+      "sku_prefix": "kling-3-0",
+      "skus": [
+        {
+          "key": "kling-3-0:4K:audio",
+          "price_usd": 0.3685
+        },
+        {
+          "key": "kling-3-0:4K:noaudio",
+          "price_usd": 0.3685
+        },
+        {
+          "key": "kling-3-0:pro:audio",
+          "price_usd": 0.1485
+        },
+        {
+          "key": "kling-3-0:pro:noaudio",
+          "price_usd": 0.099
+        },
+        {
+          "key": "kling-3-0:std:audio",
+          "price_usd": 0.11
+        },
+        {
+          "key": "kling-3-0:std:noaudio",
+          "price_usd": 0.077
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.077,
+        "max_price_usd": 0.3685,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/kling-3-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/kling-3-0-turbo",
+      "upstream_model_id": "kling-3-0-turbo",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.15752,
+      "min_price_usd": 0.12584,
+      "max_price_usd": 0.15752,
+      "unit": "per second",
+      "sku_prefix": "kling-3-0-turbo",
+      "skus": [
+        {
+          "key": "kling-3-0-turbo:1080p",
+          "price_usd": 0.15752
+        },
+        {
+          "key": "kling-3-0-turbo:720p",
+          "price_usd": 0.12584
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.12584,
+        "max_price_usd": 0.15752,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/kling-3-0-turbo",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/kling-3-0-turbo-beta",
+      "upstream_model_id": "kling-3-0-turbo-beta",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.15752,
+      "min_price_usd": 0.12584,
+      "max_price_usd": 0.15752,
+      "unit": "per second",
+      "sku_prefix": "kling-3-0-turbo",
+      "sku_alias_of": "kling-3-0-turbo",
+      "skus": [
+        {
+          "key": "kling-3-0-turbo:1080p",
+          "price_usd": 0.15752
+        },
+        {
+          "key": "kling-3-0-turbo:720p",
+          "price_usd": 0.12584
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.12584,
+        "max_price_usd": 0.15752,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/kling-3-0-turbo",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/kling-v2-6-motion-control",
+      "upstream_model_id": "kling-v2-6-motion-control",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.100584,
+      "min_price_usd": 0.062832,
+      "max_price_usd": 0.100584,
+      "unit": "per second",
+      "sku_prefix": "kling-v2-6-motion-control",
+      "skus": [
+        {
+          "key": "kling-v2-6-motion-control:pro",
+          "price_usd": 0.100584
+        },
+        {
+          "key": "kling-v2-6-motion-control:std",
+          "price_usd": 0.062832
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.062832,
+        "max_price_usd": 0.150832,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/kling-motion-control",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/kling-v3-motion-control",
+      "upstream_model_id": "kling-v3-motion-control",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.150832,
+      "min_price_usd": 0.113168,
+      "max_price_usd": 0.150832,
+      "unit": "per second",
+      "sku_prefix": "kling-v3-motion-control",
+      "skus": [
+        {
+          "key": "kling-v3-motion-control:pro",
+          "price_usd": 0.150832
+        },
+        {
+          "key": "kling-v3-motion-control:std",
+          "price_usd": 0.113168
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.062832,
+        "max_price_usd": 0.150832,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/kling-motion-control",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/midjourney",
+      "upstream_model_id": "midjourney",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.115,
+      "min_price_usd": 0.051796,
+      "max_price_usd": 0.115,
+      "unit": "per request",
+      "sku_prefix": "midjourney",
+      "skus": [
+        {
+          "key": "midjourney:edit:fast",
+          "price_usd": 0.063296
+        },
+        {
+          "key": "midjourney:edit:relax",
+          "price_usd": 0.063296
+        },
+        {
+          "key": "midjourney:edit:turbo",
+          "price_usd": 0.115
+        },
+        {
+          "key": "midjourney:imagine:fast",
+          "price_usd": 0.063296
+        },
+        {
+          "key": "midjourney:imagine:relax",
+          "price_usd": 0.051796
+        },
+        {
+          "key": "midjourney:imagine:turbo",
+          "price_usd": 0.115
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.051796,
+        "max_price_usd": 0.46,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v8",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/midjourney-video",
+      "upstream_model_id": "midjourney-video",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.46,
+      "min_price_usd": 0.23,
+      "max_price_usd": 0.46,
+      "unit": "per request",
+      "sku_prefix": "midjourney-video",
+      "skus": [
+        {
+          "key": "midjourney-video:480",
+          "price_usd": 0.23
+        },
+        {
+          "key": "midjourney-video:720",
+          "price_usd": 0.46
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.051796,
+        "max_price_usd": 0.46,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v8",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7",
+      "upstream_model_id": "mj-v7",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.174636,
+      "min_price_usd": 0.043659,
+      "max_price_usd": 0.174636,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7",
+      "skus": [
+        {
+          "key": "mj-v7:draft",
+          "price_usd": 0.043659
+        },
+        {
+          "key": "mj-v7:fast",
+          "price_usd": 0.087318
+        },
+        {
+          "key": "mj-v7:turbo",
+          "price_usd": 0.174636
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-edit",
+      "upstream_model_id": "mj-v7-edit",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.261954,
+      "min_price_usd": 0.130977,
+      "max_price_usd": 0.261954,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-edit",
+      "skus": [
+        {
+          "key": "mj-v7-edit:fast",
+          "price_usd": 0.130977
+        },
+        {
+          "key": "mj-v7-edit:turbo",
+          "price_usd": 0.261954
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-enhance",
+      "upstream_model_id": "mj-v7-enhance",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.087318,
+      "min_price_usd": 0.087318,
+      "max_price_usd": 0.087318,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-enhance",
+      "skus": [
+        {
+          "key": "mj-v7-enhance:flat",
+          "price_usd": 0.087318
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-inpaint",
+      "upstream_model_id": "mj-v7-inpaint",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.261954,
+      "min_price_usd": 0.130977,
+      "max_price_usd": 0.261954,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-inpaint",
+      "skus": [
+        {
+          "key": "mj-v7-inpaint:fast",
+          "price_usd": 0.130977
+        },
+        {
+          "key": "mj-v7-inpaint:turbo",
+          "price_usd": 0.261954
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-outpaint",
+      "upstream_model_id": "mj-v7-outpaint",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.174636,
+      "min_price_usd": 0.087318,
+      "max_price_usd": 0.174636,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-outpaint",
+      "skus": [
+        {
+          "key": "mj-v7-outpaint:fast",
+          "price_usd": 0.087318
+        },
+        {
+          "key": "mj-v7-outpaint:turbo",
+          "price_usd": 0.174636
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-pan",
+      "upstream_model_id": "mj-v7-pan",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.174636,
+      "min_price_usd": 0.087318,
+      "max_price_usd": 0.174636,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-pan",
+      "skus": [
+        {
+          "key": "mj-v7-pan:fast",
+          "price_usd": 0.087318
+        },
+        {
+          "key": "mj-v7-pan:turbo",
+          "price_usd": 0.174636
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-remix",
+      "upstream_model_id": "mj-v7-remix",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.261954,
+      "min_price_usd": 0.130977,
+      "max_price_usd": 0.261954,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-remix",
+      "skus": [
+        {
+          "key": "mj-v7-remix:fast",
+          "price_usd": 0.130977
+        },
+        {
+          "key": "mj-v7-remix:turbo",
+          "price_usd": 0.261954
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-remove-bg",
+      "upstream_model_id": "mj-v7-remove-bg",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.087318,
+      "min_price_usd": 0.087318,
+      "max_price_usd": 0.087318,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-remove-bg",
+      "skus": [
+        {
+          "key": "mj-v7-remove-bg:flat",
+          "price_usd": 0.087318
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-retexture",
+      "upstream_model_id": "mj-v7-retexture",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.261954,
+      "min_price_usd": 0.130977,
+      "max_price_usd": 0.261954,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-retexture",
+      "skus": [
+        {
+          "key": "mj-v7-retexture:fast",
+          "price_usd": 0.130977
+        },
+        {
+          "key": "mj-v7-retexture:turbo",
+          "price_usd": 0.261954
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-upload-paint",
+      "upstream_model_id": "mj-v7-upload-paint",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.261954,
+      "min_price_usd": 0.130977,
+      "max_price_usd": 0.261954,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-upload-paint",
+      "skus": [
+        {
+          "key": "mj-v7-upload-paint:fast",
+          "price_usd": 0.130977
+        },
+        {
+          "key": "mj-v7-upload-paint:turbo",
+          "price_usd": 0.261954
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-upscale",
+      "upstream_model_id": "mj-v7-upscale",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.130977,
+      "min_price_usd": 0.130977,
+      "max_price_usd": 0.130977,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-upscale",
+      "skus": [
+        {
+          "key": "mj-v7-upscale:flat",
+          "price_usd": 0.130977
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mj-v7-variation",
+      "upstream_model_id": "mj-v7-variation",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.261954,
+      "min_price_usd": 0.130977,
+      "max_price_usd": 0.261954,
+      "unit": "per request (4 images)",
+      "sku_prefix": "mj-v7-variation",
+      "skus": [
+        {
+          "key": "mj-v7-variation:fast",
+          "price_usd": 0.130977
+        },
+        {
+          "key": "mj-v7-variation:turbo",
+          "price_usd": 0.261954
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.043659,
+        "max_price_usd": 0.261954,
+        "unit": "per request (4 images)"
+      },
+      "source_url": "https://reapi.ai/models/midjourney-v7",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/mureka-v9-song",
+      "upstream_model_id": "mureka-v9-song",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per song",
+      "sku_prefix": "mureka-v9-song",
+      "skus": [
+        {
+          "key": "mureka-v9-song:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.06,
+        "max_price_usd": 0.06,
+        "unit": "per song"
+      },
+      "source_url": "https://reapi.ai/models/mureka-v9-song",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/music-video-1-0",
+      "upstream_model_id": "music-video-1-0",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.15,
+      "min_price_usd": 0.05,
+      "max_price_usd": 0.15,
+      "unit": "per second",
+      "sku_prefix": "music-video-1-0",
+      "skus": [
+        {
+          "key": "music-video-1-0:1080P",
+          "price_usd": 0.15
+        },
+        {
+          "key": "music-video-1-0:540P",
+          "price_usd": 0.05
+        },
+        {
+          "key": "music-video-1-0:720P",
+          "price_usd": 0.08
+        },
+        {
+          "key": "music-video-1-0:flat",
+          "price_usd": 0.05
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.05,
+        "max_price_usd": 0.15,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/music-video-1-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/nano-banana-2-lite",
+      "upstream_model_id": "nano-banana-2-lite",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.02,
+      "min_price_usd": 0.02,
+      "max_price_usd": 0.02,
+      "unit": "per image",
+      "sku_prefix": "nano-banana-2-lite",
+      "skus": [
+        {
+          "key": "nano-banana-2-lite:flat",
+          "price_usd": 0.02
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.02,
+        "max_price_usd": 0.02,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/nano-banana-2-lite",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/pixverse-v6",
+      "upstream_model_id": "pixverse-v6",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.092,
+      "min_price_usd": 0.0184,
+      "max_price_usd": 0.092,
+      "unit": "per second",
+      "sku_prefix": "pixverse-v6",
+      "skus": [
+        {
+          "key": "pixverse-v6:1080p:audio",
+          "price_usd": 0.092
+        },
+        {
+          "key": "pixverse-v6:1080p:no-audio",
+          "price_usd": 0.0736
+        },
+        {
+          "key": "pixverse-v6:360p:audio",
+          "price_usd": 0.0276
+        },
+        {
+          "key": "pixverse-v6:360p:no-audio",
+          "price_usd": 0.0184
+        },
+        {
+          "key": "pixverse-v6:540p:audio",
+          "price_usd": 0.0368
+        },
+        {
+          "key": "pixverse-v6:540p:no-audio",
+          "price_usd": 0.0276
+        },
+        {
+          "key": "pixverse-v6:720p:audio",
+          "price_usd": 0.046
+        },
+        {
+          "key": "pixverse-v6:720p:no-audio",
+          "price_usd": 0.0368
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0184,
+        "max_price_usd": 0.092,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/pixverse-v6",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/qwen-image-2",
+      "upstream_model_id": "qwen-image-2",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.0308,
+      "min_price_usd": 0.0308,
+      "max_price_usd": 0.0308,
+      "unit": "per image",
+      "sku_prefix": "qwen-image-2",
+      "skus": [
+        {
+          "key": "qwen-image-2:flat",
+          "price_usd": 0.0308
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0308,
+        "max_price_usd": 0.0308,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/qwen-image-2",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/seedance-2.0-beta",
+      "upstream_model_id": "seedance-2.0-beta",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 1.04,
+      "min_price_usd": 0.0575,
+      "max_price_usd": 1.04,
+      "unit": "per second",
+      "sku_prefix": "seedance-2.0-beta",
+      "skus": [
+        {
+          "key": "seedance-2.0-beta:1080p:noVideo",
+          "price_usd": 0.51
+        },
+        {
+          "key": "seedance-2.0-beta:1080p:withVideo",
+          "price_usd": 0.31
+        },
+        {
+          "key": "seedance-2.0-beta:480p:noVideo",
+          "price_usd": 0.095
+        },
+        {
+          "key": "seedance-2.0-beta:480p:withVideo",
+          "price_usd": 0.0575
+        },
+        {
+          "key": "seedance-2.0-beta:4k:noVideo",
+          "price_usd": 1.04
+        },
+        {
+          "key": "seedance-2.0-beta:4k:withVideo",
+          "price_usd": 0.64
+        },
+        {
+          "key": "seedance-2.0-beta:720p:noVideo",
+          "price_usd": 0.205
+        },
+        {
+          "key": "seedance-2.0-beta:720p:withVideo",
+          "price_usd": 0.125
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/seedance-2.0-fast-beta",
+      "upstream_model_id": "seedance-2.0-fast-beta",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.165,
+      "min_price_usd": 0.045,
+      "max_price_usd": 0.165,
+      "unit": "per second",
+      "sku_prefix": "seedance-2.0-fast-beta",
+      "skus": [
+        {
+          "key": "seedance-2.0-fast-beta:480p:noVideo",
+          "price_usd": 0.0775
+        },
+        {
+          "key": "seedance-2.0-fast-beta:480p:withVideo",
+          "price_usd": 0.045
+        },
+        {
+          "key": "seedance-2.0-fast-beta:720p:noVideo",
+          "price_usd": 0.165
+        },
+        {
+          "key": "seedance-2.0-fast-beta:720p:withVideo",
+          "price_usd": 0.1
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.045,
+        "max_price_usd": 1.04,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/seedance-2.0-mini",
+      "upstream_model_id": "seedance-2.0-mini",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.097375,
+      "min_price_usd": 0.0285,
+      "max_price_usd": 0.097375,
+      "unit": "per second",
+      "sku_prefix": "seedance-2.0-mini",
+      "skus": [
+        {
+          "key": "seedance-2.0-mini:480p:noVideo",
+          "price_usd": 0.045125
+        },
+        {
+          "key": "seedance-2.0-mini:480p:withVideo",
+          "price_usd": 0.0285
+        },
+        {
+          "key": "seedance-2.0-mini:720p:noVideo",
+          "price_usd": 0.097375
+        },
+        {
+          "key": "seedance-2.0-mini:720p:withVideo",
+          "price_usd": 0.059375
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0285,
+        "max_price_usd": 0.097375,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-0-mini",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/seedance-2.5",
+      "upstream_model_id": "seedance-2.5",
+      "model_type": "video",
+      "publishable": false,
+      "coming_soon": true,
+      "pricing_basis": "models_index_range",
+      "base_price_usd": 0.575,
+      "min_price_usd": 0.041,
+      "max_price_usd": 0.575,
+      "unit": "per second",
+      "sku_prefix": "seedance-2.5",
+      "skus": [],
+      "published_price_range": {
+        "min_price_usd": 0.041,
+        "max_price_usd": 0.575,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/seedance-2-5",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-add-instrumental",
+      "upstream_model_id": "suno-add-instrumental",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per request",
+      "sku_prefix": "suno-add-instrumental",
+      "skus": [
+        {
+          "key": "suno-add-instrumental:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-add-vocals",
+      "upstream_model_id": "suno-add-vocals",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per request",
+      "sku_prefix": "suno-add-vocals",
+      "skus": [
+        {
+          "key": "suno-add-vocals:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-cover-image",
+      "upstream_model_id": "suno-cover-image",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.001,
+      "min_price_usd": 0.001,
+      "max_price_usd": 0.001,
+      "unit": "per request",
+      "sku_prefix": "suno-cover-image",
+      "skus": [
+        {
+          "key": "suno-cover-image:flat",
+          "price_usd": 0.001
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-extend",
+      "upstream_model_id": "suno-extend",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per request",
+      "sku_prefix": "suno-extend",
+      "skus": [
+        {
+          "key": "suno-extend:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-lyrics",
+      "upstream_model_id": "suno-lyrics",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.002,
+      "min_price_usd": 0.002,
+      "max_price_usd": 0.002,
+      "unit": "per request",
+      "sku_prefix": "suno-lyrics",
+      "skus": [
+        {
+          "key": "suno-lyrics:flat",
+          "price_usd": 0.002
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-mashup",
+      "upstream_model_id": "suno-mashup",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per request",
+      "sku_prefix": "suno-mashup",
+      "skus": [
+        {
+          "key": "suno-mashup:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-midi",
+      "upstream_model_id": "suno-midi",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.001,
+      "min_price_usd": 0.001,
+      "max_price_usd": 0.001,
+      "unit": "per request",
+      "sku_prefix": "suno-midi",
+      "skus": [
+        {
+          "key": "suno-midi:flat",
+          "price_usd": 0.001
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-music",
+      "upstream_model_id": "suno-music",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per request",
+      "sku_prefix": "suno-music",
+      "skus": [
+        {
+          "key": "suno-music:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-music-video",
+      "upstream_model_id": "suno-music-video",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.01,
+      "min_price_usd": 0.01,
+      "max_price_usd": 0.01,
+      "unit": "per request",
+      "sku_prefix": "suno-music-video",
+      "skus": [
+        {
+          "key": "suno-music-video:flat",
+          "price_usd": 0.01
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-replace-section",
+      "upstream_model_id": "suno-replace-section",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.025,
+      "min_price_usd": 0.025,
+      "max_price_usd": 0.025,
+      "unit": "per request",
+      "sku_prefix": "suno-replace-section",
+      "skus": [
+        {
+          "key": "suno-replace-section:flat",
+          "price_usd": 0.025
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-sounds",
+      "upstream_model_id": "suno-sounds",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.0125,
+      "min_price_usd": 0.0125,
+      "max_price_usd": 0.0125,
+      "unit": "per request",
+      "sku_prefix": "suno-sounds",
+      "skus": [
+        {
+          "key": "suno-sounds:flat",
+          "price_usd": 0.0125
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-upload-cover",
+      "upstream_model_id": "suno-upload-cover",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per request",
+      "sku_prefix": "suno-upload-cover",
+      "skus": [
+        {
+          "key": "suno-upload-cover:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-upload-extend",
+      "upstream_model_id": "suno-upload-extend",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.06,
+      "min_price_usd": 0.06,
+      "max_price_usd": 0.06,
+      "unit": "per request",
+      "sku_prefix": "suno-upload-extend",
+      "skus": [
+        {
+          "key": "suno-upload-extend:flat",
+          "price_usd": 0.06
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-vocal-separation",
+      "upstream_model_id": "suno-vocal-separation",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.25,
+      "min_price_usd": 0.05,
+      "max_price_usd": 0.25,
+      "unit": "per request",
+      "sku_prefix": "suno-vocal-separation",
+      "skus": [
+        {
+          "key": "suno-vocal-separation:separate_vocal",
+          "price_usd": 0.05
+        },
+        {
+          "key": "suno-vocal-separation:split_stem",
+          "price_usd": 0.25
+        },
+        {
+          "key": "suno-vocal-separation:split_stem_advanced",
+          "price_usd": 0.1
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-voice-generate",
+      "upstream_model_id": "suno-voice-generate",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.001,
+      "min_price_usd": 0.001,
+      "max_price_usd": 0.001,
+      "unit": "per request",
+      "sku_prefix": "suno-voice-generate",
+      "skus": [
+        {
+          "key": "suno-voice-generate:flat",
+          "price_usd": 0.001
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-voice-regenerate",
+      "upstream_model_id": "suno-voice-regenerate",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.001,
+      "min_price_usd": 0.001,
+      "max_price_usd": 0.001,
+      "unit": "per request",
+      "sku_prefix": "suno-voice-regenerate",
+      "skus": [
+        {
+          "key": "suno-voice-regenerate:flat",
+          "price_usd": 0.001
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-voice-validate",
+      "upstream_model_id": "suno-voice-validate",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.001,
+      "min_price_usd": 0.001,
+      "max_price_usd": 0.001,
+      "unit": "per request",
+      "sku_prefix": "suno-voice-validate",
+      "skus": [
+        {
+          "key": "suno-voice-validate:flat",
+          "price_usd": 0.001
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/suno-wav",
+      "upstream_model_id": "suno-wav",
+      "model_type": "audio",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.002,
+      "min_price_usd": 0.002,
+      "max_price_usd": 0.002,
+      "unit": "per request",
+      "sku_prefix": "suno-wav",
+      "skus": [
+        {
+          "key": "suno-wav:flat",
+          "price_usd": 0.002
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.001,
+        "max_price_usd": 0.25,
+        "unit": "per request"
+      },
+      "source_url": "https://reapi.ai/models/suno",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/topaz-video-upscaler",
+      "upstream_model_id": "topaz-video-upscaler",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.077,
+      "min_price_usd": 0.044,
+      "max_price_usd": 0.077,
+      "unit": "per second",
+      "sku_prefix": "topaz-video-upscaler",
+      "skus": [
+        {
+          "key": "topaz-video-upscaler:1x2x",
+          "price_usd": 0.044
+        },
+        {
+          "key": "topaz-video-upscaler:4x",
+          "price_usd": 0.077
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.044,
+        "max_price_usd": 0.077,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/topaz-video-upscaler",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/veo3.1-fast",
+      "upstream_model_id": "veo3.1-fast",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.66,
+      "min_price_usd": 0.189,
+      "max_price_usd": 0.66,
+      "unit": "per generation",
+      "sku_prefix": "veo3.1-fast",
+      "skus": [
+        {
+          "key": "veo3.1-fast:4k",
+          "price_usd": 0.66
+        },
+        {
+          "key": "veo3.1-fast:720p_1080p",
+          "price_usd": 0.189
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.092,
+        "max_price_usd": 2.208,
+        "unit": "per generation"
+      },
+      "source_url": "https://reapi.ai/models/veo3-1",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/veo3.1-fast-official",
+      "upstream_model_id": "veo3.1-fast-official",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.322,
+      "min_price_usd": 0.092,
+      "max_price_usd": 0.322,
+      "unit": "per generation",
+      "sku_prefix": "veo3.1-fast-official",
+      "skus": [
+        {
+          "key": "veo3.1-fast-official:4k_audio",
+          "price_usd": 0.322
+        },
+        {
+          "key": "veo3.1-fast-official:720p_1080p_audio",
+          "price_usd": 0.138
+        },
+        {
+          "key": "veo3.1-fast-official:720p_1080p_no_audio",
+          "price_usd": 0.092
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.092,
+        "max_price_usd": 2.208,
+        "unit": "per generation"
+      },
+      "source_url": "https://reapi.ai/models/veo3-1",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/veo3.1-lite",
+      "upstream_model_id": "veo3.1-lite",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.6,
+      "min_price_usd": 0.1575,
+      "max_price_usd": 0.6,
+      "unit": "per generation",
+      "sku_prefix": "veo3.1-lite",
+      "skus": [
+        {
+          "key": "veo3.1-lite:4k",
+          "price_usd": 0.6
+        },
+        {
+          "key": "veo3.1-lite:720p_1080p",
+          "price_usd": 0.1575
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.092,
+        "max_price_usd": 2.208,
+        "unit": "per generation"
+      },
+      "source_url": "https://reapi.ai/models/veo3-1",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/veo3.1-quality",
+      "upstream_model_id": "veo3.1-quality",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 2.208,
+      "min_price_usd": 1.1,
+      "max_price_usd": 2.208,
+      "unit": "per generation",
+      "sku_prefix": "veo3.1-quality",
+      "skus": [
+        {
+          "key": "veo3.1-quality:4k",
+          "price_usd": 2.208
+        },
+        {
+          "key": "veo3.1-quality:720p_1080p",
+          "price_usd": 1.1
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.092,
+        "max_price_usd": 2.208,
+        "unit": "per generation"
+      },
+      "source_url": "https://reapi.ai/models/veo3-1",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/veo3.1-quality-official",
+      "upstream_model_id": "veo3.1-quality-official",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.552,
+      "min_price_usd": 0.184,
+      "max_price_usd": 0.552,
+      "unit": "per generation",
+      "sku_prefix": "veo3.1-quality-official",
+      "skus": [
+        {
+          "key": "veo3.1-quality-official:4k_audio",
+          "price_usd": 0.552
+        },
+        {
+          "key": "veo3.1-quality-official:720p_1080p_audio",
+          "price_usd": 0.368
+        },
+        {
+          "key": "veo3.1-quality-official:720p_1080p_no_audio",
+          "price_usd": 0.184
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.092,
+        "max_price_usd": 2.208,
+        "unit": "per generation"
+      },
+      "source_url": "https://reapi.ai/models/veo3-1",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/viduq3-pro",
+      "upstream_model_id": "viduq3-pro",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.1472,
+      "min_price_usd": 0.0644,
+      "max_price_usd": 0.1472,
+      "unit": "per second",
+      "sku_prefix": "viduq3-pro",
+      "skus": [
+        {
+          "key": "viduq3-pro:1080p",
+          "price_usd": 0.1472
+        },
+        {
+          "key": "viduq3-pro:540p",
+          "price_usd": 0.0644
+        },
+        {
+          "key": "viduq3-pro:720p",
+          "price_usd": 0.138
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0368,
+        "max_price_usd": 0.1472,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/viduq3",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/viduq3-turbo",
+      "upstream_model_id": "viduq3-turbo",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.0644,
+      "min_price_usd": 0.0368,
+      "max_price_usd": 0.0644,
+      "unit": "per second",
+      "sku_prefix": "viduq3-turbo",
+      "skus": [
+        {
+          "key": "viduq3-turbo:1080p",
+          "price_usd": 0.0644
+        },
+        {
+          "key": "viduq3-turbo:540p",
+          "price_usd": 0.0368
+        },
+        {
+          "key": "viduq3-turbo:720p",
+          "price_usd": 0.0552
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0368,
+        "max_price_usd": 0.1472,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/viduq3",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/wan2.7-image",
+      "upstream_model_id": "wan2.7-image",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.02376,
+      "min_price_usd": 0.02376,
+      "max_price_usd": 0.02376,
+      "unit": "per image",
+      "sku_prefix": "wan2.7-image",
+      "skus": [
+        {
+          "key": "wan2.7-image:flat",
+          "price_usd": 0.02376
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.02376,
+        "max_price_usd": 0.05984,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/wan-2-7-image",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/wan2.7-image-pro",
+      "upstream_model_id": "wan2.7-image-pro",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.05984,
+      "min_price_usd": 0.05984,
+      "max_price_usd": 0.05984,
+      "unit": "per image",
+      "sku_prefix": "wan2.7-image-pro",
+      "skus": [
+        {
+          "key": "wan2.7-image-pro:flat",
+          "price_usd": 0.05984
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.02376,
+        "max_price_usd": 0.05984,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/wan-2-7-image",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/wan2.7-video",
+      "upstream_model_id": "wan2.7-video",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.12056,
+      "min_price_usd": 0.07304,
+      "max_price_usd": 0.12056,
+      "unit": "per second",
+      "sku_prefix": "wan2.7-video",
+      "skus": [
+        {
+          "key": "wan2.7-video:1080P",
+          "price_usd": 0.12056
+        },
+        {
+          "key": "wan2.7-video:720P",
+          "price_usd": 0.07304
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.07304,
+        "max_price_usd": 0.12056,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/wan-2-7-video",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/wan2.7-video-official",
+      "upstream_model_id": "wan2.7-video-official",
+      "model_type": "video",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.147059,
+      "min_price_usd": 0.088235,
+      "max_price_usd": 0.147059,
+      "unit": "per second",
+      "sku_prefix": "wan2.7-video-official",
+      "skus": [
+        {
+          "key": "wan2.7-video-official:1080P",
+          "price_usd": 0.147059
+        },
+        {
+          "key": "wan2.7-video-official:720P",
+          "price_usd": 0.088235
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.07304,
+        "max_price_usd": 0.12056,
+        "unit": "per second"
+      },
+      "source_url": "https://reapi.ai/models/wan-2-7-video",
+      "source_snapshot_version": 1784623693334
+    },
+    {
+      "model_name": "re/z-image",
+      "upstream_model_id": "z-image",
+      "model_type": "image",
+      "publishable": true,
+      "coming_soon": false,
+      "pricing_basis": "snapshot_sku_max",
+      "base_price_usd": 0.0044,
+      "min_price_usd": 0.0044,
+      "max_price_usd": 0.0044,
+      "unit": "per image",
+      "sku_prefix": "z-image",
+      "skus": [
+        {
+          "key": "z-image:flat",
+          "price_usd": 0.0044
+        }
+      ],
+      "published_price_range": {
+        "min_price_usd": 0.0044,
+        "max_price_usd": 0.0044,
+        "unit": "per image"
+      },
+      "source_url": "https://reapi.ai/models/z-image",
+      "source_snapshot_version": 1784623693334
+    }
+  ]
+}

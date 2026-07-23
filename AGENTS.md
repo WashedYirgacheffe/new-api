@@ -163,6 +163,7 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 
 | Document | Contents | Corresponding code and resources |
 | --- | --- | --- |
+| `docs/operations/2026-07-23-reapi-async-marketplace-publish.md` | RE 非 Chat 异步模型价格快照、模型广场发布、计费倍率与生产开闸 | `docs/catalog/reapi-async-pricing.json`, `cmd/reapi-pricing-snapshot`, `cmd/reapi-onboard --publish-async`, `relay/channel/task/reapi/`, Railway `new-api`/Postgres |
 | `docs/operations/2026-07-23-reapi-async-production-readiness.md` | RE 异步合同分流、宽松参数透传、单密钥初始化与 Railway Async Secret 配置 | `relay/channel/task/reapi/`, `relay/relay_task.go`, `cmd/reapi-onboard`, Railway `new-api`, `REAPI_TASK_API_KEY` |
 | `docs/operations/2026-07-23-reapi-channel-onboarding.md` | RE 全量模型目录、双 API/双凭据渠道接入、默认停用初始化、验证与上线边界 | `constant/channel.go`, `relay/channel/task/reapi/`, `/v1/re/*`, `cmd/reapi-onboard`, Railway `new-api`, `REAPI_CHAT_API_KEY`, `REAPI_TASK_API_KEY` |
 | `docs/operations/2026-07-22-superseed-route-group-dispatch.md` | Superseed 报价与真实派发统一路由组、Token 边界和回滚 | `middleware/distributor.go`, TapLater Generation BFF, Railway `new-api`, `api.carlab.top`, Vercel `superseed` Preview |

@@ -17,9 +17,7 @@
 ## 云资源与配置
 
 - 目标服务：Railway `new-api`（CarLabAPI）。
-- 运行初始化命令前须安全配置以下 Railway Secret，两个变量分别用于两个上游 API，严禁复用或写入仓库：
-  - `REAPI_CHAT_API_KEY`
-  - `REAPI_TASK_API_KEY`
+- 当前生产范围仅需安全配置 Railway Secret `REAPI_TASK_API_KEY`。`REAPI_CHAT_API_KEY` 只在未来单独决定接入 Chat 时需要，两者严禁复用或写入仓库。
 - 初始化示例：`go run ./cmd/reapi-onboard`。可先运行 `go run ./cmd/reapi-onboard --dry-run` 只校验目录，不写数据库。
 
 ## 验证证据
@@ -37,6 +35,6 @@
 
 ## 剩余风险与权限
 
-- 已获得并在 Railway 安全配置 RE Async 正式密钥；RE Chat 密钥仍缺失，不能复用 Async 密钥。
+- 已获得并在 Railway 安全配置 RE Async 正式密钥；当前产品范围明确不发布 Chat，缺少 RE Chat 密钥不再是 Async 上线阻塞项。
 - RE 异步入口已按图片、视频、音频与文本工具选择操作类型；只有 `re-task` 合同会参与参数约束，未发布专属合同的模型保留上游参数透传。
-- 初始化后仍需至少实测 1 个图片、1 个视频、1 个音频/工具模型；取得 Chat 密钥后另行实测 1 个聊天模型。确认结算、轮询与价格后再逐步启用渠道能力。
+- Async 模型的价格快照、发布开关和生产验收见 `2026-07-23-reapi-async-marketplace-publish.md`；Chat 不在该验收范围。

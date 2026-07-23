@@ -1,11 +1,34 @@
 package main
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCheckedInAsyncPricingCatalog(t *testing.T) {
+	repositoryRoot := filepath.Join("..", "..")
+	models, err := loadCatalog(filepath.Join(repositoryRoot, defaultCatalogPath))
+	require.NoError(t, err)
+	pricing, err := loadAsyncPricingCatalog(filepath.Join(repositoryRoot, defaultPricingCatalogPath), models)
+	require.NoError(t, err)
+	assert.Equal(t, 96, pricing.Integrity.AsyncModelCount)
+	assert.Equal(t, 95, pricing.Integrity.PublishableModelCount)
+	assert.Equal(t, 1, pricing.Integrity.ComingSoonModelCount)
+	assert.Equal(t, 8, pricing.Integrity.ExcludedChatCount)
+	publishReadyCount := 0
+	for _, item := range pricing.Models {
+		assert.NotEqual(t, "chat-completions", item.ModelType)
+		assert.Positive(t, item.BasePriceUSD, item.ModelName)
+		if asyncModelPublishReady(item) {
+			publishReadyCount++
+		}
+	}
+	assert.Equal(t, 88, publishReadyCount)
+	assert.Len(t, deferredBillingModels, 7)
+}
 
 func TestConfiguredKeysAllowsIndependentChannelOnboarding(t *testing.T) {
 	t.Setenv("REAPI_CHAT_API_KEY", "")

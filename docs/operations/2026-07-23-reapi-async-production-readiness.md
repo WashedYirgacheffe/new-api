@@ -18,7 +18,7 @@
 
 - Railway 项目：`carlab-api`，服务：`new-api`，环境：`production`。
 - 已安全设置 `REAPI_TASK_API_KEY`，设置时跳过即时部署，等待 Git `main` 构建包含本轮代码。
-- `REAPI_CHAT_API_KEY` 仍不存在；未创建伪 Chat 渠道，未把 Async 密钥写入 Chat 配置。
+- 当前生产范围不包含 Chat；未创建伪 Chat 渠道，也未把 Async 密钥写入 Chat 配置。
 - 未把任何密钥值写入 Git、Markdown、前端变量或命令输出记录。
 
 ## 验证证据
@@ -38,6 +38,8 @@
 
 ## 剩余风险与权限
 
-- 尚未获得 `REAPI_CHAT_API_KEY`，因此 Chat 仍未初始化和验收。
+- Chat 明确不在当前产品范围，`REAPI_CHAT_API_KEY` 不再是 Async 发布的前置条件。
 - 本轮不发起付费生成；图片、视频、音频/工具仍需在明确价格和成本上限后逐类实测。
 - 104 个模型与 RE Async 渠道继续默认停用；初始化成功不等于已对用户开放。
+
+后续价格快照、显式开闸和模型广场发布以 `2026-07-23-reapi-async-marketplace-publish.md` 为准。

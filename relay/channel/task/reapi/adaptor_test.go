@@ -116,6 +116,73 @@ func TestOperationForModelMatchesAsyncCapability(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestTaskAdaptorEstimatesREBillingQuantities(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	tests := []struct {
+		name     string
+		model    string
+		body     string
+		expected map[string]float64
+	}{
+		{name: "video seconds", model: "grok-imagine-1.0-video", body: `{"model":"re/grok-imagine-1.0-video","duration":6}`, expected: map[string]float64{"seconds": 6}},
+		{name: "image count", model: "gpt-image-2", body: `{"model":"re/gpt-image-2","n":3}`, expected: map[string]float64{"images": 3}},
+		{name: "essay length", model: "ai-essay-writer", body: `{"model":"re/ai-essay-writer","length":"long"}`, expected: map[string]float64{"words": 1500}},
+		{name: "text word floor", model: "humanize", body: `{"model":"re/humanize","text":"make this sound natural"}`, expected: map[string]float64{"words": 50}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			context, _ := gin.CreateTestContext(recorder)
+			context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(test.body))
+			context.Request.Header.Set("Content-Type", "application/json")
+			info := &relaycommon.RelayInfo{
+				OriginModelName: "re/" + test.model,
+				TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+				ChannelMeta:     &relaycommon.ChannelMeta{UpstreamModelName: test.model},
+			}
+			adaptor := &TaskAdaptor{}
+			require.Nil(t, adaptor.ValidateRequestAndSetAction(context, info))
+			assert.Equal(t, test.expected, adaptor.EstimateBilling(context, info))
+		})
+	}
+}
+
+func TestTaskAdaptorRejectsUnboundedImageCount(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{"model":"re/gpt-image-2","n":999}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/gpt-image-2",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta:     &relaycommon.ChannelMeta{UpstreamModelName: "gpt-image-2"},
+	}
+
+	taskErr := (&TaskAdaptor{}).ValidateRequestAndSetAction(context, info)
+	require.NotNil(t, taskErr)
+	assert.Equal(t, "invalid_n", taskErr.Code)
+	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
+}
+
+func TestTaskAdaptorRequiresDurationForPerSecondBilling(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{"model":"re/grok-imagine-1.0-video","prompt":"a moving train"}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/grok-imagine-1.0-video",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta:     &relaycommon.ChannelMeta{UpstreamModelName: "grok-imagine-1.0-video"},
+	}
+
+	taskErr := (&TaskAdaptor{}).ValidateRequestAndSetAction(context, info)
+	require.NotNil(t, taskErr)
+	assert.Equal(t, "missing_duration", taskErr.Code)
+	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
+}
+
 func TestTaskAdaptorDoesNotExposeUpstreamTaskID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
