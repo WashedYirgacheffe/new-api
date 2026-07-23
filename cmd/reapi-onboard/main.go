@@ -438,6 +438,7 @@ func upsertModels(items []catalogModel, vendorIDs map[string]int, pricing map[st
 
 func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
 	var encoded string
+	initialPrices := ratio_setting.GetModelPriceCopy()
 	err := model.DB.Transaction(func(tx *gorm.DB) error {
 		var option model.Option
 		found := true
@@ -452,8 +453,9 @@ func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
 		} else if err != nil {
 			return fmt.Errorf("load current ModelPrice: %w", err)
 		}
-		modelPrices := make(map[string]float64)
+		modelPrices := initialPrices
 		if strings.TrimSpace(option.Value) != "" {
+			modelPrices = make(map[string]float64)
 			if err := common.Unmarshal([]byte(option.Value), &modelPrices); err != nil {
 				return fmt.Errorf("decode current ModelPrice: %w", err)
 			}
