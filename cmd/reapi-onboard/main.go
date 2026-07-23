@@ -570,6 +570,9 @@ func upsertChannel(name string, channelType int, baseURL string, key string, mod
 		if err := tx.Model(&channel).Updates(&channel).Error; err != nil {
 			return fmt.Errorf("update channel %q: %w", name, err)
 		}
+		if err := tx.First(&channel, "id = ?", channel.Id).Error; err != nil {
+			return fmt.Errorf("reload channel %q: %w", name, err)
+		}
 		if err := channel.UpdateAbilities(tx); err != nil {
 			return fmt.Errorf("update abilities for channel %q: %w", name, err)
 		}
