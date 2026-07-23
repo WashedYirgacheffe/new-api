@@ -204,6 +204,12 @@ func integerRequestValue(body map[string]any, key string) (int, bool, bool) {
 func requestDuration(body map[string]any, req relaycommon.TaskSubmitReq) (int, bool, bool, bool) {
 	duration, hasDuration, validDuration := integerRequestValue(body, "duration")
 	seconds, hasSeconds, validSeconds := integerRequestValue(body, "seconds")
+	if !hasDuration {
+		duration, hasDuration, validDuration = integerRequestValue(req.Metadata, "duration")
+	}
+	if !hasSeconds {
+		seconds, hasSeconds, validSeconds = integerRequestValue(req.Metadata, "seconds")
+	}
 	if !hasDuration && req.Duration != 0 {
 		duration, hasDuration, validDuration = req.Duration, true, true
 	}

@@ -442,7 +442,7 @@ func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
 	err := model.DB.Transaction(func(tx *gorm.DB) error {
 		var option model.Option
 		found := true
-		priceQuery := tx.Where("key = ?", "ModelPrice")
+		priceQuery := tx.Where(&model.Option{Key: "ModelPrice"})
 		if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {
 			priceQuery = priceQuery.Clauses(clause.Locking{Strength: "UPDATE"})
 		}
@@ -474,7 +474,8 @@ func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
 			option.Value = encoded
 			return tx.Create(&option).Error
 		}
-		return tx.Model(&model.Option{}).Where("key = ?", option.Key).Update("value", encoded).Error
+		option.Value = encoded
+		return tx.Save(&option).Error
 	})
 	if err != nil {
 		return fmt.Errorf("persist RE async pricing: %w", err)
@@ -500,7 +501,7 @@ func publishAsyncPrices(pricing map[string]asyncPricingModel) error {
 func disableExistingREChannels() error {
 	return model.DB.Transaction(func(tx *gorm.DB) error {
 		var channels []model.Channel
-		if err := tx.Where("name IN ? AND channel_provider = ?", []string{chatChannelName, taskChannelName}, channelProvider).Find(&channels).Error; err != nil {
+		if err := tx.Where("channel_provider = ?", channelProvider).Find(&channels).Error; err != nil {
 			return fmt.Errorf("load existing RE channels before publishing: %w", err)
 		}
 		for _, channel := range channels {

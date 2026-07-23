@@ -201,6 +201,26 @@ func TestTaskAdaptorRejectsConflictingDurationFields(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
 }
 
+func TestTaskAdaptorRejectsStringMetadataDurationConflict(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	metadata, err := common.Marshal(`{"seconds":8}`)
+	require.NoError(t, err)
+	body := `{"model":"re/grok-imagine-1.0-video","prompt":"a moving train","duration":4,"metadata":` + string(metadata) + `}`
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(body))
+	context.Request.Header.Set("Content-Type", "application/json")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/grok-imagine-1.0-video",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta:     &relaycommon.ChannelMeta{UpstreamModelName: "re/grok-imagine-1.0-video"},
+	}
+
+	taskErr := (&TaskAdaptor{}).ValidateRequestAndSetAction(context, info)
+	require.NotNil(t, taskErr)
+	assert.Equal(t, "invalid_duration", taskErr.Code)
+}
+
 func TestTaskAdaptorDoesNotExposeUpstreamTaskID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
