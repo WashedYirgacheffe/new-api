@@ -11,6 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
+	taskreapi "github.com/QuantumNous/new-api/relay/channel/task/reapi"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayhelper "github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
@@ -447,6 +448,60 @@ func resolveQuoteGroup(c *gin.Context, groups modelListGroups, modelName string,
 	return selectedGroup, nil
 }
 
+func quoteMaterialRequestFields(contract *model.ModelOperationEffectiveContract) map[string]struct{} {
+	fields := make(map[string]struct{})
+	if contract == nil {
+		return fields
+	}
+	for _, rawRule := range contract.MaterialSchema {
+		rule, ok := rawRule.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if requestField, ok := rule["request_field"].(string); ok && strings.TrimSpace(requestField) != "" {
+			fields[strings.TrimSpace(requestField)] = struct{}{}
+		}
+		rawFields, _ := rule["request_fields"].([]interface{})
+		for _, rawField := range rawFields {
+			field, ok := rawField.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			requestField, _ := field["request_field"].(string)
+			if strings.TrimSpace(requestField) != "" {
+				fields[strings.TrimSpace(requestField)] = struct{}{}
+			}
+		}
+	}
+	return fields
+}
+
+func normalizeModelQuoteParameters(contract *model.ModelOperationEffectiveContract, parameters map[string]interface{}) (map[string]interface{}, map[string]interface{}, error) {
+	if len(parameters) == 0 {
+		normalized, err := model.NormalizeAndValidateModelOperationParameters(contract, parameters)
+		return normalized, normalized, err
+	}
+	properties, _ := contract.InputSchema["properties"].(map[string]interface{})
+	materialFields := quoteMaterialRequestFields(contract)
+	contractParameters := make(map[string]interface{}, len(parameters))
+	materialParameters := make(map[string]interface{})
+	for key, value := range parameters {
+		if _, ok := materialFields[key]; ok {
+			materialParameters[key] = value
+			if _, declared := properties[key]; !declared {
+				continue
+			}
+		}
+		contractParameters[key] = value
+	}
+	normalized, err := model.NormalizeAndValidateModelOperationParameters(contract, contractParameters)
+	if err != nil {
+		return nil, nil, err
+	}
+	pricingParameters := taskreapi.MergePricingParameters(materialParameters, normalized)
+	return normalized, pricingParameters, nil
+}
+
 func QuoteTokenModel(c *gin.Context) {
 	var request modelQuoteRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -486,7 +541,7 @@ func QuoteTokenModel(c *gin.Context) {
 		common.ApiErrorMsg(c, fmt.Sprintf("operation %s is not dispatch-ready for model %s", request.Operation, request.Model))
 		return
 	}
-	normalizedParameters, err := model.NormalizeAndValidateModelOperationParameters(effectiveContract, request.Parameters)
+	normalizedParameters, pricingParameters, err := normalizeModelQuoteParameters(effectiveContract, request.Parameters)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -498,7 +553,7 @@ func QuoteTokenModel(c *gin.Context) {
 	}
 	quoteBody := make(map[string]interface{}, len(normalizedParameters)+1)
 	quoteBody["model"] = request.Model
-	for key, value := range normalizedParameters {
+	for key, value := range pricingParameters {
 		quoteBody[key] = value
 	}
 	bodyBytes, err := common.Marshal(quoteBody)
@@ -518,11 +573,20 @@ func QuoteTokenModel(c *gin.Context) {
 	billingMode := effectiveBillingMode(*pricing)
 	estimatedQuota := 0
 	estimateKind := "base_fixed_price"
+	var skuQuote *taskreapi.PricingSKUQuote
 	if pricing.QuotaType == 1 && billingMode != "tiered_expr" {
 		priceData, err := relayhelper.ModelPriceHelperPerCall(c, relayInfo)
 		if err != nil {
 			common.ApiError(c, err)
 			return
+		}
+		skuQuote, relayInfo.QuotaClamp, err = taskreapi.ApplyPricingSKUToPriceData(&priceData, request.Model, pricingParameters)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if skuQuote != nil {
+			estimateKind = "re_sku_quote"
 		}
 		parameterRatios, err := model.CalculateModelOperationParameterRatios(effectiveContract, normalizedParameters)
 		if err != nil {
@@ -566,7 +630,7 @@ func QuoteTokenModel(c *gin.Context) {
 	if relayInfo.TieredBillingSnapshot != nil {
 		matchedTier = relayInfo.TieredBillingSnapshot.EstimatedTier
 	}
-	common.ApiSuccess(c, gin.H{
+	response := gin.H{
 		"model_id":                      request.Model,
 		"operation":                     request.Operation,
 		"effective_group":               selectedGroup,
@@ -588,5 +652,15 @@ func QuoteTokenModel(c *gin.Context) {
 			"Estimate uses the gateway's current billing helper, effective group ratio, and versioned model-contract multipliers.",
 			"Provider-side post-submit adjustments remain authoritative only for parameters not priced by the model contract.",
 		},
-	})
+	}
+	if skuQuote != nil {
+		response["pricing_basis"] = skuQuote.PricingBasis
+		response["matched_sku"] = skuQuote.MatchedSKU
+		response["sku_unit"] = skuQuote.Unit
+		response["sku_unit_price"] = skuQuote.UnitPriceUSD
+		response["sku_quantity"] = skuQuote.Quantity
+		response["sku_quantity_key"] = skuQuote.QuantityKey
+		response["sku_source_url"] = skuQuote.SourceURL
+	}
+	common.ApiSuccess(c, response)
 }

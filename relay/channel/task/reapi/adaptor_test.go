@@ -212,8 +212,8 @@ func TestTaskAdaptorEstimatesREBillingQuantities(t *testing.T) {
 	}{
 		{name: "video seconds", model: "grok-imagine-1.0-video", body: `{"model":"re/grok-imagine-1.0-video","duration":6}`, expected: map[string]float64{"seconds": 6}},
 		{name: "image count", model: "gpt-image-2", body: `{"model":"re/gpt-image-2","n":3}`, expected: map[string]float64{"images": 3}},
-		{name: "essay length", model: "ai-essay-writer", body: `{"model":"re/ai-essay-writer","length":"long"}`, expected: map[string]float64{"words": 1500}},
-		{name: "text word floor", model: "humanize", body: `{"model":"re/humanize","text":"make this sound natural"}`, expected: map[string]float64{"words": 50}},
+		{name: "essay flat price", model: "ai-essay-writer", body: `{"model":"re/ai-essay-writer","length":"long"}`, expected: nil},
+		{name: "text word floor", model: "humanize", body: `{"model":"re/humanize","text":"make this sound natural"}`, expected: map[string]float64{"thousand_words": 0.05}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

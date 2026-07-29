@@ -212,12 +212,25 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 	}
 	info.PriceData = priceData
 
-	// 6. 计费估算：让适配器根据 effective 请求提供 OtherRatios（时长、分辨率等）
+	// 6. 计费估算：RE 先按上游 SKU 覆盖基础单价，再补数量倍率；
+	//    其他渠道继续让适配器根据 effective 请求提供 OtherRatios。
 	//    必须在 ModelPriceHelperPerCall 之后调用（它会重建 PriceData）。
 	//    ResolveOriginTask 可能已在 remix 路径中预设了 OtherRatios，此处合并。
-	if estimatedRatios := adaptor.EstimateBilling(c, info); len(estimatedRatios) > 0 {
-		for k, v := range estimatedRatios {
-			info.PriceData.AddOtherRatio(k, v)
+	skuQuoteApplied := false
+	if info.ChannelType == constant.ChannelTypeReAPI && preparedContract != nil {
+		pricingParameters := taskreapi.MergePricingParameters(preparedContract.RequestParameters, preparedContract.EffectiveParameters)
+		skuQuote, clamp, err := taskreapi.ApplyPricingSKUToPriceData(&info.PriceData, info.OriginModelName, pricingParameters)
+		if err != nil {
+			return nil, service.TaskErrorWrapperLocal(err, "model_price_error", http.StatusBadRequest)
+		}
+		noteTaskQuotaClamp(info, clamp)
+		skuQuoteApplied = skuQuote != nil
+	}
+	if !skuQuoteApplied {
+		if estimatedRatios := adaptor.EstimateBilling(c, info); len(estimatedRatios) > 0 {
+			for k, v := range estimatedRatios {
+				info.PriceData.AddOtherRatio(k, v)
+			}
 		}
 	}
 	if err := helper.ApplyPreparedModelOperationContractPricing(info, preparedContract); err != nil {

@@ -258,14 +258,6 @@ func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInf
 			ratios["images"] = float64(n)
 		}
 	}
-	if modelName == "ai-essay-writer" {
-		length := stringRequestValue(body, "length")
-		words := map[string]float64{"short": 500, "medium": 1000, "long": 1500}[strings.ToLower(strings.TrimSpace(length))]
-		if words == 0 {
-			words = 1000
-		}
-		ratios["words"] = words
-	}
 	if modelName == "ai-text-detector" || modelName == "humanize" {
 		text := stringRequestValue(body, "text")
 		if text == "" {
@@ -275,7 +267,7 @@ func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInf
 		if words < 50 {
 			words = 50
 		}
-		ratios["words"] = float64(words)
+		ratios["thousand_words"] = float64(words) / 1000
 	}
 	if len(ratios) == 0 {
 		return nil

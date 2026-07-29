@@ -163,6 +163,7 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 
 | Document | Contents | Corresponding code and resources |
 | --- | --- | --- |
+| `docs/operations/2026-07-29-reapi-sku-pricing-quote.md` | RE 模型卡片 SKU 价格快照、参数/素材精确报价与真实任务预扣统一 | `docs/catalog/reapi-async-pricing.json`, `relay/channel/task/reapi/pricing_catalog.go`, `/api/models/quote`, Superseed TapLater Generation BFF, Railway `new-api` |
 | `docs/operations/2026-07-23-reapi-exact-contracts-canvas.md` | RE 88 个已发布异步模型的官方参数合同、分站 gold 路由与 TapLater 画布材料输入 | `docs/catalog/reapi-async-contracts.json`, `cmd/reapi-contract-snapshot`, `cmd/reapi-onboard`, `model operation contracts`, Railway `new-api`, Superseed TapLater |
 | `docs/operations/2026-07-23-reapi-async-marketplace-publish.md` | RE 非 Chat 异步模型价格快照、模型广场发布、计费倍率与生产开闸 | `docs/catalog/reapi-async-pricing.json`, `cmd/reapi-pricing-snapshot`, `cmd/reapi-onboard --publish-async`, `relay/channel/task/reapi/`, Railway `new-api`/Postgres |
 | `docs/operations/2026-07-23-reapi-async-production-readiness.md` | RE 异步合同分流、宽松参数透传、单密钥初始化与 Railway Async Secret 配置 | `relay/channel/task/reapi/`, `relay/relay_task.go`, `cmd/reapi-onboard`, Railway `new-api`, `REAPI_TASK_API_KEY` |
