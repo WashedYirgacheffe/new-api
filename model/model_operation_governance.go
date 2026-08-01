@@ -266,18 +266,19 @@ func DeleteModelOperationParameterEvidence(id int) error {
 const defaultModelOperationEvidenceObservedAt int64 = 1784131200
 
 type defaultModelOperationEvidenceSeed struct {
-	ModelName  string
-	Operation  string
-	Field      string
-	SourceType string
-	SourceURL  string
-	Source     string
-	Notes      string
+	ModelName          string
+	Operation          string
+	Field              string
+	SourceType         string
+	SourceURL          string
+	Source             string
+	Notes              string
+	VerificationStatus string
+	ObservedAt         int64
 }
 
-// SeedDefaultModelOperationParameterEvidence records the three provenance
-// layers used by the core DeepWL contracts. These are documented observations,
-// not claims that a paid upstream request was executed by the seed process.
+// SeedDefaultModelOperationParameterEvidence records contract provenance and
+// curated acceptance observations. The seed process itself never calls upstream.
 func SeedDefaultModelOperationParameterEvidence() error {
 	if DB == nil || !DB.Migrator().HasTable(&ModelOperationParameterEvidence{}) {
 		return nil
@@ -293,9 +294,9 @@ func SeedDefaultModelOperationParameterEvidence() error {
 	seeds := make([]defaultModelOperationEvidenceSeed, 0, 24)
 	addLayers := func(modelName, operation, docURL, documented, demo, release string) {
 		seeds = append(seeds,
-			defaultModelOperationEvidenceSeed{modelName, operation, "documented_capability", ModelOperationEvidenceSourceDoc, docURL, "official documentation", documented},
-			defaultModelOperationEvidenceSeed{modelName, operation, "demo_allowlist", ModelOperationEvidenceSourceDemo, demoConfigURL, "Duoyuanx generation config", demo},
-			defaultModelOperationEvidenceSeed{modelName, operation, "taplater_release", ModelOperationEvidenceSourceManual, tapLaterURL, "TapLater published contract observation", release},
+			defaultModelOperationEvidenceSeed{ModelName: modelName, Operation: operation, Field: "documented_capability", SourceType: ModelOperationEvidenceSourceDoc, SourceURL: docURL, Source: "official documentation", Notes: documented},
+			defaultModelOperationEvidenceSeed{ModelName: modelName, Operation: operation, Field: "demo_allowlist", SourceType: ModelOperationEvidenceSourceDemo, SourceURL: demoConfigURL, Source: "Duoyuanx generation config", Notes: demo},
+			defaultModelOperationEvidenceSeed{ModelName: modelName, Operation: operation, Field: "taplater_release", SourceType: ModelOperationEvidenceSourceManual, SourceURL: tapLaterURL, Source: "TapLater published contract observation", Notes: release},
 		)
 	}
 	addLayers(
@@ -318,9 +319,9 @@ func SeedDefaultModelOperationParameterEvidence() error {
 	)
 	addLayers(
 		"deepwl/omni-fast", "video.generate", omniDocURL,
-		"DeepWL Omni Fast documentation describes asynchronous video generation with duration, ratio, resolution, and optional images.",
+		"DeepWL Omni Fast documentation specifies string seconds from 4 to 30, ratio, resolution, and optional images.",
 		"Demo allowlist exposes 4/6/8/10 seconds, 720p, five ratios, and up to five reference images.",
-		"TapLater release uses 4/6/8/10 seconds, 720p, five ratios, and up to five reference images.",
+		"TapLater previously exposed 4/6/8/10 seconds; the current contract fixes 10 seconds after paid acceptance showed two 4-second requests both produced 10-second videos.",
 	)
 	addLayers(
 		"deepwl/omni-fast-v2v", "video.generate", omniV2VDocURL,
@@ -328,6 +329,17 @@ func SeedDefaultModelOperationParameterEvidence() error {
 		"Demo allowlist exposes 4/6/8/10 seconds, 720p, five ratios, one reference video, and optional images.",
 		"TapLater release requires one public MP4 video under 15MB, permits up to five reference images, and uses 4/6/8/10 seconds at 720p.",
 	)
+	seeds = append(seeds, defaultModelOperationEvidenceSeed{
+		ModelName:          "deepwl/omni-fast",
+		Operation:          "video.generate",
+		Field:              "seconds_runtime",
+		SourceType:         ModelOperationEvidenceSourceTest,
+		SourceURL:          tapLaterURL,
+		Source:             "2026-07-17 paid Playground acceptance",
+		Notes:              "Two independent requests with effective seconds=4 produced 240-frame 24fps videos lasting 10 seconds; 9:16 and 720p were honored. TapLater temporarily fixes seconds=10 pending upstream clarification.",
+		VerificationStatus: ModelOperationEvidenceStatusTested,
+		ObservedAt:         1784283360,
+	})
 	for _, price := range []struct {
 		model string
 		value string
@@ -349,6 +361,14 @@ func SeedDefaultModelOperationParameterEvidence() error {
 
 	return DB.Transaction(func(tx *gorm.DB) error {
 		for _, seed := range seeds {
+			verificationStatus := seed.VerificationStatus
+			if verificationStatus == "" {
+				verificationStatus = ModelOperationEvidenceStatusDocumented
+			}
+			observedAt := seed.ObservedAt
+			if observedAt == 0 {
+				observedAt = defaultModelOperationEvidenceObservedAt
+			}
 			evidence := &ModelOperationParameterEvidence{
 				ModelName:          seed.ModelName,
 				Operation:          seed.Operation,
@@ -356,8 +376,8 @@ func SeedDefaultModelOperationParameterEvidence() error {
 				SourceType:         seed.SourceType,
 				SourceURL:          seed.SourceURL,
 				SourceLocator:      seed.Source,
-				VerificationStatus: ModelOperationEvidenceStatusDocumented,
-				VerifiedAt:         defaultModelOperationEvidenceObservedAt,
+				VerificationStatus: verificationStatus,
+				VerifiedAt:         observedAt,
 				Notes:              seed.Notes,
 			}
 			if err := normalizeModelOperationParameterEvidence(evidence); err != nil {

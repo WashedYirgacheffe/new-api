@@ -236,10 +236,16 @@ func TestSeedDefaultModelOperationParameterEvidenceIsIdempotent(t *testing.T) {
 	require.NoError(t, SeedDefaultModelOperationParameterEvidence())
 	var total int64
 	require.NoError(t, DB.Model(&ModelOperationParameterEvidence{}).Where("model_name IN ?", models).Count(&total).Error)
-	assert.EqualValues(t, 18, total)
+	assert.EqualValues(t, 19, total)
 	priceEvidence = ModelOperationParameterEvidence{}
 	require.NoError(t, DB.Where("model_name = ? AND field = ?", "deepwl/gpt-image-2-all", "public_price").First(&priceEvidence).Error)
 	assert.Equal(t, ModelOperationEvidenceStatusTested, priceEvidence.VerificationStatus)
 	assert.EqualValues(t, 1784999999, priceEvidence.VerifiedAt)
 	assert.Equal(t, "Administrator verified this evidence against the upstream response.", priceEvidence.Notes)
+	var runtimeEvidence ModelOperationParameterEvidence
+	require.NoError(t, DB.Where("model_name = ? AND field = ?", "deepwl/omni-fast", "seconds_runtime").First(&runtimeEvidence).Error)
+	assert.Equal(t, ModelOperationEvidenceSourceTest, runtimeEvidence.SourceType)
+	assert.Equal(t, ModelOperationEvidenceStatusTested, runtimeEvidence.VerificationStatus)
+	assert.EqualValues(t, 1784283360, runtimeEvidence.VerifiedAt)
+	assert.Contains(t, runtimeEvidence.Notes, "fixes seconds=10")
 }

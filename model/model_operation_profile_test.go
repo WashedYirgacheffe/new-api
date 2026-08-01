@@ -85,12 +85,14 @@ func TestCoreDefaultModelOperationContractMatrix(t *testing.T) {
 	}
 
 	for _, test := range []struct {
-		modelName    string
-		profileKey   string
-		videoEnabled bool
+		modelName     string
+		profileKey    string
+		seconds       []interface{}
+		defaultSecond float64
+		videoEnabled  bool
 	}{
-		{modelName: omniFastModelName, profileKey: "video.generate.omni"},
-		{modelName: omniFastV2VModelName, profileKey: "video.generate.omni-v2v", videoEnabled: true},
+		{modelName: omniFastModelName, profileKey: "video.generate.omni", seconds: []interface{}{float64(10)}, defaultSecond: 10},
+		{modelName: omniFastV2VModelName, profileKey: "video.generate.omni-v2v", seconds: []interface{}{float64(4), float64(6), float64(8), float64(10)}, defaultSecond: 4, videoEnabled: true},
 	} {
 		t.Run(test.modelName, func(t *testing.T) {
 			contract := defaultModelOperationContractForModel(t, test.modelName)
@@ -105,8 +107,11 @@ func TestCoreDefaultModelOperationContractMatrix(t *testing.T) {
 			require.True(t, ok)
 			seconds, ok := contractObject(properties["seconds"])
 			require.True(t, ok)
-			assert.Equal(t, []interface{}{float64(4), float64(6), float64(8), float64(10)}, seconds["enum"])
-			assert.Equal(t, float64(4), seconds["default"])
+			assert.Equal(t, test.seconds, seconds["enum"])
+			assert.Equal(t, test.defaultSecond, seconds["default"])
+			if test.modelName == omniFastModelName {
+				assert.Equal(t, float64(10), contract.ParameterOverrides["seconds"])
+			}
 			resolution, ok := contractObject(properties["resolution"])
 			require.True(t, ok)
 			assert.Equal(t, []interface{}{"720p"}, resolution["enum"])
@@ -137,6 +142,38 @@ func TestCoreDefaultModelOperationContractMatrix(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSeedDefaultModelOperationProfilesRejectsConflictingOmniVersion3(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(
+		&Model{},
+		&ModelOperationProfile{},
+		&ModelOperationProfileVersion{},
+		&ModelOperationBinding{},
+		&ModelOperationBindingRevision{},
+	))
+	cleanup := func() {
+		for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+			DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table)
+		}
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	var conflicting defaultModelOperationProfile
+	for _, item := range defaultModelOperationProfiles() {
+		if item.Profile.ProfileKey == "video.generate.omni" {
+			conflicting = item
+			break
+		}
+	}
+	require.Equal(t, "video.generate.omni", conflicting.Profile.ProfileKey)
+	conflicting.Version.SmokeTest = `{"prompt":"administrator-owned v3","seconds":10,"aspect_ratio":"16:9","resolution":"720p"}`
+	require.NoError(t, SaveModelOperationProfileVersion(&conflicting.Profile, &conflicting.Version))
+
+	err := SeedDefaultModelOperationProfiles()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "conflicts with the fixed-duration contract")
 }
 
 func TestSeedDefaultModelOperationProfilesMigratesLegacyGeminiImageBinding(t *testing.T) {
@@ -227,6 +264,14 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 	require.NoError(t, err)
 	_, currentV2VVersion, err := GetModelOperationProfileVersion("video.generate.omni-v2v", 3, false)
 	require.NoError(t, err)
+	_, currentOmniVersion, err := GetModelOperationProfileVersion("video.generate.omni", 3, false)
+	require.NoError(t, err)
+	version2Omni := *currentOmniVersion
+	version2Omni.Id = 0
+	version2Omni.Version = 2
+	version2Omni.InputSchema = `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","enum":[4,6,8,10],"default":4},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`
+	version2Omni.SmokeTest = `{"prompt":"生成一个简洁的海浪镜头","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`
+	require.NoError(t, DB.Create(&version2Omni).Error)
 	version2V2V := *currentV2VVersion
 	version2V2V.Id = 0
 	version2V2V.Version = 2
@@ -245,6 +290,13 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 	require.NoError(t, DB.Model(&Model{}).
 		Where("model_name IN ?", []string{omniFastModelName, omniFastV2VModelName}).
 		Update("endpoints", `["openai"]`).Error)
+	require.NoError(t, DB.Model(&ModelOperationBinding{}).
+		Where("model_name = ? AND operation = ?", omniFastModelName, "video.generate").
+		Updates(map[string]interface{}{
+			"profile_key":     "video.generate.omni",
+			"profile_version": 2,
+			"overrides":       omniFastVersion2Overrides,
+		}).Error)
 	require.NoError(t, DB.Model(&ModelOperationBinding{}).
 		Where("model_name = ? AND operation = ?", omniFastV2VModelName, "video.generate").
 		Updates(map[string]interface{}{
@@ -278,11 +330,17 @@ func TestSeedDefaultModelOperationProfilesMigratesCoreProductionBindings(t *test
 		binding, _, _, contract, err := GetEnabledModelOperationContract(modelName, "video.generate")
 		require.NoError(t, err)
 		assert.Equal(t, expectedProfile, binding.ProfileKey)
-		if modelName == omniFastV2VModelName {
-			assert.Equal(t, 3, binding.ProfileVersion)
-		}
+		assert.Equal(t, 3, binding.ProfileVersion)
 		assert.Equal(t, "/v1/videos", contract.DispatchPath)
 		assert.Equal(t, "/v1/videos/{task_id}", contract.PollPath)
+		if modelName == omniFastModelName {
+			properties, ok := contractObject(contract.InputSchema["properties"])
+			require.True(t, ok)
+			seconds, ok := contractObject(properties["seconds"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{float64(10)}, seconds["enum"])
+			assert.Equal(t, float64(10), contract.ParameterOverrides["seconds"])
+		}
 		var item Model
 		require.NoError(t, DB.Where("model_name = ?", modelName).First(&item).Error)
 		assert.Contains(t, parseConfiguredEndpointTypes(item.Endpoints), "openai-video")

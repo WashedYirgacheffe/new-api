@@ -368,4 +368,5 @@ func TestPrepareVideoRequestWritesEffectiveParametersBeforeBilling(t *testing.T)
 	body := modelOperationStoredJSONBody(t, context)
 	assert.Equal(t, "8", body["seconds"])
 	assert.Equal(t, "9:16", body["aspect_ratio"])
+	assert.NotContains(t, body, "duration")
 }

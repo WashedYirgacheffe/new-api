@@ -178,6 +178,22 @@ func normalizeModelOperationProfile(profile *ModelOperationProfile, version *Mod
 	return nil
 }
 
+func sameModelOperationProfileVersionDefinition(left, right *ModelOperationProfileVersion) bool {
+	if left == nil || right == nil {
+		return false
+	}
+	return left.Version == right.Version &&
+		left.Operation == right.Operation &&
+		left.EndpointType == right.EndpointType &&
+		left.ExecutionMode == right.ExecutionMode &&
+		left.InputSchema == right.InputSchema &&
+		left.UISchema == right.UISchema &&
+		left.MaterialSchema == right.MaterialSchema &&
+		left.ResponseContract == right.ResponseContract &&
+		left.SmokeTest == right.SmokeTest &&
+		left.Status == right.Status
+}
+
 func SaveModelOperationProfileVersion(profile *ModelOperationProfile, version *ModelOperationProfileVersion) error {
 	if profile == nil || version == nil {
 		return errors.New("profile and version are required")
@@ -479,7 +495,8 @@ const (
 	gptImage2Overrides           = `{"branding":{"icon_key":"openai","description":"GPT Image 2 / C 图像生成，开放 Duoyuanx Demo 当前列出的 13 档尺寸与三档质量；TapLater 单次运行固定生成 1 张。"},"ui_schema":{"placements":{"prompt":"prompt","size":"footer","quality":"footer","n":"hidden","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","quality":"select","n":"hidden","response_format":"hidden"}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","quality":"quality","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","quality":"high","n":1,"response_format":"url"}}`
 	gptImage2AllOverrides        = `{"schema_mode":"replace","branding":{"icon_key":"openai","description":"GPT Image 2 All 低价路由，仅开放 Duoyuanx Demo 当前验证的三档 1K 尺寸；TapLater 单次运行固定生成 1 张。"},"input_schema":{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"size":{"type":"string","enum":["1024x1024","1536x1024","1024x1536"],"default":"1024x1024"},"quality":{"type":"string","enum":["low","medium","high"],"default":"high"},"n":{"type":"integer","enum":[1],"default":1,"maximum":1},"response_format":{"type":"string","enum":["url","b64_json"],"default":"url"}},"required":["prompt"],"additionalProperties":false},"ui_schema":{"order":["prompt","size","quality","n","response_format"],"placements":{"prompt":"prompt","size":"footer","quality":"footer","n":"hidden","response_format":"hidden"},"widgets":{"prompt":"textarea","size":"select","quality":"select","n":"hidden","response_format":"hidden"}},"material_schema":{"image":{"max_items":0}},"request_contract":{"adapter":"openai-image","field_map":{"size":"size","quality":"quality","n":"n","response_format":"response_format"},"coercions":{}},"parameter_defaults":{"size":"1024x1024","quality":"high","n":1,"response_format":"url"}}`
 	omniFastLegacyOverrides      = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图，当前按独立模型固定采购价结算。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
-	omniFastOverrides            = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图；运行合同采用 Duoyuanx Demo 已开放的 4/6/8/10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":4,"aspect_ratio":"16:9","resolution":"720p"}}`
+	omniFastVersion2Overrides    = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图；运行合同采用 Duoyuanx Demo 已开放的 4/6/8/10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":4,"aspect_ratio":"16:9","resolution":"720p"}}`
+	omniFastOverrides            = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图；两次生产验收均固定输出 10 秒，上游澄清前仅开放 10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":10,"aspect_ratio":"16:9","resolution":"720p"},"parameter_overrides":{"seconds":10}}`
 	omniFastV2VLegacyOverrides   = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个公网 MP4 参考视频的编辑、延长或重新生成。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"stepper","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":0},"video":{"min_items":1,"max_items":1,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":8,"aspect_ratio":"16:9","resolution":"720p"}}`
 	omniFastV2VVersion2Overrides = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个不超过 15MB 的公网 MP4，并可附加最多 5 张参考图；运行合同采用 4/6/8/10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"min_items":1,"max_items":1,"max_size_mb":15,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":4,"aspect_ratio":"16:9","resolution":"720p"}}`
 	omniFastV2VOverrides         = `{"branding":{"icon_key":"openai","description":"Omni Video V2V 支持单个不超过 15MB 的公网 MP4，并可附加最多 5 张参考图；运行合同采用 4/6/8/10 秒与 720p。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"min_items":1,"max_items":1,"mime_types":["video/mp4"],"max_size_mb":15,"request_field":"video","transport":"url"},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":4,"aspect_ratio":"16:9","resolution":"720p"}}`
@@ -549,7 +566,7 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			ModelNames:       []string{omniFastModelName},
 			BindingOverrides: omniFastOverrides,
 			Profile:          ModelOperationProfile{ProfileKey: "video.generate.omni", DisplayName: "Omni 视频生成", Description: "DeepWL Omni Fast 的 JSON 视频生成能力。"},
-			Version:          ModelOperationProfileVersion{Version: 2, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","enum":[4,6,8,10],"default":4},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个简洁的海浪镜头","seconds":4,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
+			Version:          ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"integer","enum":[10],"default":10},"aspect_ratio":{"type":"string","enum":["16:9","9:16","1:1","4:3","3:4"],"default":"16:9"},"resolution":{"type":"string","enum":["720p"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","resolution"],"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个简洁的海浪镜头","seconds":10,"aspect_ratio":"16:9","resolution":"720p"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelNames:       []string{omniFastV2VModelName},
@@ -709,6 +726,16 @@ func SeedDefaultModelOperationProfiles() error {
 			if storedVersion.Status != ModelOperationProfileStatusPublished || storedVersion.Operation != item.Version.Operation {
 				return fmt.Errorf("reserved profile %s version %d conflicts with the default contract", item.Profile.ProfileKey, item.Version.Version)
 			}
+			if item.Profile.ProfileKey == "video.generate.omni" && item.Version.Version == 3 {
+				expectedProfile := item.Profile
+				expectedVersion := item.Version
+				if err := normalizeModelOperationProfile(&expectedProfile, &expectedVersion); err != nil {
+					return fmt.Errorf("normalize reserved profile %s version %d: %w", item.Profile.ProfileKey, item.Version.Version, err)
+				}
+				if !sameModelOperationProfileVersionDefinition(storedVersion, &expectedVersion) {
+					return fmt.Errorf("reserved profile %s version %d conflicts with the fixed-duration contract", item.Profile.ProfileKey, item.Version.Version)
+				}
+			}
 			item.Profile = *storedProfile
 			item.Version = *storedVersion
 		} else if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -799,7 +826,7 @@ func SeedDefaultModelOperationProfiles() error {
 		{
 			modelName: omniFastModelName, profileKey: "video.generate.omni",
 			legacyVersion: 1, legacy: omniFastLegacyOverrides,
-			nextVersion: 2, next: omniFastOverrides,
+			nextVersion: 3, next: omniFastOverrides,
 		},
 		{
 			modelName: omniFastV2VModelName, profileKey: "video.generate.omni-v2v",
@@ -819,6 +846,18 @@ func SeedDefaultModelOperationProfiles() error {
 		); err != nil {
 			return fmt.Errorf("migrate Omni contract %s: %w", migration.modelName, err)
 		}
+	}
+	if err := migrateReservedModelOperationBinding(
+		omniFastModelName,
+		"video.generate",
+		"video.generate.omni",
+		2,
+		omniFastVersion2Overrides,
+		"video.generate.omni",
+		3,
+		omniFastOverrides,
+	); err != nil {
+		return fmt.Errorf("migrate Omni fixed-duration contract: %w", err)
 	}
 	if err := migrateReservedModelOperationBinding(
 		omniFastV2VModelName,
