@@ -11,6 +11,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+const omniFastOverridesV4 = `{"branding":{"icon_key":"openai","description":"Omni Video 支持文生视频和最多 5 张参考图；运行合同按素材模式选择精确模型。"},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"select","resolution":"segmented"}},"material_schema":{"image":{"max_items":5,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","resolution":"resolution"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","parameter_defaults":{"seconds":10,"aspect_ratio":"16:9","resolution":"720p"},"parameter_overrides":{"seconds":10},"modes":[{"id":"text-to-video","default":true},{"id":"video-to-video","when":{"material_slots":["video"]},"dispatch_model":"deepwl/omni-fast-v2v","input_schema":{"properties":{"seconds":{"type":"integer","enum":[4,6,8,10],"default":4}}},"ui_schema":{"placements":{"seconds":"footer"},"widgets":{"seconds":"segmented"}},"material_schema":{"video":{"min_items":1,"max_items":1,"mime_types":["video/mp4"],"max_size_mb":15,"request_field":"video","transport":"url"},"image":{"max_items":5,"request_field":"images","transport":"url"}},"parameter_defaults":{"seconds":4}}]}`
+
+const grokVideo3OverridesV3 = `{"branding":{"icon_key":"grok","description":"xAI Grok 视频生成模型；当前生产合同固定为已验证的 6 秒基础调用。"},"input_schema":{"properties":{"size":{"type":"string","enum":["720P"],"default":"720P"}}},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","size":"footer","image_url":"hidden"},"widgets":{"prompt":"textarea","seconds":"segmented","size":"segmented","image_url":"hidden"}},"material_schema":{"image":{"max_items":0},"video":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","size":"size"},"coercions":{}},"poll_path":"/v1/video/generations/{task_id}"}`
+const grokVideo3OverridesV4 = `{"branding":{"icon_key":"grok","description":"xAI Grok 视频生成模型；时长模式选择对应的精确模型身份。"},"input_schema":{"properties":{"size":{"type":"string","enum":["720P"],"default":"720P"}}},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","size":"footer","image_url":"hidden"},"widgets":{"prompt":"textarea","seconds":"segmented","size":"segmented","image_url":"hidden"}},"material_schema":{"image":{"max_items":0},"video":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","size":"size"},"coercions":{}},"poll_path":"/v1/video/generations/{task_id}","modes":[{"id":"six-seconds","default":true},{"id":"ten-seconds","when":{"parameter_equals":{"seconds":"10"}},"dispatch_model":"deepwl/grok-video-3-10s","input_schema":{"properties":{"seconds":{"type":"string","enum":["10"],"default":"10"}}}},{"id":"fifteen-seconds","when":{"parameter_equals":{"seconds":"15"}},"dispatch_model":"deepwl/grok-video-3-15s","input_schema":{"properties":{"seconds":{"type":"string","enum":["15"],"default":"15"}}}}]}`
+
 const (
 	ModelOperationProfileStatusDraft     = "draft"
 	ModelOperationProfileStatusPublished = "published"
@@ -503,7 +508,7 @@ const (
 )
 
 func defaultModelOperationProfiles() []defaultModelOperationProfile {
-	return []defaultModelOperationProfile{
+	profiles := []defaultModelOperationProfile{
 		{
 			ModelType:        "text",
 			ModelNames:       []string{"deepwl/gemini-3.5-flash"},
@@ -594,6 +599,17 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version:   ModelOperationProfileVersion{Version: 1, Operation: "rerank.create", EndpointType: "openai", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"query":{"type":"string","minLength":1},"documents":{"type":"array","minItems":1}},"required":["query","documents"],"additionalProperties":true}`, UISchema: `{"order":["query","documents"],"widgets":{"query":"textarea","documents":"string-list"}}`, MaterialSchema: `{}`, ResponseContract: "openai-chat-completion-v1", SmokeTest: `{"query":"测试","documents":["测试文档","无关文档"]}`, Status: ModelOperationProfileStatusPublished},
 		},
 	}
+	for index := range profiles {
+		for _, modelName := range profiles[index].ModelNames {
+			switch modelName {
+			case omniFastModelName:
+				profiles[index].BindingOverrides = omniFastOverridesV4
+			case "deepwl/grok-video-3":
+				profiles[index].BindingOverrides = grokVideo3OverridesV4
+			}
+		}
+	}
+	return profiles
 }
 
 func migrateReservedModelOperationBinding(modelName, operation, legacyProfileKey string, legacyProfileVersion int, legacyOverrides, nextProfileKey string, nextProfileVersion int, nextOverrides string) error {
@@ -870,6 +886,30 @@ func SeedDefaultModelOperationProfiles() error {
 		omniFastV2VOverrides,
 	); err != nil {
 		return fmt.Errorf("migrate Omni V2V MIME contract: %w", err)
+	}
+	if err := migrateReservedModelOperationBinding(
+		omniFastModelName,
+		"video.generate",
+		"video.generate.omni",
+		3,
+		omniFastOverrides,
+		"video.generate.omni",
+		3,
+		omniFastOverridesV4,
+	); err != nil {
+		return fmt.Errorf("migrate Omni mode contract: %w", err)
+	}
+	if err := migrateReservedModelOperationBinding(
+		"deepwl/grok-video-3",
+		"video.generate",
+		"video.generate.basic",
+		3,
+		grokVideo3OverridesV3,
+		"video.generate.basic",
+		3,
+		grokVideo3OverridesV4,
+	); err != nil {
+		return fmt.Errorf("migrate Grok duration mode contract: %w", err)
 	}
 	for _, migration := range []struct {
 		modelName string

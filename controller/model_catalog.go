@@ -541,6 +541,15 @@ func QuoteTokenModel(c *gin.Context) {
 		common.ApiErrorMsg(c, fmt.Sprintf("operation %s is not dispatch-ready for model %s", request.Operation, request.Model))
 		return
 	}
+	effectiveContract, err = model.ResolveModelOperationContractMode(
+		effectiveContract,
+		request.Parameters,
+		model.DetectModelOperationMaterialSlots(effectiveContract, request.Parameters),
+	)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	normalizedParameters, pricingParameters, err := normalizeModelQuoteParameters(effectiveContract, request.Parameters)
 	if err != nil {
 		common.ApiError(c, err)

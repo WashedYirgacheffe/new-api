@@ -142,6 +142,22 @@ func TestCoreDefaultModelOperationContractMatrix(t *testing.T) {
 			}
 		})
 	}
+
+	omni := defaultModelOperationContractForModel(t, omniFastModelName)
+	resolvedOmni, err := ResolveModelOperationContractMode(
+		omni,
+		map[string]interface{}{"video": "https://example.com/source.mp4", "seconds": float64(4)},
+		DetectModelOperationMaterialSlots(omni, map[string]interface{}{"video": "https://example.com/source.mp4"}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "video-to-video", resolvedOmni.SelectedMode)
+	assert.Equal(t, "deepwl/omni-fast-v2v", resolvedOmni.Modes[1].DispatchModel)
+
+	grok := defaultModelOperationContractForModel(t, "deepwl/grok-video-3")
+	resolvedGrok, err := ResolveModelOperationContractMode(grok, map[string]interface{}{"seconds": "10"}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "ten-seconds", resolvedGrok.SelectedMode)
+	assert.Equal(t, "deepwl/grok-video-3-10s", resolvedGrok.Modes[1].DispatchModel)
 }
 
 func TestSeedDefaultModelOperationProfilesRejectsConflictingOmniVersion3(t *testing.T) {

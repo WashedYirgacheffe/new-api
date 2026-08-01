@@ -499,6 +499,14 @@ func prepareModelOperationContractRequestWithContract(
 	if err != nil {
 		return nil, err
 	}
+	contract, err = model.ResolveModelOperationContractMode(
+		contract,
+		parameters,
+		model.DetectModelOperationMaterialSlots(contract, parameters),
+	)
+	if err != nil {
+		return nil, err
+	}
 	if err := validateRawModelOperationContractParameters(contract, parameters); err != nil {
 		return nil, err
 	}
@@ -586,6 +594,14 @@ func ApplyModelOperationContractPricing(info *relaycommon.RelayInfo, operation s
 	if errors.Is(err, model.ErrModelOperationBindingNotFound) {
 		return nil, nil
 	}
+	if err != nil {
+		return nil, err
+	}
+	contract, err = model.ResolveModelOperationContractMode(
+		contract,
+		parameters,
+		model.DetectModelOperationMaterialSlots(contract, parameters),
+	)
 	if err != nil {
 		return nil, err
 	}

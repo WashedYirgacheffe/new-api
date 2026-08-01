@@ -107,6 +107,76 @@ func TestNormalizeModelOperationBindingOverridesRejectsInvalidMaterialLimits(t *
 	}
 }
 
+func TestModelOperationContractModesResolveMaterialVariant(t *testing.T) {
+	profile, version, binding := imageContractFixture(t, `{}`)
+	binding.Overrides = `{
+		"request_contract":{"adapter":"openai-image","field_map":{},"coercions":{}},
+		"modes":[
+			{"id":"text-to-image","default":true},
+			{
+				"id":"reference-image",
+				"when":{"material_slots":["reference_image"]},
+				"dispatch_model":"deepwl/reference-image-v2",
+				"material_schema":{"image":{"max_items":1,"request_fields":[{"slot":"reference_image","request_field":"image","transport":"base64","value_type":"string","min_items":1,"max_items":1}]}},
+				"parameter_overrides":{"n":1}
+			}
+		]
+	}`
+
+	normalized, _, err := normalizeModelOperationBindingOverrides(binding.Overrides, profile, version)
+	require.NoError(t, err)
+	binding.Overrides = normalized
+	contract, err := BuildModelOperationEffectiveContract(binding, profile, version)
+	require.NoError(t, err)
+
+	defaultContract, err := ResolveModelOperationContractMode(contract, map[string]interface{}{}, map[string]bool{})
+	require.NoError(t, err)
+	assert.Equal(t, "text-to-image", defaultContract.SelectedMode)
+
+	parameters := map[string]interface{}{"image": "encoded-reference"}
+	materialContract, err := ResolveModelOperationContractMode(
+		contract,
+		parameters,
+		DetectModelOperationMaterialSlots(contract, parameters),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "reference-image", materialContract.SelectedMode)
+	assert.Equal(t, "deepwl/reference-image-v2", materialContract.Modes[1].DispatchModel)
+	assert.Equal(t, float64(1), materialContract.ParameterOverrides["n"])
+	imageRule, ok := materialContract.MaterialSchema["image"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, float64(1), imageRule["max_items"])
+}
+
+func TestNormalizeModelOperationBindingOverridesRejectsOverlappingModes(t *testing.T) {
+	profile, version, _ := imageContractFixture(t, `{}`)
+
+	_, _, err := normalizeModelOperationBindingOverrides(`{
+		"modes":[
+			{"id":"default","default":true},
+			{"id":"two-k","when":{"parameter_equals":{"resolution":"2K"}}},
+			{"id":"two-k-copy","when":{"parameter_equals":{"resolution":"2K"}}}
+		]
+	}`, profile, version)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "overlapping conditions")
+}
+
+func TestNormalizeModelOperationBindingOverridesAcceptsDocumentedMaterialTransportsAndGroups(t *testing.T) {
+	profile, version, _ := imageContractFixture(t, `{}`)
+
+	_, _, err := normalizeModelOperationBindingOverrides(`{
+		"material_schema":{"image":{"max_items":2,"ordered":true,"request_fields":[
+			{"slot":"first_frame","request_field":"first_image","transport":"multipart","value_type":"string","max_items":1,"exclusive_group":"image_mode","position":0},
+			{"slot":"reference_image","request_field":"image_assets","transport":"asset_id","value_type":"array","max_items":2,"exclusive_group":"image_mode","one_of_group":"image_input","position":1}
+		]}},
+		"request_contract":{"adapter":"openai-image","field_map":{},"coercions":{}}
+	}`, profile, version)
+
+	require.NoError(t, err)
+}
+
 func TestModelOperationContractIncludesValidatedPollPath(t *testing.T) {
 	profile := &ModelOperationProfile{ProfileKey: "video.generate.basic", DisplayName: "Video generation"}
 	version := &ModelOperationProfileVersion{

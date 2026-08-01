@@ -7,6 +7,7 @@ import (
 	"math"
 	"mime"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -47,6 +48,29 @@ type ModelOperationPricingRule struct {
 	QuantityField string                            `json:"quantity_field,omitempty"`
 }
 
+type ModelOperationModeCondition struct {
+	ParameterEquals       map[string]interface{} `json:"parameter_equals,omitempty"`
+	MaterialSlots         []string               `json:"material_slots,omitempty"`
+	ExcludedMaterialSlots []string               `json:"excluded_material_slots,omitempty"`
+}
+
+type ModelOperationContractMode struct {
+	Id                 string                         `json:"id"`
+	Default            bool                           `json:"default,omitempty"`
+	When               *ModelOperationModeCondition   `json:"when,omitempty"`
+	DispatchModel      string                         `json:"dispatch_model,omitempty"`
+	InputSchema        map[string]interface{}         `json:"input_schema,omitempty"`
+	UISchema           map[string]interface{}         `json:"ui_schema,omitempty"`
+	MaterialSchema     map[string]interface{}         `json:"material_schema,omitempty"`
+	RequestContract    *ModelOperationRequestContract `json:"request_contract,omitempty"`
+	PricingRule        *ModelOperationPricingRule     `json:"pricing_rule,omitempty"`
+	ParameterDefaults  map[string]interface{}         `json:"parameter_defaults,omitempty"`
+	ParameterOverrides map[string]interface{}         `json:"parameter_overrides,omitempty"`
+	DispatchPath       string                         `json:"dispatch_path,omitempty"`
+	PollPath           string                         `json:"poll_path,omitempty"`
+	ResponseContract   string                         `json:"response_contract,omitempty"`
+}
+
 type ModelOperationBindingOverrides struct {
 	SchemaMode         string                         `json:"schema_mode,omitempty"`
 	Branding           *ModelOperationBranding        `json:"branding,omitempty"`
@@ -59,6 +83,7 @@ type ModelOperationBindingOverrides struct {
 	ParameterOverrides map[string]interface{}         `json:"parameter_overrides,omitempty"`
 	DispatchPath       string                         `json:"dispatch_path,omitempty"`
 	PollPath           string                         `json:"poll_path,omitempty"`
+	Modes              []ModelOperationContractMode   `json:"modes,omitempty"`
 }
 
 type ModelOperationEffectiveContract struct {
@@ -81,6 +106,8 @@ type ModelOperationEffectiveContract struct {
 	ResponseContract   string                        `json:"response_contract"`
 	ContractVersion    int                           `json:"contract_version"`
 	ContractHash       string                        `json:"contract_hash"`
+	Modes              []ModelOperationContractMode  `json:"modes,omitempty"`
+	SelectedMode       string                        `json:"selected_mode,omitempty"`
 }
 
 func validateContractObjectKeys(field string, object map[string]interface{}, allowed ...string) error {
@@ -586,8 +613,13 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 			return fmt.Errorf("material_schema.%s must be an object", materialType)
 		}
 		if err := validateContractObjectKeys("material_schema."+materialType, rule,
-			"min_items", "max_items", "roles", "mime_types", "max_size_mb", "max_total_duration", "request_field", "request_fields", "transport"); err != nil {
+			"min_items", "max_items", "roles", "mime_types", "max_size_mb", "max_total_duration", "request_field", "request_fields", "transport", "ordered"); err != nil {
 			return err
+		}
+		if ordered, exists := rule["ordered"]; exists {
+			if _, ok := ordered.(bool); !ok {
+				return fmt.Errorf("material_schema.%s.ordered must be a boolean", materialType)
+			}
 		}
 		minItemsRaw, hasMin := rule["min_items"]
 		maxItemsRaw, hasMax := rule["max_items"]
@@ -681,7 +713,7 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 		if hasTransport && (!transportValid || transport == "") {
 			return fmt.Errorf("material_schema.%s.transport must be a non-empty string", materialType)
 		}
-		if hasTransport && transport != "url" {
+		if hasTransport && transport != "url" && transport != "base64" && transport != "multipart" && transport != "asset_id" && transport != "deepwl-asset-url" {
 			return fmt.Errorf("material_schema.%s.transport %q is not registered", materialType, transport)
 		}
 		if hasRequestField != hasTransport {
@@ -704,7 +736,7 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 					return fmt.Errorf("material_schema.%s.request_fields[%d] must be an object", materialType, index)
 				}
 				if err := validateContractObjectKeys(fmt.Sprintf("material_schema.%s.request_fields[%d]", materialType, index), requestFieldRule,
-					"slot", "min_items", "max_items", "roles", "mime_types", "max_size_mb", "request_field", "transport", "value_type", "label", "url_field", "item_template", "requires_slot"); err != nil {
+					"slot", "min_items", "max_items", "roles", "mime_types", "max_size_mb", "request_field", "transport", "value_type", "label", "url_field", "item_template", "requires_slot", "exclusive_group", "one_of_group", "position"); err != nil {
 					return err
 				}
 				slot, _ := requestFieldRule["slot"].(string)
@@ -727,6 +759,27 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 				valueType, _ := requestFieldRule["value_type"].(string)
 				if valueType != "string" && valueType != "array" {
 					return fmt.Errorf("material_schema.%s.request_fields[%d].value_type must be string or array", materialType, index)
+				}
+				transport, _ := requestFieldRule["transport"].(string)
+				if transport != "url" && transport != "base64" && transport != "multipart" && transport != "asset_id" && transport != "deepwl-asset-url" {
+					return fmt.Errorf("material_schema.%s.request_fields[%d].transport %q is not registered", materialType, index, transport)
+				}
+				for _, groupField := range []string{"exclusive_group", "one_of_group"} {
+					if rawGroup, exists := requestFieldRule[groupField]; exists {
+						group, ok := rawGroup.(string)
+						if !ok || strings.TrimSpace(group) == "" {
+							return fmt.Errorf("material_schema.%s.request_fields[%d].%s must be a non-empty string", materialType, index, groupField)
+						}
+						if _, err := normalizeContractIdentifier(group, 128); err != nil {
+							return fmt.Errorf("material_schema.%s.request_fields[%d].%s: %w", materialType, index, groupField, err)
+						}
+					}
+				}
+				if rawPosition, exists := requestFieldRule["position"]; exists {
+					position, ok := modelOperationNumericParameterValue(rawPosition)
+					if !ok || position < 0 || position > 20 || math.Trunc(position) != position {
+						return fmt.Errorf("material_schema.%s.request_fields[%d].position must be an integer between 0 and 20", materialType, index)
+					}
 				}
 				urlFieldRaw, hasURLField := requestFieldRule["url_field"]
 				urlField, urlFieldValid := urlFieldRaw.(string)
@@ -775,7 +828,7 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 
 				legacyRule := make(map[string]interface{}, len(requestFieldRule))
 				for field, value := range requestFieldRule {
-					if field != "slot" && field != "value_type" && field != "label" && field != "url_field" && field != "item_template" && field != "requires_slot" {
+					if field != "slot" && field != "value_type" && field != "label" && field != "url_field" && field != "item_template" && field != "requires_slot" && field != "exclusive_group" && field != "one_of_group" && field != "position" {
 						legacyRule[field] = value
 					}
 				}
@@ -794,6 +847,262 @@ func validateModelOperationMaterialSchema(schema map[string]interface{}, require
 		}
 	}
 	return nil
+}
+
+func modelOperationMaterialSlotSet(schema map[string]interface{}) map[string]struct{} {
+	result := make(map[string]struct{})
+	for _, rawRule := range schema {
+		rule, ok := contractObject(rawRule)
+		if !ok {
+			continue
+		}
+		if requestField, ok := rule["request_field"].(string); ok && strings.TrimSpace(requestField) != "" {
+			result[strings.TrimSpace(requestField)] = struct{}{}
+		}
+		requestFields, _ := rule["request_fields"].([]interface{})
+		for _, rawField := range requestFields {
+			field, ok := contractObject(rawField)
+			if !ok {
+				continue
+			}
+			for _, key := range []string{"slot", "request_field"} {
+				if value, ok := field[key].(string); ok && strings.TrimSpace(value) != "" {
+					result[strings.TrimSpace(value)] = struct{}{}
+				}
+			}
+		}
+	}
+	return result
+}
+
+func normalizeModelOperationModeSlots(field string, values []string, available map[string]struct{}) ([]string, error) {
+	result := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return nil, fmt.Errorf("%s must contain non-empty slot names", field)
+		}
+		if _, exists := available[value]; !exists {
+			return nil, fmt.Errorf("%s references unknown material slot %s", field, value)
+		}
+		if _, duplicate := seen[value]; duplicate {
+			return nil, fmt.Errorf("%s contains duplicate material slot %s", field, value)
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	sort.Strings(result)
+	return result, nil
+}
+
+func modelOperationModeConditionEmpty(condition *ModelOperationModeCondition) bool {
+	return condition == nil || (len(condition.ParameterEquals) == 0 && len(condition.MaterialSlots) == 0 && len(condition.ExcludedMaterialSlots) == 0)
+}
+
+func modelOperationModeConditionsOverlap(left, right *ModelOperationModeCondition) bool {
+	for field, leftValue := range left.ParameterEquals {
+		if rightValue, exists := right.ParameterEquals[field]; exists && !reflect.DeepEqual(leftValue, rightValue) {
+			return false
+		}
+	}
+	leftRequired := make(map[string]struct{}, len(left.MaterialSlots))
+	leftExcluded := make(map[string]struct{}, len(left.ExcludedMaterialSlots))
+	rightRequired := make(map[string]struct{}, len(right.MaterialSlots))
+	rightExcluded := make(map[string]struct{}, len(right.ExcludedMaterialSlots))
+	for _, slot := range left.MaterialSlots {
+		leftRequired[slot] = struct{}{}
+	}
+	for _, slot := range left.ExcludedMaterialSlots {
+		leftExcluded[slot] = struct{}{}
+	}
+	for _, slot := range right.MaterialSlots {
+		rightRequired[slot] = struct{}{}
+	}
+	for _, slot := range right.ExcludedMaterialSlots {
+		rightExcluded[slot] = struct{}{}
+	}
+	for slot := range leftRequired {
+		if _, conflict := rightExcluded[slot]; conflict {
+			return false
+		}
+	}
+	for slot := range rightRequired {
+		if _, conflict := leftExcluded[slot]; conflict {
+			return false
+		}
+	}
+	return true
+}
+
+func validateModelOperationModeRequestContract(contract *ModelOperationRequestContract, endpointType string, properties map[string]interface{}) error {
+	if contract == nil {
+		return nil
+	}
+	contract.Adapter = strings.TrimSpace(contract.Adapter)
+	validEndpoint := map[string]string{
+		"openai-chat": "openai", "openai-image": "image-generation", "gemini-image": "gemini",
+		"openai-video": "openai-video", "re-task": "re-task",
+	}[contract.Adapter]
+	if validEndpoint == "" {
+		return fmt.Errorf("request_contract adapter %q is not registered", contract.Adapter)
+	}
+	if endpointType != validEndpoint {
+		return fmt.Errorf("%s request adapter requires %s endpoint_type", contract.Adapter, validEndpoint)
+	}
+	for field, target := range contract.FieldMap {
+		if _, exists := properties[field]; !exists {
+			return fmt.Errorf("request_contract field_map references unknown field %s", field)
+		}
+		if _, err := normalizeContractIdentifier(strings.TrimSpace(target), 128); err != nil {
+			return fmt.Errorf("request_contract field_map target for %s: %w", field, err)
+		}
+	}
+	for field, coercion := range contract.Coercions {
+		if _, exists := properties[field]; !exists {
+			return fmt.Errorf("request_contract coercion references unknown field %s", field)
+		}
+		switch coercion {
+		case "string", "integer", "number", "boolean", "json":
+		default:
+			return fmt.Errorf("request_contract coercion %s for %s is not registered", coercion, field)
+		}
+	}
+	return nil
+}
+
+func validateAndNormalizeModelOperationModes(
+	modes []ModelOperationContractMode,
+	baseInputSchema, baseUISchema, baseMaterialSchema map[string]interface{},
+	version *ModelOperationProfileVersion,
+) ([]ModelOperationContractMode, error) {
+	if len(modes) == 0 {
+		return nil, nil
+	}
+	if len(modes) > 20 {
+		return nil, errors.New("modes must contain at most 20 entries")
+	}
+	defaultCount := 0
+	seenIds := make(map[string]struct{}, len(modes))
+	for index := range modes {
+		mode := &modes[index]
+		id, err := normalizeContractIdentifier(mode.Id, 64)
+		if err != nil {
+			return nil, fmt.Errorf("modes[%d].id: %w", index, err)
+		}
+		if _, duplicate := seenIds[id]; duplicate {
+			return nil, fmt.Errorf("modes contains duplicate id %s", id)
+		}
+		seenIds[id] = struct{}{}
+		mode.Id = id
+		mode.DispatchModel = strings.TrimSpace(mode.DispatchModel)
+		if mode.DispatchModel != "" {
+			mode.DispatchModel, err = normalizeModelRouteName(fmt.Sprintf("modes[%d].dispatch_model", index), mode.DispatchModel)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if mode.Default {
+			defaultCount++
+			if !modelOperationModeConditionEmpty(mode.When) {
+				return nil, fmt.Errorf("modes[%d] default mode must not define when", index)
+			}
+		} else if modelOperationModeConditionEmpty(mode.When) {
+			return nil, fmt.Errorf("modes[%d] non-default mode requires when", index)
+		}
+
+		inputSchema := mergeModelOperationContractObject(baseInputSchema, mode.InputSchema)
+		uiSchema := mergeModelOperationContractObject(baseUISchema, mode.UISchema)
+		materialSchema := mergeModelOperationContractObject(baseMaterialSchema, mode.MaterialSchema)
+		if err := validateModelOperationInputSchema(inputSchema); err != nil {
+			return nil, fmt.Errorf("modes[%d]: %w", index, err)
+		}
+		if err := validateModelOperationUISchema(uiSchema, inputSchema); err != nil {
+			return nil, fmt.Errorf("modes[%d]: %w", index, err)
+		}
+		if err := validateModelOperationMaterialSchema(materialSchema, mode.RequestContract != nil); err != nil {
+			return nil, fmt.Errorf("modes[%d]: %w", index, err)
+		}
+		properties, _ := contractObject(inputSchema["properties"])
+		if err := validateModelOperationModeRequestContract(mode.RequestContract, version.EndpointType, properties); err != nil {
+			return nil, fmt.Errorf("modes[%d]: %w", index, err)
+		}
+		if err := validateModelOperationPricingRule(mode.PricingRule, inputSchema); err != nil {
+			return nil, fmt.Errorf("modes[%d]: %w", index, err)
+		}
+		for configurationName, values := range map[string]map[string]interface{}{
+			"parameter_defaults": mode.ParameterDefaults, "parameter_overrides": mode.ParameterOverrides,
+		} {
+			for field, value := range values {
+				fieldSchema, ok := contractObject(properties[field])
+				if !ok {
+					return nil, fmt.Errorf("modes[%d].%s references unknown field %s", index, configurationName, field)
+				}
+				if err := validateModelOperationParameterValue(field, fieldSchema, value, true); err != nil {
+					return nil, fmt.Errorf("modes[%d].%s: %w", index, configurationName, err)
+				}
+			}
+		}
+		mode.DispatchPath, err = normalizeModelOperationRelayPath(fmt.Sprintf("modes[%d].dispatch_path", index), mode.DispatchPath, false)
+		if err != nil {
+			return nil, err
+		}
+		mode.PollPath, err = normalizeModelOperationRelayPath(fmt.Sprintf("modes[%d].poll_path", index), mode.PollPath, true)
+		if err != nil {
+			return nil, err
+		}
+		if mode.PollPath != "" && version.ExecutionMode != "async" {
+			return nil, fmt.Errorf("modes[%d].poll_path is only valid for async profiles", index)
+		}
+		mode.ResponseContract = strings.TrimSpace(mode.ResponseContract)
+		if len(mode.ResponseContract) > 128 {
+			return nil, fmt.Errorf("modes[%d].response_contract must be 128 characters or fewer", index)
+		}
+		if mode.When != nil {
+			for field, value := range mode.When.ParameterEquals {
+				fieldSchema, ok := contractObject(properties[field])
+				if !ok {
+					return nil, fmt.Errorf("modes[%d].when.parameter_equals references unknown field %s", index, field)
+				}
+				if err := validateModelOperationParameterValue(field, fieldSchema, value, true); err != nil {
+					return nil, fmt.Errorf("modes[%d].when.parameter_equals: %w", index, err)
+				}
+			}
+			availableSlots := modelOperationMaterialSlotSet(materialSchema)
+			mode.When.MaterialSlots, err = normalizeModelOperationModeSlots(fmt.Sprintf("modes[%d].when.material_slots", index), mode.When.MaterialSlots, availableSlots)
+			if err != nil {
+				return nil, err
+			}
+			mode.When.ExcludedMaterialSlots, err = normalizeModelOperationModeSlots(fmt.Sprintf("modes[%d].when.excluded_material_slots", index), mode.When.ExcludedMaterialSlots, availableSlots)
+			if err != nil {
+				return nil, err
+			}
+			for _, slot := range mode.When.MaterialSlots {
+				for _, excluded := range mode.When.ExcludedMaterialSlots {
+					if slot == excluded {
+						return nil, fmt.Errorf("modes[%d].when cannot require and exclude material slot %s", index, slot)
+					}
+				}
+			}
+		}
+	}
+	if defaultCount != 1 {
+		return nil, errors.New("modes must define exactly one default mode")
+	}
+	for left := 0; left < len(modes); left++ {
+		if modes[left].Default {
+			continue
+		}
+		for right := left + 1; right < len(modes); right++ {
+			if modes[right].Default {
+				continue
+			}
+			if modelOperationModeConditionsOverlap(modes[left].When, modes[right].When) {
+				return nil, fmt.Errorf("modes %s and %s have overlapping conditions", modes[left].Id, modes[right].Id)
+			}
+		}
+	}
+	return modes, nil
 }
 
 func normalizeModelOperationRelayPath(field string, value string, requireTaskPlaceholder bool) (string, error) {
@@ -912,7 +1221,7 @@ func normalizeModelOperationBindingOverrides(value string, profile *ModelOperati
 	}
 	if err := validateContractObjectKeys("overrides", normalizedObject,
 		"schema_mode", "branding", "input_schema", "ui_schema", "material_schema", "request_contract", "pricing_rule",
-		"parameter_defaults", "parameter_overrides", "dispatch_path", "poll_path"); err != nil {
+		"parameter_defaults", "parameter_overrides", "dispatch_path", "poll_path", "modes"); err != nil {
 		return "", ModelOperationBindingOverrides{}, err
 	}
 	for field, allowed := range map[string][]string{
@@ -934,6 +1243,29 @@ func normalizeModelOperationBindingOverrides(value string, profile *ModelOperati
 					return "", ModelOperationBindingOverrides{}, errors.New("pricing_rule multipliers must be objects")
 				}
 				if err := validateContractObjectKeys("pricing_rule multiplier", multiplier, "field", "values"); err != nil {
+					return "", ModelOperationBindingOverrides{}, err
+				}
+			}
+		}
+	}
+	if rawModes, exists := normalizedObject["modes"]; exists {
+		modes, ok := rawModes.([]interface{})
+		if !ok || len(modes) == 0 {
+			return "", ModelOperationBindingOverrides{}, errors.New("modes must be a non-empty array")
+		}
+		for index, rawMode := range modes {
+			mode, ok := contractObject(rawMode)
+			if !ok {
+				return "", ModelOperationBindingOverrides{}, fmt.Errorf("modes[%d] must be an object", index)
+			}
+			if err := validateContractObjectKeys(fmt.Sprintf("modes[%d]", index), mode,
+				"id", "default", "when", "dispatch_model", "input_schema", "ui_schema", "material_schema", "request_contract", "pricing_rule",
+				"parameter_defaults", "parameter_overrides", "dispatch_path", "poll_path", "response_contract"); err != nil {
+				return "", ModelOperationBindingOverrides{}, err
+			}
+			if when, ok := contractObject(mode["when"]); ok {
+				if err := validateContractObjectKeys(fmt.Sprintf("modes[%d].when", index), when,
+					"parameter_equals", "material_slots", "excluded_material_slots"); err != nil {
 					return "", ModelOperationBindingOverrides{}, err
 				}
 			}
@@ -1044,6 +1376,10 @@ func normalizeModelOperationBindingOverrides(value string, profile *ModelOperati
 		return "", ModelOperationBindingOverrides{}, err
 	}
 	if err := validateModelOperationPricingRule(overrides.PricingRule, inputSchema); err != nil {
+		return "", ModelOperationBindingOverrides{}, err
+	}
+	overrides.Modes, err = validateAndNormalizeModelOperationModes(overrides.Modes, inputSchema, uiSchema, materialSchema, version)
+	if err != nil {
 		return "", ModelOperationBindingOverrides{}, err
 	}
 	properties, _ := contractObject(inputSchema["properties"])
@@ -1170,6 +1506,7 @@ func BuildModelOperationEffectiveContract(binding ModelOperationBinding, profile
 		ResponseContract:   version.ResponseContract,
 		ContractVersion:    binding.ContractVersion,
 		ContractHash:       binding.ContractHash,
+		Modes:              overrides.Modes,
 	}
 	if contract.ParameterDefaults == nil {
 		contract.ParameterDefaults = map[string]interface{}{}
@@ -1187,6 +1524,142 @@ func BuildModelOperationEffectiveContract(binding ModelOperationBinding, profile
 		contract.PricingRule = *overrides.PricingRule
 	}
 	return contract, nil
+}
+
+func modelOperationModeMatches(condition *ModelOperationModeCondition, parameters map[string]interface{}, materialSlots map[string]bool) bool {
+	if condition == nil {
+		return false
+	}
+	for field, expected := range condition.ParameterEquals {
+		if actual, exists := parameters[field]; !exists || !reflect.DeepEqual(actual, expected) {
+			return false
+		}
+	}
+	for _, slot := range condition.MaterialSlots {
+		if !materialSlots[slot] {
+			return false
+		}
+	}
+	for _, slot := range condition.ExcludedMaterialSlots {
+		if materialSlots[slot] {
+			return false
+		}
+	}
+	return true
+}
+
+func modelOperationContractValuePresent(value interface{}) bool {
+	if value == nil {
+		return false
+	}
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed) != ""
+	case []interface{}:
+		return len(typed) > 0
+	case []string:
+		return len(typed) > 0
+	case map[string]interface{}:
+		return len(typed) > 0
+	default:
+		return true
+	}
+}
+
+// DetectModelOperationMaterialSlots maps request fields and semantic slot names
+// to presence flags without interpreting provider payload contents.
+func DetectModelOperationMaterialSlots(contract *ModelOperationEffectiveContract, parameters map[string]interface{}) map[string]bool {
+	result := make(map[string]bool)
+	if contract == nil {
+		return result
+	}
+	schemas := []map[string]interface{}{contract.MaterialSchema}
+	for _, mode := range contract.Modes {
+		if len(mode.MaterialSchema) > 0 {
+			schemas = append(schemas, mergeModelOperationContractObject(contract.MaterialSchema, mode.MaterialSchema))
+		}
+	}
+	for _, schema := range schemas {
+		for _, rawRule := range schema {
+			rule, ok := contractObject(rawRule)
+			if !ok {
+				continue
+			}
+			if requestField, ok := rule["request_field"].(string); ok {
+				if modelOperationContractValuePresent(parameters[requestField]) {
+					result[requestField] = true
+				}
+			}
+			requestFields, _ := rule["request_fields"].([]interface{})
+			for _, rawField := range requestFields {
+				field, ok := contractObject(rawField)
+				if !ok {
+					continue
+				}
+				slot, _ := field["slot"].(string)
+				requestField, _ := field["request_field"].(string)
+				present := modelOperationContractValuePresent(parameters[requestField]) || modelOperationContractValuePresent(parameters[slot])
+				if present {
+					result[slot] = true
+					result[requestField] = true
+				}
+			}
+		}
+	}
+	return result
+}
+
+// ResolveModelOperationContractMode selects one documented mode and returns a
+// detached effective contract. Ambiguous matches fail closed.
+func ResolveModelOperationContractMode(contract *ModelOperationEffectiveContract, parameters map[string]interface{}, materialSlots map[string]bool) (*ModelOperationEffectiveContract, error) {
+	if contract == nil || len(contract.Modes) == 0 {
+		return contract, nil
+	}
+	var selected *ModelOperationContractMode
+	var fallback *ModelOperationContractMode
+	for index := range contract.Modes {
+		mode := &contract.Modes[index]
+		if mode.Default {
+			fallback = mode
+			continue
+		}
+		if !modelOperationModeMatches(mode.When, parameters, materialSlots) {
+			continue
+		}
+		if selected != nil {
+			return nil, fmt.Errorf("contract modes %s and %s both match the request", selected.Id, mode.Id)
+		}
+		selected = mode
+	}
+	if selected == nil {
+		selected = fallback
+	}
+	if selected == nil {
+		return nil, errors.New("contract modes do not define a default mode")
+	}
+	resolved := *contract
+	resolved.SelectedMode = selected.Id
+	resolved.InputSchema = mergeModelOperationContractObject(contract.InputSchema, selected.InputSchema)
+	resolved.UISchema = mergeModelOperationContractObject(contract.UISchema, selected.UISchema)
+	resolved.MaterialSchema = mergeModelOperationContractObject(contract.MaterialSchema, selected.MaterialSchema)
+	resolved.ParameterDefaults = mergeModelOperationContractObject(contract.ParameterDefaults, selected.ParameterDefaults)
+	resolved.ParameterOverrides = mergeModelOperationContractObject(contract.ParameterOverrides, selected.ParameterOverrides)
+	if selected.RequestContract != nil {
+		resolved.RequestContract = *selected.RequestContract
+	}
+	if selected.PricingRule != nil {
+		resolved.PricingRule = *selected.PricingRule
+	}
+	if selected.DispatchPath != "" {
+		resolved.DispatchPath = selected.DispatchPath
+	}
+	if selected.PollPath != "" {
+		resolved.PollPath = selected.PollPath
+	}
+	if selected.ResponseContract != "" {
+		resolved.ResponseContract = selected.ResponseContract
+	}
+	return &resolved, nil
 }
 
 // NormalizeAndValidateModelOperationParameters applies the effective contract's
