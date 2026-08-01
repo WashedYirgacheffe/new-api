@@ -44,6 +44,14 @@ TapLater：
 - 全量测试中修正了一个既有 migration 文件名断言：测试引用改为仓库实际存在的 `20260711000000_spark_learning_library.sql`，未修改迁移内容。
 - NodyHub 协议快照保存本地 Markdown SHA-256；未把协议示例模型当作 726 个已发布模型合同。
 
+## 部署结果
+
+- CarLab 生产基线 `c07ad399` 已保留既有 NodyHub/Seedance 视频修复，并以三个可独立回退的提交集成本轮合同变更；最终生产提交为 `3b0be370`。
+- `3b0be370` 已推送到 `WashedYirgacheffe/CarLabAPI` 的 `main`，由 GitHub 自动触发 Railway `carlab-api/new-api` 部署 `1527026b-444e-48c3-a20d-b9ac4cbfc49b`；状态为 `SUCCESS`，镜像摘要为 `sha256:4fc0a026832311215b7b968de4043bc7796bc13088df9c8f4e716190290cbcbd`。
+- `https://api.carlab.top/api/status` 在切换后返回 HTTP 200 和 `success: true`；部署错误日志查询为空。
+- TapLater 提交 `d6ba0fd` 已推送到 `WashedYirgacheffe/superseed` 的 `codex/canvas-runtime-p0-p2`，Vercel `superseed` Preview `dpl_4pY4eFSjLaAt3F6axxvibtC69ENt` 状态为 `Ready`。
+- 本轮部署没有执行付费生成烟测，没有修改生产模型、价格、渠道或数据库记录；TapLater 仍为分支 Preview，未合入 `main` 或切换生产域名。
+
 ## 回滚
 
 1. 代码回滚：分别回退本轮 CarLab/TapLater Git 提交；不修改数据库迁移和用户媒体。
