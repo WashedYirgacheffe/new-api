@@ -38,7 +38,7 @@ TapLater：
 ## 验证证据
 
 - `go test ./model ./relay/helper -count=1` 通过。
-- `go test ./cmd/contract-audit` 通过；生成 RE 88 行、DeepWL 123 个公开价格候选行/67 个 CarLab 已发布计数、NodyHub 726 个目录计数聚合行。
+- `go test ./cmd/contract-audit` 通过；生成 RE 88 行、DeepWL 123 个公开价格候选行/67 个 CarLab 已发布计数、NodyHub 19 个文档模型行加 707 个剩余目录模型聚合行（目录总数 726）。
 - artifact-tool XLSX 检查通过：Summary 关键范围可读，公式错误扫描为 0，各渠道 sheet 均完成渲染检查。
 - TapLater `npm run test:canvas` 为 `291/291`，`npm test` 为 `493/493`；`npx vue-tsc --noEmit`、`npm run build` 和两仓库 `git diff --check` 通过。构建只保留既有 chunk 大小和 Browserslist 提示。
 - 全量测试中修正了一个既有 migration 文件名断言：测试引用改为仓库实际存在的 `20260711000000_spark_learning_library.sql`，未修改迁移内容。

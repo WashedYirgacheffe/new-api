@@ -122,6 +122,21 @@ type auditSnapshot struct {
 	Integrity           map[string]interface{} `json:"integrity"`
 }
 
+type nodyDocumentedModel struct {
+	ID              string
+	Operation       string
+	EndpointType    string
+	Adapter         string
+	DispatchPath    string
+	PollPath        string
+	Response        string
+	Fields          []string
+	MaterialKinds   []string
+	MaterialMax     int
+	MaterialField   string
+	DocumentSection string
+}
+
 func readJSON(path string, target interface{}) ([]byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -376,6 +391,61 @@ func modelTypeToOperation(modelType string) string {
 	}
 }
 
+func nodyInputSchema(fields []string) map[string]interface{} {
+	properties := make(map[string]interface{}, len(fields))
+	for _, field := range fields {
+		fieldType := "string"
+		switch field {
+		case "messages", "tools", "content", "image", "image_urls", "images", "reference_images":
+			fieldType = "array"
+		case "response_format":
+			fieldType = "object"
+		}
+		properties[field] = map[string]interface{}{"type": fieldType}
+	}
+	return map[string]interface{}{"type": "object", "properties": properties}
+}
+
+func nodyMaterialSchema(kinds []string, maxItems int, requestField string) map[string]interface{} {
+	if len(kinds) == 0 {
+		return nil
+	}
+	result := make(map[string]interface{}, len(kinds))
+	for _, kind := range kinds {
+		rule := map[string]interface{}{"request_field": requestField}
+		if maxItems > 0 {
+			rule["max_items"] = maxItems
+		}
+		result[kind] = rule
+	}
+	return result
+}
+
+func documentedNodyModels() []nodyDocumentedModel {
+	chatFields := []string{"model", "messages", "temperature", "max_tokens", "stream", "reasoning_effort", "response_format", "tools", "tool_choice"}
+	return []nodyDocumentedModel{
+		{ID: "gpt-5.5", Operation: "text.chat", EndpointType: "openai", Adapter: "openai-chat", DispatchPath: "/v1/chat/completions", Response: "openai-chat-v1", Fields: chatFields, DocumentSection: "2.1-2.8"},
+		{ID: "gemini-3.1-pro-preview", Operation: "text.chat", EndpointType: "openai", Adapter: "openai-chat", DispatchPath: "/v1/chat/completions", Response: "openai-chat-v1", Fields: chatFields, DocumentSection: "2.1-2.8"},
+		{ID: "gemini-3.1-flash-lite-image", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "nano-banana-pro", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "nano-banana-pro-4k", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "nano-banana-pro-official", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "nano-banana-pro-4k-official", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "gemini-3.1-flash-image-preview", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "gemini-3.1-flash-image-preview-official", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "gemini-3.1-flash-image-preview-4k-official", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "response_format", "image", "image_size"}, MaterialKinds: []string{"image"}, MaterialMax: 14, MaterialField: "image", DocumentSection: "3.1-3.4"},
+		{ID: "gpt-image-2", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "size", "resolution", "image_urls", "n", "response_format", "quality", "moderation"}, MaterialKinds: []string{"image"}, MaterialMax: 16, MaterialField: "image_urls", DocumentSection: "4.1-4.4"},
+		{ID: "gpt-image-2-official", Operation: "image.generate", EndpointType: "image-generation", Adapter: "nodyhub-image", DispatchPath: "/v1/images/generations?async=true", PollPath: "/v1/images/tasks/{taskId}", Response: "nodyhub-image-task-v1", Fields: []string{"model", "prompt", "size", "resolution", "image_urls", "n", "response_format", "quality", "moderation"}, MaterialKinds: []string{"image"}, MaterialMax: 16, MaterialField: "image_urls", DocumentSection: "4.1-4.4"},
+		{ID: "grok-video-3", Operation: "video.generate", EndpointType: "openai-video", Adapter: "nodyhub-video", DispatchPath: "/v2/videos/generations", PollPath: "/v2/videos/generations/{taskId}", Response: "nodyhub-video-task-v1", Fields: []string{"model", "prompt", "ratio", "resolution", "duration", "images"}, MaterialKinds: []string{"image"}, MaterialMax: 7, MaterialField: "images", DocumentSection: "5.1-5.4"},
+		{ID: "grok-imagine-1.5-video", Operation: "video.generate", EndpointType: "openai-video", Adapter: "nodyhub-video", DispatchPath: "/v2/videos/generations", PollPath: "/v2/videos/generations/{taskId}", Response: "nodyhub-video-task-v1", Fields: []string{"model", "prompt", "size", "quality", "duration", "image_urls"}, MaterialKinds: []string{"image"}, MaterialMax: 7, MaterialField: "image_urls", DocumentSection: "5.1-5.4"},
+		{ID: "grok-imagine-video-official", Operation: "video.generate", EndpointType: "openai-video", Adapter: "nodyhub-video", DispatchPath: "/v2/videos/generations", PollPath: "/v2/videos/generations/{taskId}", Response: "nodyhub-video-task-v1", Fields: []string{"model", "prompt", "aspect_ratio", "resolution", "duration", "image", "reference_images"}, MaterialKinds: []string{"image"}, MaterialMax: 7, MaterialField: "reference_images", DocumentSection: "5.1-5.4"},
+		{ID: "Doubao-Seedance-2.0", Operation: "video.generate", EndpointType: "openai-video", Adapter: "nodyhub-seedance", DispatchPath: "/v2/videos/generations", PollPath: "/v2/videos/generations/{taskId}", Response: "nodyhub-video-task-v1", Fields: []string{"model", "content", "prompt", "ratio", "resolution", "duration", "seed", "watermark", "generate_audio", "return_last_frame", "service_tier", "execution_expires_after", "callback_url", "safety_identifier", "tools"}, MaterialKinds: []string{"image", "video", "audio"}, MaterialField: "content", DocumentSection: "6.1-6.5"},
+		{ID: "jimeng-video-seedance-2.0-pro", Operation: "video.generate", EndpointType: "openai-video", Adapter: "nodyhub-seedance", DispatchPath: "/v2/videos/generations", PollPath: "/v2/videos/generations/{taskId}", Response: "nodyhub-video-task-v1", Fields: []string{"model", "content", "prompt", "ratio", "resolution", "duration", "seed", "watermark", "generate_audio", "return_last_frame", "service_tier", "execution_expires_after", "callback_url", "safety_identifier", "tools"}, MaterialKinds: []string{"image", "video", "audio"}, MaterialField: "content", DocumentSection: "6.1-6.5"},
+		{ID: "Doubao-Seedance-2.0-fast", Operation: "video.generate", EndpointType: "openai-video", Adapter: "nodyhub-seedance", DispatchPath: "/v2/videos/generations", PollPath: "/v2/videos/generations/{taskId}", Response: "nodyhub-video-task-v1", Fields: []string{"model", "content", "prompt", "ratio", "resolution", "duration", "seed", "watermark", "generate_audio", "return_last_frame", "service_tier", "execution_expires_after", "callback_url", "safety_identifier", "tools"}, MaterialKinds: []string{"image", "video", "audio"}, MaterialField: "content", DocumentSection: "6.1-6.5"},
+		{ID: "Doubao-Seedance-2.0-mini", Operation: "video.generate", EndpointType: "openai-video", Adapter: "nodyhub-seedance", DispatchPath: "/v2/videos/generations", PollPath: "/v2/videos/generations/{taskId}", Response: "nodyhub-video-task-v1", Fields: []string{"model", "content", "prompt", "ratio", "resolution", "duration", "seed", "watermark", "generate_audio", "return_last_frame", "service_tier", "execution_expires_after", "callback_url", "safety_identifier", "tools"}, MaterialKinds: []string{"image", "video", "audio"}, MaterialField: "content", DocumentSection: "6.1-6.5"},
+	}
+}
+
 func buildNodyHubSnapshot(fullCatalog fullCatalogFile, docBytes []byte, docPath string, generatedAt string) auditSnapshot {
 	count := 0
 	enabledCount := 0
@@ -411,32 +481,62 @@ func buildNodyHubSnapshot(fullCatalog fullCatalogFile, docBytes []byte, docPath 
 		"material_rule":   "首尾帧和多模态参考素材互斥；具体模型槽位以模型章节为准",
 		"source_document": filepath.Base(docPath),
 	}
-	models := []auditModel{{
-		ModelName:      "__nodyhub_published_catalog__",
-		GatewayModelID: "*",
+	documentedModels := documentedNodyModels()
+	models := make([]auditModel, 0, len(documentedModels)+1)
+	for _, documented := range documentedModels {
+		modelName := "nodyhub/" + documented.ID
+		models = append(models, auditModel{
+			ModelName:        modelName,
+			GatewayModelID:   documented.ID,
+			Operation:        documented.Operation,
+			EndpointType:     documented.EndpointType,
+			InputSchema:      nodyInputSchema(documented.Fields),
+			MaterialSchema:   nodyMaterialSchema(documented.MaterialKinds, documented.MaterialMax, documented.MaterialField),
+			RequestContract:  map[string]interface{}{"adapter": documented.Adapter, "source": "NODYHUB_API_DOC (1).md"},
+			DispatchPath:     documented.DispatchPath,
+			PollPath:         documented.PollPath,
+			ResponseContract: documented.Response,
+			PricingRule:      map[string]interface{}{"source_url": "https://nodyhub.com/pricing", "status": "not_captured"},
+			Status:           "published_protocol_documented",
+			AuditStatus:      auditMissingDocumentation,
+			EvidenceURLs:     []string{"https://nodyhub.com/pricing", "https://nodyhub.com/v1/models"},
+			EvidenceSHA256:   sha256Hex(docBytes),
+			DocumentDate:     generatedAt,
+			Differences: []string{
+				"Nodyhub 权威文档已列出该模型的请求字段和协议端点，但价格页 SKU 尚未程序化导出",
+				"文档未为所有字段提供可机器校验的完整枚举、默认值、响应 schema 和版本号，发布前仍需逐字段复核",
+			},
+			Notes: []string{"document_sections=" + documented.DocumentSection},
+		})
+	}
+	remaining := count - len(documentedModels)
+	if remaining < 0 {
+		remaining = 0
+	}
+	models = append(models, auditModel{
+		ModelName:      "__nodyhub_remaining_published_catalog__",
+		GatewayModelID: fmt.Sprintf("* (%d models)", remaining),
 		Operation:      "*",
 		EndpointType:   "protocol-only",
 		Status:         "published",
 		AuditStatus:    auditMissingDocumentation,
-		EvidenceURLs: []string{
-			"https://nodyhub.com/v1/models",
-			"https://nodyhub.com/pricing",
-		},
+		EvidenceURLs:   []string{"https://nodyhub.com/v1/models", "https://nodyhub.com/pricing"},
 		EvidenceSHA256: sha256Hex(docBytes),
 		DocumentDate:   generatedAt,
 		Differences: []string{
-			"Nodyhub API 文档已证实提交、轮询、素材传输和互斥规则，但当前文档未提供可供 CarLab 匿名导出的 726 个逐模型身份清单",
-			"Nodyhub 价格页已登记为价格权威入口，但当前未提供可供本地快照逐模型读取的价格数据，不能据页面名称推导 SKU",
-			"未提供具体模型的输入枚举、默认值、素材数量/MIME/大小和响应字段时，不生成模型级合同",
+			fmt.Sprintf("Nodyhub 目录计数为 %d；权威文档明确列出 %d 个模型章节，剩余 %d 个模型尚无逐模型合同证据", count, len(documentedModels), remaining),
+			"没有具体模型的输入枚举、默认值、素材数量/MIME/大小、响应字段和价格 SKU 时，不生成模型级合同",
 		},
 		Notes: []string{fmt.Sprintf("catalog_models=%d; enabled_metadata_models=%d; business_token_visible_models=%d", count, enabledCount, visibleCount)},
-	}}
+	})
 	scope := map[string]interface{}{
 		"catalog_models":                count,
 		"enabled_metadata_models":       enabledCount,
 		"business_token_visible_models": visibleCount,
 		"protocol_document_sha256":      sha256Hex(docBytes),
-		"model_level_identity_export":   "not_available_without_authenticated_catalog",
+		"documented_model_sections":     len(documentedModels),
+		"remaining_model_count":         remaining,
+		"model_level_identity_export":   "authenticated_catalog_required_for_remaining_models",
 		"pricing_evidence":              "https://nodyhub.com/pricing",
 		"protocol_evidence_status":      auditDocumented,
 	}

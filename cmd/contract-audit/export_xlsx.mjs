@@ -110,7 +110,7 @@ summary.getRange('A4:D6').values = snapshots.map((snapshot) => [
     ? 'RE 88 个合同与价格 SKU 已有模型级证据'
     : snapshot.channel === 'deepwl'
       ? 'DeepWL 公开价格候选已抓取；CarLab 67 个发布身份待 token-scoped 导出映射'
-      : 'NodyHub 协议已由权威 Markdown 证实；726 个模型逐项合同/价格待导出',
+      : 'NodyHub 权威 Markdown 已覆盖 19 个模型章节；剩余 707 个模型逐项合同/价格待导出',
 ])
 summary.getRange('A8:B8').values = [['审计规则', '具体模型 API 文档 > OpenAPI > 渠道通用文档 > CarLab 合同 > TapLater 覆盖']]
 summary.getRange('A9:B9').values = [['烟测边界', '本轮不执行付费调用；新合同只标记 documented 或 fail-closed 状态']]
