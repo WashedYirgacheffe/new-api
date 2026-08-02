@@ -163,6 +163,7 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 
 | Document | Contents | Corresponding code and resources |
 | --- | --- | --- |
+| `docs/operations/2026-08-03-grok-video-contracts.md` | DeepWL/NodyHub Grok 视频精确参数合同、旧通用 Binding 迁移和 TapLater 渠道隔离 | `model/model_operation_profile.go`, `model/subsite.go`, model contract tests, NodyHub Sora adapter, Railway `new-api`, Vercel `superseed` Preview |
 | `docs/operations/2026-07-29-reapi-sku-pricing-quote.md` | RE 模型卡片 SKU 价格快照、参数/素材精确报价与真实任务预扣统一 | `docs/catalog/reapi-async-pricing.json`, `relay/channel/task/reapi/pricing_catalog.go`, `/api/models/quote`, Superseed TapLater Generation BFF, Railway `new-api` |
 | `docs/operations/2026-08-01-upstream-contract-audit.md` | RE、DeepWL、NodyHub 上游合同证据审计、CarLab 模式合同、TapLater 单一事实源和 fail-closed 发布边界 | `cmd/contract-audit`, `docs/catalog/*-published-contracts.{json,csv}`, `model/model_operation_contract.go`, `model/model_operation_profile.go`, TapLater contract mode resolver, Railway `new-api`, Vercel `superseed` |
 | `docs/operations/2026-07-23-reapi-exact-contracts-canvas.md` | RE 88 个已发布异步模型的官方参数合同、分站 gold 路由与 TapLater 画布材料输入 | `docs/catalog/reapi-async-contracts.json`, `cmd/reapi-contract-snapshot`, `cmd/reapi-onboard`, `model operation contracts`, Railway `new-api`, Superseed TapLater |

@@ -160,6 +160,178 @@ func TestCoreDefaultModelOperationContractMatrix(t *testing.T) {
 	assert.Equal(t, "deepwl/grok-video-3-10s", resolvedGrok.Modes[1].DispatchModel)
 }
 
+func TestGrokChannelContractsKeepProviderParametersIsolated(t *testing.T) {
+	for _, modelName := range []string{deepWLGrokVideo3ModelName, deepWLGrokImagine15ModelName} {
+		t.Run(modelName, func(t *testing.T) {
+			contract := defaultModelOperationContractForModel(t, modelName)
+			assert.Equal(t, "/v1/videos", contract.DispatchPath)
+			assert.Equal(t, "/v1/videos/{task_id}", contract.PollPath)
+			assert.Equal(t, "openai-video", contract.RequestContract.Adapter)
+			assert.Equal(t, "string", contract.RequestContract.Coercions["seconds"])
+
+			properties, ok := contractObject(contract.InputSchema["properties"])
+			require.True(t, ok)
+			seconds, ok := contractObject(properties["seconds"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{"6", "10", "15"}, seconds["enum"])
+			aspectRatio, ok := contractObject(properties["aspect_ratio"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{"16:9", "9:16", "3:2", "2:3", "1:1"}, aspectRatio["enum"])
+			size, ok := contractObject(properties["size"])
+			require.True(t, ok)
+			assert.Equal(t, []interface{}{"720P"}, size["enum"])
+			image, ok := contractObject(contract.MaterialSchema["image"])
+			require.True(t, ok)
+			assert.Equal(t, float64(6), image["max_items"])
+			assert.Equal(t, "input_reference", image["request_field"])
+
+			resolved, err := ResolveModelOperationContractMode(contract, map[string]interface{}{"seconds": "15"}, nil)
+			require.NoError(t, err)
+			assert.Equal(t, "fifteen-seconds", resolved.SelectedMode)
+			assert.Contains(t, resolved.Modes[2].DispatchModel, "15s")
+		})
+	}
+
+	nodyVideo3 := defaultModelOperationContractForModel(t, nodyGrokVideo3ModelName)
+	assert.Equal(t, "/v1/videos", nodyVideo3.DispatchPath)
+	assert.Equal(t, "/v1/videos/{task_id}", nodyVideo3.PollPath)
+	video3Properties, ok := contractObject(nodyVideo3.InputSchema["properties"])
+	require.True(t, ok)
+	duration, ok := contractObject(video3Properties["duration"])
+	require.True(t, ok)
+	assert.Equal(t, []interface{}{float64(6), float64(10), float64(15), float64(20), float64(25), float64(30)}, duration["enum"])
+	assert.Equal(t, float64(6), duration["default"])
+	ratio, ok := contractObject(video3Properties["ratio"])
+	require.True(t, ok)
+	assert.Equal(t, []interface{}{"16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "1:1"}, ratio["enum"])
+	assert.Equal(t, "16:9", ratio["default"])
+	resolution, ok := contractObject(video3Properties["resolution"])
+	require.True(t, ok)
+	assert.Equal(t, []interface{}{"720P"}, resolution["enum"])
+	assert.Equal(t, "720P", resolution["default"])
+	video3Image, ok := contractObject(nodyVideo3.MaterialSchema["image"])
+	require.True(t, ok)
+	assert.Equal(t, float64(7), video3Image["max_items"])
+	assert.Equal(t, "images", video3Image["request_field"])
+	assert.Equal(t, "url", video3Image["transport"])
+	assert.Equal(t, map[string]string{"duration": "duration", "ratio": "ratio", "resolution": "resolution"}, nodyVideo3.RequestContract.FieldMap)
+	_, err := NormalizeAndValidateModelOperationParameters(nodyVideo3, map[string]interface{}{"prompt": "test", "duration": float64(7)})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duration")
+	_, err = NormalizeAndValidateModelOperationParameters(nodyVideo3, map[string]interface{}{"prompt": "test", "ratio": "21:9"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ratio")
+
+	nodyImagine15 := defaultModelOperationContractForModel(t, nodyGrokImagine15ModelName)
+	assert.Equal(t, "/v1/videos", nodyImagine15.DispatchPath)
+	assert.Equal(t, "/v1/videos/{task_id}", nodyImagine15.PollPath)
+	imagineProperties, ok := contractObject(nodyImagine15.InputSchema["properties"])
+	require.True(t, ok)
+	imagineDuration, ok := contractObject(imagineProperties["duration"])
+	require.True(t, ok)
+	assert.Equal(t, float64(6), imagineDuration["minimum"])
+	assert.Equal(t, float64(30), imagineDuration["maximum"])
+	assert.Equal(t, float64(6), imagineDuration["default"])
+	quality, ok := contractObject(imagineProperties["quality"])
+	require.True(t, ok)
+	assert.Equal(t, []interface{}{"480p", "720p"}, quality["enum"])
+	assert.Equal(t, "720p", quality["default"])
+	size, ok := contractObject(imagineProperties["size"])
+	require.True(t, ok)
+	assert.Equal(t, []interface{}{"16:9", "9:16", "1:1", "3:2", "2:3"}, size["enum"])
+	assert.Equal(t, "16:9", size["default"])
+	widgets, ok := contractObject(nodyImagine15.UISchema["widgets"])
+	require.True(t, ok)
+	durationWidget, ok := contractObject(widgets["duration"])
+	require.True(t, ok)
+	assert.Equal(t, "slider", durationWidget["type"])
+	assert.Equal(t, float64(6), durationWidget["min"])
+	assert.Equal(t, float64(30), durationWidget["max"])
+	assert.Equal(t, float64(1), durationWidget["step"])
+	imagineImage, ok := contractObject(nodyImagine15.MaterialSchema["image"])
+	require.True(t, ok)
+	assert.Equal(t, float64(7), imagineImage["max_items"])
+	assert.Equal(t, "image_urls", imagineImage["request_field"])
+	assert.Equal(t, "url", imagineImage["transport"])
+	assert.Equal(t, map[string]string{"duration": "duration", "quality": "quality", "size": "size"}, nodyImagine15.RequestContract.FieldMap)
+	_, err = NormalizeAndValidateModelOperationParameters(nodyImagine15, map[string]interface{}{"prompt": "test", "duration": float64(31)})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duration")
+	_, err = NormalizeAndValidateModelOperationParameters(nodyImagine15, map[string]interface{}{"prompt": "test", "quality": "1080p"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "quality")
+}
+
+func TestSeedDefaultModelOperationProfilesMigratesExactGrokBindingsWithoutChangingGenericVideo(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(
+		&Model{},
+		&ModelOperationProfile{},
+		&ModelOperationProfileVersion{},
+		&ModelOperationBinding{},
+		&ModelOperationBindingRevision{},
+	))
+	cleanup := func() {
+		for _, table := range []interface{}{&ModelOperationBindingRevision{}, &ModelOperationBinding{}, &ModelOperationProfileVersion{}, &ModelOperationProfile{}, &Model{}} {
+			DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(table)
+		}
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	const genericVideoModel = "fixture/generic-video"
+	modelNames := []string{
+		genericVideoModel,
+		deepWLGrokVideo3ModelName,
+		deepWLGrokImagine15ModelName,
+		nodyGrokVideo3ModelName,
+		nodyGrokImagine15ModelName,
+	}
+	for _, modelName := range modelNames {
+		require.NoError(t, DB.Create(&Model{ModelName: modelName, DisplayName: modelName, ModelType: "video", Status: 1}).Error)
+	}
+	require.NoError(t, SeedDefaultModelOperationProfiles())
+
+	basicProfile, basicVersion, err := GetModelOperationProfileVersion("video.generate.basic", 3, false)
+	require.NoError(t, err)
+	emptyOverrides, _, err := normalizeModelOperationBindingOverrides("{}", basicProfile, basicVersion)
+	require.NoError(t, err)
+	legacyGrok3Overrides, _, err := normalizeModelOperationBindingOverrides(grokVideo3OverridesV4, basicProfile, basicVersion)
+	require.NoError(t, err)
+	for _, modelName := range []string{deepWLGrokImagine15ModelName, nodyGrokVideo3ModelName, nodyGrokImagine15ModelName} {
+		require.NoError(t, DB.Model(&ModelOperationBinding{}).
+			Where("model_name = ? AND operation = ?", modelName, "video.generate").
+			Updates(map[string]interface{}{
+				"profile_key": basicProfile.ProfileKey, "profile_version": basicVersion.Version, "overrides": emptyOverrides,
+			}).Error)
+	}
+	require.NoError(t, DB.Model(&ModelOperationBinding{}).
+		Where("model_name = ? AND operation = ?", deepWLGrokVideo3ModelName, "video.generate").
+		Updates(map[string]interface{}{
+			"profile_key": basicProfile.ProfileKey, "profile_version": basicVersion.Version, "overrides": legacyGrok3Overrides,
+		}).Error)
+
+	require.NoError(t, SeedDefaultModelOperationProfiles())
+	expectedProfiles := map[string]string{
+		genericVideoModel:            "video.generate.basic",
+		deepWLGrokVideo3ModelName:    "video.generate.deepwl-grok-video-3",
+		deepWLGrokImagine15ModelName: "video.generate.deepwl-grok-1-5",
+		nodyGrokVideo3ModelName:      "video.generate.nodyhub-grok-video-3",
+		nodyGrokImagine15ModelName:   "video.generate.nodyhub-grok-imagine-1-5",
+	}
+	for modelName, expectedProfile := range expectedProfiles {
+		var binding ModelOperationBinding
+		require.NoError(t, DB.Where("model_name = ? AND operation = ?", modelName, "video.generate").First(&binding).Error)
+		assert.Equal(t, expectedProfile, binding.ProfileKey)
+		require.NotEmpty(t, binding.ContractHash)
+		if modelName == genericVideoModel {
+			continue
+		}
+		var item Model
+		require.NoError(t, DB.Where("model_name = ?", modelName).First(&item).Error)
+		assert.Contains(t, parseConfiguredEndpointTypes(item.Endpoints), "openai-video")
+	}
+}
+
 func TestSeedDefaultModelOperationProfilesRejectsConflictingOmniVersion3(t *testing.T) {
 	require.NoError(t, DB.AutoMigrate(
 		&Model{},

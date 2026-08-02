@@ -179,6 +179,61 @@ func TestBuildRequestBodyNormalizesNodyHubSecondsOnly(t *testing.T) {
 	}
 }
 
+func TestBuildRequestBodyPreservesNodyHubGrokContractFields(t *testing.T) {
+	for _, testCase := range []struct {
+		name         string
+		body         string
+		expectations map[string]interface{}
+	}{
+		{
+			name: "Grok Video 3",
+			body: `{"model":"nodyhub/grok-video-3","prompt":"move","duration":30,"ratio":"3:2","resolution":"720P","images":["https://example.com/one.png","https://example.com/two.png"]}`,
+			expectations: map[string]interface{}{
+				"duration":   float64(30),
+				"ratio":      "3:2",
+				"resolution": "720P",
+				"images":     []interface{}{"https://example.com/one.png", "https://example.com/two.png"},
+			},
+		},
+		{
+			name: "Grok Imagine 1.5 Video",
+			body: `{"model":"nodyhub/grok-imagine-1.5-video","prompt":"move","duration":23,"size":"2:3","quality":"480p","image_urls":["https://example.com/reference.png"]}`,
+			expectations: map[string]interface{}{
+				"duration":   float64(23),
+				"size":       "2:3",
+				"quality":    "480p",
+				"image_urls": []interface{}{"https://example.com/reference.png"},
+			},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			context, _ := gin.CreateTestContext(httptest.NewRecorder())
+			context.Request = httptest.NewRequest(http.MethodPost, "/v1/videos", strings.NewReader(testCase.body))
+			context.Request.Header.Set("Content-Type", "application/json")
+			t.Cleanup(func() { common.CleanupBodyStorage(context) })
+
+			info := &relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{
+				ChannelProvider:   "nodyhub",
+				UpstreamModelName: "upstream-grok",
+			}}
+			adaptor := &sora.TaskAdaptor{}
+			adaptor.Init(info)
+
+			outbound, err := adaptor.BuildRequestBody(context, info)
+			require.NoError(t, err)
+			outboundBody, err := io.ReadAll(outbound)
+			require.NoError(t, err)
+			decoded := map[string]interface{}{}
+			require.NoError(t, common.Unmarshal(outboundBody, &decoded))
+			assert.Equal(t, "upstream-grok", decoded["model"])
+			for field, expected := range testCase.expectations {
+				assert.Equal(t, expected, decoded[field], field)
+			}
+		})
+	}
+}
+
 func TestParseTaskResultSupportsNodyHubBareTask(t *testing.T) {
 	testCases := []struct {
 		name             string

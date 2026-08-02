@@ -16,6 +16,11 @@ const omniFastOverridesV4 = `{"branding":{"icon_key":"openai","description":"Omn
 const grokVideo3OverridesV3 = `{"branding":{"icon_key":"grok","description":"xAI Grok 视频生成模型；当前生产合同固定为已验证的 6 秒基础调用。"},"input_schema":{"properties":{"size":{"type":"string","enum":["720P"],"default":"720P"}}},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","size":"footer","image_url":"hidden"},"widgets":{"prompt":"textarea","seconds":"segmented","size":"segmented","image_url":"hidden"}},"material_schema":{"image":{"max_items":0},"video":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","size":"size"},"coercions":{}},"poll_path":"/v1/video/generations/{task_id}"}`
 const grokVideo3OverridesV4 = `{"branding":{"icon_key":"grok","description":"xAI Grok 视频生成模型；时长模式选择对应的精确模型身份。"},"input_schema":{"properties":{"size":{"type":"string","enum":["720P"],"default":"720P"}}},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","size":"footer","image_url":"hidden"},"widgets":{"prompt":"textarea","seconds":"segmented","size":"segmented","image_url":"hidden"}},"material_schema":{"image":{"max_items":0},"video":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","size":"size"},"coercions":{}},"poll_path":"/v1/video/generations/{task_id}","modes":[{"id":"six-seconds","default":true},{"id":"ten-seconds","when":{"parameter_equals":{"seconds":"10"}},"dispatch_model":"deepwl/grok-video-3-10s","input_schema":{"properties":{"seconds":{"type":"string","enum":["10"],"default":"10"}}}},{"id":"fifteen-seconds","when":{"parameter_equals":{"seconds":"15"}},"dispatch_model":"deepwl/grok-video-3-15s","input_schema":{"properties":{"seconds":{"type":"string","enum":["15"],"default":"15"}}}}]}`
 
+const deepWLGrokVideo3OverridesV1 = `{"branding":{"icon_key":"grok","description":"DeepWL Grok Video 3；TapLater 当前开放 6/10/15 秒、固定 720P、五种比例和最多 6 张参考图。"},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","size":"size"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","modes":[{"id":"six-seconds","default":true},{"id":"ten-seconds","when":{"parameter_equals":{"seconds":"10"}},"dispatch_model":"deepwl/grok-video-3-10s"},{"id":"fifteen-seconds","when":{"parameter_equals":{"seconds":"15"}},"dispatch_model":"deepwl/grok-video-3-15s"}]}`
+const deepWLGrokImagine15OverridesV1 = `{"branding":{"icon_key":"grok","description":"DeepWL Grok 1.5；TapLater 当前开放 6/10/15 秒、固定 720P、五种比例和最多 6 张参考图。"},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","aspect_ratio":"aspect_ratio","size":"size"},"coercions":{"seconds":"string"}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}","modes":[{"id":"six-seconds","default":true},{"id":"ten-seconds","when":{"parameter_equals":{"seconds":"10"}},"dispatch_model":"deepwl/grok-1.5-video-10s"},{"id":"fifteen-seconds","when":{"parameter_equals":{"seconds":"15"}},"dispatch_model":"deepwl/grok-1.5-video-15s"}]}`
+const nodyGrokVideo3OverridesV1 = `{"branding":{"icon_key":"grok","description":"NodyHub Grok Video 3；固定 720P，支持 6/10/15/20/25/30 秒、七种比例和最多 7 张参考图。"},"request_contract":{"adapter":"openai-video","field_map":{"duration":"duration","ratio":"ratio","resolution":"resolution"},"coercions":{}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}"}`
+const nodyGrokImagine15OverridesV1 = `{"branding":{"icon_key":"grok","description":"NodyHub Grok Imagine 1.5 Video；支持 6-30 秒、480P/720P、五种比例和最多 7 张参考图。"},"request_contract":{"adapter":"openai-video","field_map":{"duration":"duration","size":"size","quality":"quality"},"coercions":{}},"dispatch_path":"/v1/videos","poll_path":"/v1/videos/{task_id}"}`
+
 const (
 	ModelOperationProfileStatusDraft     = "draft"
 	ModelOperationProfileStatusPublished = "published"
@@ -491,6 +496,10 @@ const (
 	gptImage2CModelName          = "deepwl/gpt-image-2-c"
 	omniFastModelName            = "deepwl/omni-fast"
 	omniFastV2VModelName         = "deepwl/omni-fast-v2v"
+	deepWLGrokVideo3ModelName    = "deepwl/grok-video-3"
+	deepWLGrokImagine15ModelName = "deepwl/grok-1.5-video-6s"
+	nodyGrokVideo3ModelName      = "nodyhub/grok-video-3"
+	nodyGrokImagine15ModelName   = "nodyhub/grok-imagine-1.5-video"
 	geminiNativeOverrides        = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
 	geminiProImageOverrides      = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.25,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
 	gemini31FlashImageOverrides  = `{"branding":{"icon_key":"gemini","description":"Gemini 原生图像生成，支持 8 种比例与 1K/2K/4K 输出。"},"ui_schema":{"placements":{"prompt":"prompt","aspect_ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","aspect_ratio":"select","resolution":"segmented"}},"request_contract":{"adapter":"gemini-image","field_map":{"aspect_ratio":"aspectRatio","resolution":"imageSize"},"coercions":{}},"pricing_rule":{"mode":"newapi-base-with-parameter-multipliers","multipliers":[{"field":"resolution","values":{"1K":1,"2K":1.2,"4K":1.5}}]},"dispatch_path":"/v1beta/models/{model}:generateContent","parameter_defaults":{"aspect_ratio":"1:1","resolution":"1K"}}`
@@ -561,11 +570,33 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			Version:          ModelOperationProfileVersion{Version: 1, Operation: "image.generate", EndpointType: "image-generation", ExecutionMode: "sync", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"size":{"type":"string","enum":["1024x1024","1536x1152","1536x1024","1024x1536","1920x1080","1080x1920"],"default":"1024x1024"},"n":{"type":"integer","enum":[1],"default":1,"maximum":1}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","size","n"],"widgets":{"prompt":"textarea","size":"select","n":"segmented"}}`, MaterialSchema: `{"image":{"max_items":0}}`, ResponseContract: "openai-image-generation-v1", SmokeTest: `{"prompt":"生成一个白色背景上的红色圆形","size":"1024x1024","n":1}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
-			ModelType:        "video",
-			ModelNames:       []string{"deepwl/grok-video-3"},
-			BindingOverrides: `{"branding":{"icon_key":"grok","description":"xAI Grok 视频生成模型；当前生产合同固定为已验证的 6 秒基础调用。"},"input_schema":{"properties":{"size":{"type":"string","enum":["720P"],"default":"720P"}}},"ui_schema":{"placements":{"prompt":"prompt","seconds":"footer","size":"footer","image_url":"hidden"},"widgets":{"prompt":"textarea","seconds":"segmented","size":"segmented","image_url":"hidden"}},"material_schema":{"image":{"max_items":0},"video":{"max_items":0}},"request_contract":{"adapter":"openai-video","field_map":{"seconds":"seconds","size":"size"},"coercions":{}},"poll_path":"/v1/video/generations/{task_id}"}`,
-			Profile:          ModelOperationProfile{ProfileKey: "video.generate.basic", DisplayName: "通用视频生成", Description: "通过 OpenAI 兼容接口调用视频模型的最低公共能力。"},
-			Version:          ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6"],"default":"6"},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"select","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒钟的简单镜头运动","seconds":"6","size":"720P"}`, Status: ModelOperationProfileStatusPublished},
+			ModelType: "video",
+			Profile:   ModelOperationProfile{ProfileKey: "video.generate.basic", DisplayName: "通用视频生成", Description: "通过 OpenAI 兼容接口调用视频模型的最低公共能力。"},
+			Version:   ModelOperationProfileVersion{Version: 3, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6"],"default":"6"},"size":{"type":"string","minLength":1,"maxLength":32},"image_url":{"type":"string","format":"uri","maxLength":4096}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","size","image_url"],"widgets":{"prompt":"textarea","seconds":"select","size":"text","image_url":"text"}}`, MaterialSchema: `{"image":{"max_items":1},"video":{"max_items":1}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒钟的简单镜头运动","seconds":"6","size":"720P"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{deepWLGrokVideo3ModelName},
+			BindingOverrides: deepWLGrokVideo3OverridesV1,
+			Profile:          ModelOperationProfile{ProfileKey: "video.generate.deepwl-grok-video-3", DisplayName: "DeepWL Grok Video 3", Description: "DeepWL Grok Video 3 的 TapLater 发布合同。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6","10","15"],"default":"6"},"aspect_ratio":{"type":"string","enum":["16:9","9:16","3:2","2:3","1:1"],"default":"16:9"},"size":{"type":"string","enum":["720P"],"default":"720P"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","size"],"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","size":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"segmented","size":"segmented"}}`, MaterialSchema: `{"image":{"max_items":6,"request_field":"input_reference","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒镜头","seconds":"6","aspect_ratio":"16:9","size":"720P"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{deepWLGrokImagine15ModelName},
+			BindingOverrides: deepWLGrokImagine15OverridesV1,
+			Profile:          ModelOperationProfile{ProfileKey: "video.generate.deepwl-grok-1-5", DisplayName: "DeepWL Grok 1.5", Description: "DeepWL Grok 1.5 的 TapLater 发布合同。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"seconds":{"type":"string","enum":["6","10","15"],"default":"6"},"aspect_ratio":{"type":"string","enum":["16:9","9:16","3:2","2:3","1:1"],"default":"16:9"},"size":{"type":"string","enum":["720P"],"default":"720P"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","seconds","aspect_ratio","size"],"placements":{"prompt":"prompt","seconds":"footer","aspect_ratio":"footer","size":"footer"},"widgets":{"prompt":"textarea","seconds":"segmented","aspect_ratio":"segmented","size":"segmented"}}`, MaterialSchema: `{"image":{"max_items":6,"request_field":"input_reference","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒镜头","seconds":"6","aspect_ratio":"16:9","size":"720P"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{nodyGrokVideo3ModelName},
+			BindingOverrides: nodyGrokVideo3OverridesV1,
+			Profile:          ModelOperationProfile{ProfileKey: "video.generate.nodyhub-grok-video-3", DisplayName: "NodyHub Grok Video 3", Description: "NodyHub Grok Video 3 的官方视频生成合同。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"duration":{"type":"integer","enum":[6,10,15,20,25,30],"default":6},"ratio":{"type":"string","enum":["16:9","9:16","4:3","3:4","3:2","2:3","1:1"],"default":"16:9"},"resolution":{"type":"string","enum":["720P"],"default":"720P"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","duration","ratio","resolution"],"placements":{"prompt":"prompt","duration":"footer","ratio":"footer","resolution":"footer"},"widgets":{"prompt":"textarea","duration":"segmented","ratio":"segmented","resolution":"segmented"}}`, MaterialSchema: `{"image":{"max_items":7,"request_field":"images","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"生成一个六秒镜头","duration":6,"ratio":"16:9","resolution":"720P"}`, Status: ModelOperationProfileStatusPublished},
+		},
+		{
+			ModelNames:       []string{nodyGrokImagine15ModelName},
+			BindingOverrides: nodyGrokImagine15OverridesV1,
+			Profile:          ModelOperationProfile{ProfileKey: "video.generate.nodyhub-grok-imagine-1-5", DisplayName: "NodyHub Grok Imagine 1.5 Video", Description: "NodyHub Grok Imagine 1.5 Video 的官方视频生成合同。"},
+			Version:          ModelOperationProfileVersion{Version: 1, Operation: "video.generate", EndpointType: "openai-video", ExecutionMode: "async", InputSchema: `{"type":"object","properties":{"prompt":{"type":"string","minLength":1},"duration":{"type":"integer","minimum":6,"maximum":30,"default":6},"size":{"type":"string","enum":["16:9","9:16","1:1","3:2","2:3"],"default":"16:9"},"quality":{"type":"string","enum":["480p","720p"],"default":"720p"}},"required":["prompt"],"additionalProperties":false}`, UISchema: `{"order":["prompt","duration","size","quality"],"placements":{"prompt":"prompt","duration":"footer","size":"footer","quality":"footer"},"widgets":{"prompt":"textarea","duration":{"type":"slider","min":6,"max":30,"step":1},"size":"segmented","quality":"segmented"}}`, MaterialSchema: `{"image":{"max_items":7,"request_field":"image_urls","transport":"url"},"video":{"max_items":0},"audio":{"max_items":0}}`, ResponseContract: "openai-video-task-v1", SmokeTest: `{"prompt":"把参考图变成旋转视频","duration":6,"size":"16:9","quality":"720p"}`, Status: ModelOperationProfileStatusPublished},
 		},
 		{
 			ModelNames:       []string{omniFastModelName},
@@ -604,8 +635,8 @@ func defaultModelOperationProfiles() []defaultModelOperationProfile {
 			switch modelName {
 			case omniFastModelName:
 				profiles[index].BindingOverrides = omniFastOverridesV4
-			case "deepwl/grok-video-3":
-				profiles[index].BindingOverrides = grokVideo3OverridesV4
+			case deepWLGrokVideo3ModelName:
+				profiles[index].BindingOverrides = deepWLGrokVideo3OverridesV1
 			}
 		}
 	}
@@ -690,11 +721,19 @@ func migrateReservedModelOperationBinding(modelName, operation, legacyProfileKey
 
 func ensureCoreModelEndpointTypes() error {
 	required := map[string][]string{
-		"deepwl/gpt-image-2":  {"image-generation"},
-		gptImage2AllModelName: {"image-generation"},
-		gptImage2CModelName:   {"image-generation"},
-		omniFastModelName:     {"openai-video"},
-		omniFastV2VModelName:  {"openai-video"},
+		"deepwl/gpt-image-2":         {"image-generation"},
+		gptImage2AllModelName:        {"image-generation"},
+		gptImage2CModelName:          {"image-generation"},
+		omniFastModelName:            {"openai-video"},
+		omniFastV2VModelName:         {"openai-video"},
+		deepWLGrokVideo3ModelName:    {"openai-video"},
+		"deepwl/grok-video-3-10s":    {"openai-video"},
+		"deepwl/grok-video-3-15s":    {"openai-video"},
+		deepWLGrokImagine15ModelName: {"openai-video"},
+		"deepwl/grok-1.5-video-10s":  {"openai-video"},
+		"deepwl/grok-1.5-video-15s":  {"openai-video"},
+		nodyGrokVideo3ModelName:      {"openai-video"},
+		nodyGrokImagine15ModelName:   {"openai-video"},
 	}
 	modelNames := make([]string, 0, len(required))
 	for modelName := range required {
@@ -900,7 +939,7 @@ func SeedDefaultModelOperationProfiles() error {
 		return fmt.Errorf("migrate Omni mode contract: %w", err)
 	}
 	if err := migrateReservedModelOperationBinding(
-		"deepwl/grok-video-3",
+		deepWLGrokVideo3ModelName,
 		"video.generate",
 		"video.generate.basic",
 		3,
@@ -910,6 +949,55 @@ func SeedDefaultModelOperationProfiles() error {
 		grokVideo3OverridesV4,
 	); err != nil {
 		return fmt.Errorf("migrate Grok duration mode contract: %w", err)
+	}
+	for _, migration := range []struct {
+		modelName      string
+		legacyProfile  string
+		legacyOverride string
+		nextProfile    string
+		nextOverride   string
+	}{
+		{
+			modelName:      deepWLGrokVideo3ModelName,
+			legacyProfile:  "video.generate.basic",
+			legacyOverride: grokVideo3OverridesV4,
+			nextProfile:    "video.generate.deepwl-grok-video-3",
+			nextOverride:   deepWLGrokVideo3OverridesV1,
+		},
+		{
+			modelName:      deepWLGrokImagine15ModelName,
+			legacyProfile:  "video.generate.basic",
+			legacyOverride: "{}",
+			nextProfile:    "video.generate.deepwl-grok-1-5",
+			nextOverride:   deepWLGrokImagine15OverridesV1,
+		},
+		{
+			modelName:      nodyGrokVideo3ModelName,
+			legacyProfile:  "video.generate.basic",
+			legacyOverride: "{}",
+			nextProfile:    "video.generate.nodyhub-grok-video-3",
+			nextOverride:   nodyGrokVideo3OverridesV1,
+		},
+		{
+			modelName:      nodyGrokImagine15ModelName,
+			legacyProfile:  "video.generate.basic",
+			legacyOverride: "{}",
+			nextProfile:    "video.generate.nodyhub-grok-imagine-1-5",
+			nextOverride:   nodyGrokImagine15OverridesV1,
+		},
+	} {
+		if err := migrateReservedModelOperationBinding(
+			migration.modelName,
+			"video.generate",
+			migration.legacyProfile,
+			3,
+			migration.legacyOverride,
+			migration.nextProfile,
+			1,
+			migration.nextOverride,
+		); err != nil {
+			return fmt.Errorf("migrate exact Grok contract %s: %w", migration.modelName, err)
+		}
 	}
 	for _, migration := range []struct {
 		modelName string

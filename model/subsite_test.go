@@ -53,6 +53,18 @@ func TestSeedDefaultSubsiteCreatesCanonicalModelsAndHashesPassword(t *testing.T)
 	assert.NotContains(t, strings.ToLower(string(encoded)), "password")
 }
 
+func TestRuntimeOnlySubsiteModelsIncludeAllHiddenGrokVariants(t *testing.T) {
+	for _, modelName := range []string{
+		"deepwl/grok-1.5-video-10s",
+		"deepwl/grok-1.5-video-15s",
+		"deepwl/grok-video-3-10s",
+		"deepwl/grok-video-3-15s",
+	} {
+		assert.True(t, IsRuntimeOnlySubsiteModel(modelName), modelName)
+	}
+	assert.False(t, IsRuntimeOnlySubsiteModel("deepwl/grok-1.5-video-6s"))
+}
+
 func TestSeedDefaultSubsiteUsesDefaultClaimPasswordWithoutEnvironmentOverride(t *testing.T) {
 	setupSubsiteModelTest(t)
 	t.Setenv(defaultSubsitePasswordEnv, "")

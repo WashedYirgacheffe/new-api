@@ -44,6 +44,7 @@ var defaultSubsiteModels = []string{
 var runtimeOnlySubsiteModels = map[string]struct{}{
 	"deepwl/omni-fast-v2v":      {},
 	"deepwl/grok-1.5-video-10s": {},
+	"deepwl/grok-1.5-video-15s": {},
 	"deepwl/grok-video-3-10s":   {},
 	"deepwl/grok-video-3-15s":   {},
 }
