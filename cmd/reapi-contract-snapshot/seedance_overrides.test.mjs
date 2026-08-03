@@ -16,7 +16,14 @@ test('Face contracts expose only documented parameters', () => {
 
   assert.deepEqual(face.input_schema.properties.resolution.enum, ['480p', '720p', '1080p', '4k'])
   assert.deepEqual(fastFace.input_schema.properties.resolution.enum, ['480p', '720p'])
+  assert.deepEqual(
+    face.modes.map((mode) => mode.id),
+    ['text', 'image-reference', 'frame-interpolation', 'video-reference', 'image-video-reference', 'image-audio-reference', 'video-audio-reference', 'multimodal-reference'],
+  )
+  assert.deepEqual(fastFace.modes, face.modes)
   for (const item of [face, fastFace]) {
+    assert.equal(item.input_schema.properties.resolution.default, '480p')
+    assert.equal(item.parameter_defaults.resolution, '480p')
     assert.equal(item.input_schema.required, undefined)
     assert.equal(item.input_schema.properties.nsfw_checker.type, 'boolean')
     assert.equal(item.input_schema.properties.tools.type, 'boolean')
@@ -35,4 +42,8 @@ test('Mini exposes nsfw_checker and omits return_last_frame', () => {
   assert.equal(mini.ui_schema.widgets.nsfw_checker, 'toggle')
   assert.equal(mini.input_schema.properties.return_last_frame, undefined)
   assert.deepEqual(mini.input_schema.properties.resolution.enum, ['480p', '720p'])
+  assert.deepEqual(
+    mini.modes.map((mode) => mode.id),
+    ['text', 'first-frame', 'last-frame', 'frame-interpolation', 'image-reference', 'video-reference', 'audio-reference', 'image-video-reference', 'image-audio-reference', 'video-audio-reference', 'multimodal-reference'],
+  )
 })

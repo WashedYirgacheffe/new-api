@@ -7,6 +7,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	relayhelper "github.com/QuantumNous/new-api/relay/helper"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -111,6 +112,11 @@ func TestCheckedInSeedanceContractsMatchDocumentedSchemas(t *testing.T) {
 		assert.Equal(t, "boolean", properties["nsfw_checker"].(map[string]interface{})["type"], modelName)
 		assert.Equal(t, "boolean", properties["tools"].(map[string]interface{})["type"], modelName)
 		assert.Equal(t, resolutions, properties["resolution"].(map[string]interface{})["enum"], modelName)
+		assert.Equal(t, "480p", properties["resolution"].(map[string]interface{})["default"], modelName)
+		assert.Equal(t, "480p", contract.ParameterDefaults["resolution"], modelName)
+		require.Len(t, contract.Modes, 8, modelName)
+		assert.True(t, contract.Modes[0].Default, modelName)
+		assert.Equal(t, "text", contract.Modes[0].Id, modelName)
 		widgets, ok := contract.UISchema["widgets"].(map[string]interface{})
 		require.True(t, ok, modelName)
 		assert.Equal(t, "toggle", widgets["tools"], modelName)
@@ -124,9 +130,106 @@ func TestCheckedInSeedanceContractsMatchDocumentedSchemas(t *testing.T) {
 	assert.NotContains(t, mini.InputSchema, "required")
 	assert.NotContains(t, miniProperties, "return_last_frame")
 	assert.Equal(t, "boolean", miniProperties["nsfw_checker"].(map[string]interface{})["type"])
+	require.Len(t, mini.Modes, 11)
+	assert.True(t, mini.Modes[0].Default)
+	assert.Equal(t, "text", mini.Modes[0].Id)
 	miniWidgets, ok := mini.UISchema["widgets"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "toggle", miniWidgets["nsfw_checker"])
+}
+
+func TestCheckedInSeedanceModesFailClosedForInvalidMaterials(t *testing.T) {
+	repositoryRoot := filepath.Join("..", "..")
+	models, err := loadCatalog(filepath.Join(repositoryRoot, defaultCatalogPath))
+	require.NoError(t, err)
+	pricing, err := loadAsyncPricingCatalog(filepath.Join(repositoryRoot, defaultPricingCatalogPath), models)
+	require.NoError(t, err)
+	contracts, err := loadAsyncContractCatalog(filepath.Join(repositoryRoot, defaultContractCatalogPath), pricing)
+	require.NoError(t, err)
+
+	byUpstream := make(map[string]asyncContractModel, len(contracts.Models))
+	for _, item := range contracts.Models {
+		byUpstream[item.UpstreamModel] = item
+	}
+	tests := []struct {
+		name       string
+		upstream   string
+		parameters map[string]interface{}
+		validMode  string
+		invalid    bool
+	}{
+		{
+			name:     "Face image and frames are mutually exclusive",
+			upstream: "doubao-seedance-2.0-face",
+			parameters: map[string]interface{}{
+				"image_urls":       []interface{}{"https://example.com/reference.png"},
+				"image_with_roles": []interface{}{map[string]interface{}{"url": "https://example.com/first.png", "role": "first_frame"}},
+			},
+			invalid: true,
+		},
+		{
+			name:     "Fast Face audio requires image or video",
+			upstream: "doubao-seedance-2.0-fast-face",
+			parameters: map[string]interface{}{
+				"audio_urls": []interface{}{"https://example.com/audio.mp3"},
+			},
+			invalid: true,
+		},
+		{
+			name:     "Mini frames and references are mutually exclusive",
+			upstream: "seedance-2.0-mini",
+			parameters: map[string]interface{}{
+				"first_frame_url":      "https://example.com/first.png",
+				"reference_image_urls": []interface{}{"https://example.com/reference.png"},
+			},
+			invalid: true,
+		},
+		{
+			name:     "Face image and video select a documented reference mode",
+			upstream: "doubao-seedance-2.0-face",
+			parameters: map[string]interface{}{
+				"image_urls": []interface{}{"https://example.com/reference.png"},
+				"video_urls": []interface{}{"https://example.com/reference.mp4"},
+			},
+			validMode: "image-video-reference",
+		},
+		{
+			name:     "Mini first and last frame select interpolation mode",
+			upstream: "seedance-2.0-mini",
+			parameters: map[string]interface{}{
+				"first_frame_url": "https://example.com/first.png",
+				"last_frame_url":  "https://example.com/last.png",
+			},
+			validMode: "frame-interpolation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item, ok := byUpstream[tt.upstream]
+			require.True(t, ok)
+			contract := &model.ModelOperationEffectiveContract{
+				InputSchema:       item.InputSchema,
+				UISchema:          item.UISchema,
+				MaterialSchema:    item.MaterialSchema,
+				RequestContract:   item.RequestContract,
+				ParameterDefaults: item.ParameterDefaults,
+				Modes:             item.Modes,
+			}
+			resolved, err := model.ResolveModelOperationContractMode(
+				contract,
+				tt.parameters,
+				model.DetectModelOperationMaterialSlots(contract, tt.parameters),
+			)
+			require.NoError(t, err)
+			if tt.invalid {
+				assert.Equal(t, "text", resolved.SelectedMode)
+				assert.Error(t, relayhelper.ValidateModelOperationContractMaterials(nil, resolved, tt.parameters))
+				return
+			}
+			assert.Equal(t, tt.validMode, resolved.SelectedMode)
+		})
+	}
 }
 
 func TestUpsertREAsyncContractsIsIdempotent(t *testing.T) {

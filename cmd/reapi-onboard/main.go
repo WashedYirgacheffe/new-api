@@ -115,6 +115,7 @@ type asyncContractModel struct {
 	MaterialSchema      map[string]interface{}              `json:"material_schema"`
 	RequestContract     model.ModelOperationRequestContract `json:"request_contract"`
 	ParameterDefaults   map[string]interface{}              `json:"parameter_defaults"`
+	Modes               []model.ModelOperationContractMode  `json:"modes,omitempty"`
 	DispatchPath        string                              `json:"dispatch_path"`
 	PollPath            string                              `json:"poll_path"`
 	Evidence            interface{}                         `json:"evidence"`
@@ -707,6 +708,9 @@ func marshalAsyncContractOverrides(item asyncContractModel) (string, error) {
 	}
 	if item.ParameterDefaults != nil {
 		payload["parameter_defaults"] = item.ParameterDefaults
+	}
+	if len(item.Modes) > 0 {
+		payload["modes"] = item.Modes
 	}
 	encoded, err := common.Marshal(payload)
 	return string(encoded), err

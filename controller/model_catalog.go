@@ -499,6 +499,9 @@ func normalizeModelQuoteParameters(contract *model.ModelOperationEffectiveContra
 		return nil, nil, err
 	}
 	pricingParameters := taskreapi.MergePricingParameters(materialParameters, normalized)
+	if err := relayhelper.ValidateModelOperationContractMaterials(nil, contract, pricingParameters); err != nil {
+		return nil, nil, err
+	}
 	return normalized, pricingParameters, nil
 }
 

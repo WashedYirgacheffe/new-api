@@ -739,7 +739,7 @@
               "1080p",
               "4k"
             ],
-            "default": "720p"
+            "default": "480p"
           },
           "generate_audio": {
             "type": "boolean",
@@ -869,7 +869,7 @@
       "parameter_defaults": {
         "duration": 5,
         "size": "16:9",
-        "resolution": "720p",
+        "resolution": "480p",
         "generate_audio": false,
         "return_last_frame": false,
         "tools": false,
@@ -1200,7 +1200,159 @@
           "precedence": "specific_model_api_reference",
           "url_inputs_only": true
         }
-      }
+      },
+      "modes": [
+        {
+          "id": "text",
+          "default": true,
+          "input_schema": {
+            "required": [
+              "prompt"
+            ]
+          },
+          "material_schema": {
+            "image": {
+              "min_items": 0,
+              "max_items": 0,
+              "request_fields": [
+                {
+                  "slot": "image_urls",
+                  "request_field": "image_urls",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "array"
+                },
+                {
+                  "slot": "first_frame",
+                  "request_field": "image_with_roles",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "array",
+                  "url_field": "url",
+                  "item_template": {
+                    "role": "first_frame"
+                  }
+                },
+                {
+                  "slot": "last_frame",
+                  "request_field": "image_with_roles",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "array",
+                  "url_field": "url",
+                  "item_template": {
+                    "role": "last_frame"
+                  }
+                }
+              ]
+            },
+            "video": {
+              "max_items": 0,
+              "request_field": "video_urls",
+              "transport": "url"
+            },
+            "audio": {
+              "max_items": 0,
+              "request_field": "audio_urls",
+              "transport": "url"
+            }
+          }
+        },
+        {
+          "id": "image-reference",
+          "when": {
+            "material_slots": [
+              "image_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles",
+              "video_urls",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "frame-interpolation",
+          "when": {
+            "material_slots": [
+              "image_with_roles"
+            ],
+            "excluded_material_slots": [
+              "image_urls",
+              "video_urls",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "video-reference",
+          "when": {
+            "material_slots": [
+              "video_urls"
+            ],
+            "excluded_material_slots": [
+              "image_urls",
+              "image_with_roles",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "image-video-reference",
+          "when": {
+            "material_slots": [
+              "image_urls",
+              "video_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "image-audio-reference",
+          "when": {
+            "material_slots": [
+              "image_urls",
+              "audio_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles",
+              "video_urls"
+            ]
+          }
+        },
+        {
+          "id": "video-audio-reference",
+          "when": {
+            "material_slots": [
+              "video_urls",
+              "audio_urls"
+            ],
+            "excluded_material_slots": [
+              "image_urls",
+              "image_with_roles"
+            ]
+          }
+        },
+        {
+          "id": "multimodal-reference",
+          "when": {
+            "material_slots": [
+              "image_urls",
+              "video_urls",
+              "audio_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles"
+            ]
+          }
+        }
+      ]
     },
     {
       "model_name": "re/doubao-seedance-2.0-fast",
@@ -1584,7 +1736,7 @@
               "480p",
               "720p"
             ],
-            "default": "720p"
+            "default": "480p"
           },
           "generate_audio": {
             "type": "boolean",
@@ -1714,7 +1866,7 @@
       "parameter_defaults": {
         "duration": 5,
         "size": "16:9",
-        "resolution": "720p",
+        "resolution": "480p",
         "generate_audio": false,
         "return_last_frame": false,
         "tools": false,
@@ -2061,7 +2213,159 @@
           "precedence": "specific_model_api_reference",
           "url_inputs_only": true
         }
-      }
+      },
+      "modes": [
+        {
+          "id": "text",
+          "default": true,
+          "input_schema": {
+            "required": [
+              "prompt"
+            ]
+          },
+          "material_schema": {
+            "image": {
+              "min_items": 0,
+              "max_items": 0,
+              "request_fields": [
+                {
+                  "slot": "image_urls",
+                  "request_field": "image_urls",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "array"
+                },
+                {
+                  "slot": "first_frame",
+                  "request_field": "image_with_roles",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "array",
+                  "url_field": "url",
+                  "item_template": {
+                    "role": "first_frame"
+                  }
+                },
+                {
+                  "slot": "last_frame",
+                  "request_field": "image_with_roles",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "array",
+                  "url_field": "url",
+                  "item_template": {
+                    "role": "last_frame"
+                  }
+                }
+              ]
+            },
+            "video": {
+              "max_items": 0,
+              "request_field": "video_urls",
+              "transport": "url"
+            },
+            "audio": {
+              "max_items": 0,
+              "request_field": "audio_urls",
+              "transport": "url"
+            }
+          }
+        },
+        {
+          "id": "image-reference",
+          "when": {
+            "material_slots": [
+              "image_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles",
+              "video_urls",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "frame-interpolation",
+          "when": {
+            "material_slots": [
+              "image_with_roles"
+            ],
+            "excluded_material_slots": [
+              "image_urls",
+              "video_urls",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "video-reference",
+          "when": {
+            "material_slots": [
+              "video_urls"
+            ],
+            "excluded_material_slots": [
+              "image_urls",
+              "image_with_roles",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "image-video-reference",
+          "when": {
+            "material_slots": [
+              "image_urls",
+              "video_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles",
+              "audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "image-audio-reference",
+          "when": {
+            "material_slots": [
+              "image_urls",
+              "audio_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles",
+              "video_urls"
+            ]
+          }
+        },
+        {
+          "id": "video-audio-reference",
+          "when": {
+            "material_slots": [
+              "video_urls",
+              "audio_urls"
+            ],
+            "excluded_material_slots": [
+              "image_urls",
+              "image_with_roles"
+            ]
+          }
+        },
+        {
+          "id": "multimodal-reference",
+          "when": {
+            "material_slots": [
+              "image_urls",
+              "video_urls",
+              "audio_urls"
+            ],
+            "excluded_material_slots": [
+              "image_with_roles"
+            ]
+          }
+        }
+      ]
     },
     {
       "model_name": "re/doubao-seedance-2.0-fast-official",
@@ -14369,7 +14673,195 @@
           "precedence": "specific_model_api_reference",
           "url_inputs_only": true
         }
-      }
+      },
+      "modes": [
+        {
+          "id": "text",
+          "default": true,
+          "material_schema": {
+            "image": {
+              "min_items": 0,
+              "max_items": 0,
+              "request_fields": [
+                {
+                  "slot": "first_frame_url",
+                  "request_field": "first_frame_url",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "string"
+                },
+                {
+                  "slot": "last_frame_url",
+                  "request_field": "last_frame_url",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "string"
+                },
+                {
+                  "slot": "reference_image_urls",
+                  "request_field": "reference_image_urls",
+                  "transport": "url",
+                  "min_items": 0,
+                  "max_items": 0,
+                  "value_type": "array"
+                }
+              ]
+            },
+            "video": {
+              "max_items": 0,
+              "request_field": "reference_video_urls",
+              "transport": "url"
+            },
+            "audio": {
+              "max_items": 0,
+              "request_field": "reference_audio_urls",
+              "transport": "url"
+            }
+          }
+        },
+        {
+          "id": "first-frame",
+          "when": {
+            "material_slots": [
+              "first_frame_url"
+            ],
+            "excluded_material_slots": [
+              "last_frame_url",
+              "reference_image_urls",
+              "reference_video_urls",
+              "reference_audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "last-frame",
+          "when": {
+            "material_slots": [
+              "last_frame_url"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "reference_image_urls",
+              "reference_video_urls",
+              "reference_audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "frame-interpolation",
+          "when": {
+            "material_slots": [
+              "first_frame_url",
+              "last_frame_url"
+            ],
+            "excluded_material_slots": [
+              "reference_image_urls",
+              "reference_video_urls",
+              "reference_audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "image-reference",
+          "when": {
+            "material_slots": [
+              "reference_image_urls"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "last_frame_url",
+              "reference_video_urls",
+              "reference_audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "video-reference",
+          "when": {
+            "material_slots": [
+              "reference_video_urls"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "last_frame_url",
+              "reference_image_urls",
+              "reference_audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "audio-reference",
+          "when": {
+            "material_slots": [
+              "reference_audio_urls"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "last_frame_url",
+              "reference_image_urls",
+              "reference_video_urls"
+            ]
+          }
+        },
+        {
+          "id": "image-video-reference",
+          "when": {
+            "material_slots": [
+              "reference_image_urls",
+              "reference_video_urls"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "last_frame_url",
+              "reference_audio_urls"
+            ]
+          }
+        },
+        {
+          "id": "image-audio-reference",
+          "when": {
+            "material_slots": [
+              "reference_image_urls",
+              "reference_audio_urls"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "last_frame_url",
+              "reference_video_urls"
+            ]
+          }
+        },
+        {
+          "id": "video-audio-reference",
+          "when": {
+            "material_slots": [
+              "reference_video_urls",
+              "reference_audio_urls"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "last_frame_url",
+              "reference_image_urls"
+            ]
+          }
+        },
+        {
+          "id": "multimodal-reference",
+          "when": {
+            "material_slots": [
+              "reference_image_urls",
+              "reference_video_urls",
+              "reference_audio_urls"
+            ],
+            "excluded_material_slots": [
+              "first_frame_url",
+              "last_frame_url"
+            ]
+          }
+        }
+      ]
     },
     {
       "model_name": "re/suno-add-instrumental",

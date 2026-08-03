@@ -3,6 +3,41 @@ const ASPECT_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '21:9', 'adaptive']
 const SEEDANCE_20_URL = 'https://reapi.ai/zh/models/seedance-2-0'
 const SEEDANCE_20_MINI_URL = 'https://reapi.ai/zh/models/seedance-2-0-mini'
 
+function disabledMaterialSchema(schema) {
+  const disabled = structuredClone(schema)
+  for (const rule of Object.values(disabled)) {
+    rule.max_items = 0
+    if (Array.isArray(rule.request_fields)) {
+      for (const requestField of rule.request_fields) {
+        requestField.max_items = 0
+      }
+    }
+  }
+  return disabled
+}
+
+function exactMaterialMode(id, requiredSlots, allSlots) {
+  return {
+    id,
+    when: {
+      material_slots: requiredSlots,
+      excluded_material_slots: allSlots.filter((slot) => !requiredSlots.includes(slot)),
+    },
+  }
+}
+
+function materialModes(schema, allSlots, modes, defaultInputSchema) {
+  return [
+    {
+      id: 'text',
+      default: true,
+      ...(defaultInputSchema ? { input_schema: defaultInputSchema } : {}),
+      material_schema: disabledMaterialSchema(schema),
+    },
+    ...modes.map(([id, slots]) => exactMaterialMode(id, slots, allSlots)),
+  ]
+}
+
 const faceMaterialSchema = {
   image: {
     min_items: 0,
@@ -50,6 +85,17 @@ const faceMaterialSchema = {
   },
 }
 
+const FACE_MATERIAL_SLOTS = ['image_urls', 'image_with_roles', 'video_urls', 'audio_urls']
+const FACE_MATERIAL_MODES = [
+  ['image-reference', ['image_urls']],
+  ['frame-interpolation', ['image_with_roles']],
+  ['video-reference', ['video_urls']],
+  ['image-video-reference', ['image_urls', 'video_urls']],
+  ['image-audio-reference', ['image_urls', 'audio_urls']],
+  ['video-audio-reference', ['video_urls', 'audio_urls']],
+  ['multimodal-reference', ['image_urls', 'video_urls', 'audio_urls']],
+]
+
 function faceContract(resolutions) {
   const inputSchema = {
     type: 'object',
@@ -70,7 +116,7 @@ function faceContract(resolutions) {
       resolution: {
         type: 'string',
         enum: resolutions,
-        default: '720p',
+        default: '480p',
       },
       generate_audio: { type: 'boolean', default: false },
       return_last_frame: { type: 'boolean', default: false },
@@ -117,10 +163,13 @@ function faceContract(resolutions) {
       },
     },
     material_schema: faceMaterialSchema,
+    modes: materialModes(faceMaterialSchema, FACE_MATERIAL_SLOTS, FACE_MATERIAL_MODES, {
+      required: ['prompt'],
+    }),
     parameter_defaults: {
       duration: 5,
       size: '16:9',
-      resolution: '720p',
+      resolution: '480p',
       generate_audio: false,
       return_last_frame: false,
       tools: false,
@@ -222,6 +271,63 @@ const miniContract = {
       transport: 'url',
     },
   },
+  modes: materialModes(
+    {
+      image: {
+        min_items: 0,
+        max_items: 11,
+        request_fields: [
+          {
+            slot: 'first_frame_url',
+            request_field: 'first_frame_url',
+            transport: 'url',
+            min_items: 0,
+            max_items: 1,
+            value_type: 'string',
+          },
+          {
+            slot: 'last_frame_url',
+            request_field: 'last_frame_url',
+            transport: 'url',
+            min_items: 0,
+            max_items: 1,
+            value_type: 'string',
+          },
+          {
+            slot: 'reference_image_urls',
+            request_field: 'reference_image_urls',
+            transport: 'url',
+            min_items: 0,
+            max_items: 9,
+            value_type: 'array',
+          },
+        ],
+      },
+      video: {
+        max_items: 3,
+        request_field: 'reference_video_urls',
+        transport: 'url',
+      },
+      audio: {
+        max_items: 3,
+        request_field: 'reference_audio_urls',
+        transport: 'url',
+      },
+    },
+    ['first_frame_url', 'last_frame_url', 'reference_image_urls', 'reference_video_urls', 'reference_audio_urls'],
+    [
+      ['first-frame', ['first_frame_url']],
+      ['last-frame', ['last_frame_url']],
+      ['frame-interpolation', ['first_frame_url', 'last_frame_url']],
+      ['image-reference', ['reference_image_urls']],
+      ['video-reference', ['reference_video_urls']],
+      ['audio-reference', ['reference_audio_urls']],
+      ['image-video-reference', ['reference_image_urls', 'reference_video_urls']],
+      ['image-audio-reference', ['reference_image_urls', 'reference_audio_urls']],
+      ['video-audio-reference', ['reference_video_urls', 'reference_audio_urls']],
+      ['multimodal-reference', ['reference_image_urls', 'reference_video_urls', 'reference_audio_urls']],
+    ],
+  ),
   parameter_defaults: {
     generate_audio: false,
     resolution: '720p',

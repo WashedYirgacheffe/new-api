@@ -162,6 +162,21 @@ func TestApplyPricingSKUToPriceDataMatchesDocumentedSeedanceFaceAndMiniPrices(t 
 	}
 }
 
+func TestMatchPricingSKURejectsFastFaceHighResolutions(t *testing.T) {
+	for _, resolution := range []string{"1080p", "4k"} {
+		t.Run(resolution, func(t *testing.T) {
+			quote, err := MatchPricingSKU("re/doubao-seedance-2.0-fast-face", map[string]interface{}{
+				"resolution": resolution,
+				"duration":   float64(5),
+			})
+
+			require.Error(t, err)
+			assert.Nil(t, quote)
+			assert.Contains(t, err.Error(), "pricing SKU not configured")
+		})
+	}
+}
+
 func TestApplyPricingSKUToPriceDataMatchesSeedreamNSFWReferenceCount(t *testing.T) {
 	priceData := skuPriceData()
 	quote, _, err := ApplyPricingSKUToPriceData(&priceData, "re/doubao-seedream-5-0-pro", map[string]interface{}{

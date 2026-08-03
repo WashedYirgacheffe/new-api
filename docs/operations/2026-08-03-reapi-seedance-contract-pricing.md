@@ -10,21 +10,22 @@
 ## 假设与边界
 
 - Face、Fast Face 和 Mini 均支持 `nsfw_checker:boolean`，合同保留高级开关，默认值沿用上游配置 `true`。
-- Face 支持 `480p/720p/1080p/4k`，Fast Face 和 Mini 仅支持 `480p/720p`；合同枚举与现有价格 SKU 完整闭合。
+- Face 支持 `480p/720p/1080p/4k`，Fast Face 和 Mini 仅支持 `480p/720p`；Face 与 Fast Face 默认 `480p`，Mini 默认 `720p`，合同枚举与现有价格 SKU 完整闭合。
 - “与上传视频”价格只在 `video_urls` 或 `reference_video_urls` 存在时使用。图片、首尾帧和音频素材均按无视频价格计费。
 - Face 使用 `size`，Mini 使用 `aspect_ratio`；三者时长均为 4 到 15 秒。所有素材只允许公开 HTTP(S) URL，不接受 Base64 或 data URI。
 - 旧 RE 全量快照抓取链的固定 manifest URL 已漂移；本轮不扩大为 88 个模型的无关重抓，而是在现有生成器末端应用可测试的三模型权威覆盖。
 
 ## 变更文件
 
-- `cmd/reapi-contract-snapshot/seedance_overrides.mjs`：三模型的文档级最终合同，以及证据来源和 `documented` 状态。
+- `cmd/reapi-contract-snapshot/seedance_overrides.mjs`：三模型的文档级最终合同、素材模式白名单，以及证据来源和 `documented` 状态。
 - `cmd/reapi-contract-snapshot/main.mjs`：在通用快照提取后应用 Seedance 权威覆盖。
-- `cmd/reapi-contract-snapshot/seedance_overrides.test.mjs`：参数枚举、`tools` 类型和 `nsfw_checker` 模型差异测试。
+- `cmd/reapi-contract-snapshot/seedance_overrides.test.mjs`：参数枚举、素材模式、`tools` 类型和 `nsfw_checker` 模型差异测试。
 - `cmd/reapi-pricing-snapshot/main.go`、`main_test.go`：三模型人工价格覆盖及精确费率测试。
 - `docs/catalog/reapi-async-contracts.json`：TapLater 最终消费的三模型参数与素材合同。
 - `docs/catalog/reapi-async-pricing.json`、`reapi-async-pricing-table.csv`：采购价格证据和可筛选 SKU 表。
 - `relay/channel/task/reapi/pricing/reapi-async-pricing.json`：报价与真实任务预扣共用的运行时价格目录。
-- `relay/channel/task/reapi/adaptor_test.go`、`pricing_catalog_test.go`、`cmd/reapi-onboard/main_test.go`：`nsfw_checker=false` 出站保留、视频素材折扣、时长倍率和静态合同回归。
+- `controller/model_catalog.go`：报价在模式解析后执行同一套材料合同校验，不对非法素材组合返回可用报价。
+- `relay/channel/task/reapi/adaptor_test.go`、`pricing_catalog_test.go`、`cmd/reapi-onboard/main_test.go`：`nsfw_checker=false` 出站保留、视频素材折扣、时长倍率、Fast Face 高分辨率拒绝和素材模式回归。
 
 ## 云资源与配置
 
@@ -37,7 +38,9 @@
 
 - `node --test cmd/reapi-contract-snapshot/seedance_overrides.test.mjs`
 - `go test ./relay/channel/task/reapi ./cmd/reapi-onboard ./cmd/reapi-pricing-snapshot -count=1`
-- 合同断言：三个模型均有 `nsfw_checker`；Face 开放 4K 且 `tools` 为 boolean；Fast Face 当前价格完备枚举为 480p/720p；Mini 无 `return_last_frame`。
+- `go test ./controller -run 'TestProfileDispatchReadyAcceptsREAsyncContracts|TestNormalizeModelQuoteParameters' -count=1`
+- 合同断言：三个模型均有 `nsfw_checker`；Face 开放 4K 且 `tools` 为 boolean；Fast Face 只开放 480p/720p，默认 480p，并在报价层拒绝 1080p/4K；Mini 无 `return_last_frame`。
+- 素材断言：Face/Fast Face 仅允许图片、首尾帧、视频、音频的已证明组合；音频不能单独使用，首尾帧不能与普通图片、视频或音频混用。Mini 的首尾帧与任意 reference 素材互斥。报价与真实派发都使用同一合同模式和材料校验。
 - 报价断言：图片素材保持 `noVideo`；视频素材命中 `withVideo`；数量倍率按 4 到 15 秒中的实际 duration 计算。
 - 文档价格目录与运行时内嵌目录 SHA-256 必须一致；CSV 必须保持 389 行（表头 1 行、SKU 388 行）。
 - 未执行付费上游生成，因此不把本轮状态标记为 `tested`。
@@ -54,7 +57,7 @@
 ## 剩余风险
 
 - 上游若新增 Fast Face 的 1080P 或 4K，必须同时取得两种视频素材模式的价格证据，再通过新合同版本开放。
-- Face 的 prompt 是条件必填，但素材字段位于独立材料合同，现有 JSON Schema 无法完整表达“无素材时必填”；上游仍会拒绝 prompt 和素材同时为空的请求。
+- 本轮将 Face/Fast Face 无素材时的 `prompt` 条件必填收敛为默认模式；Mini 按权威 API Reference 保留可选 `prompt`。上游若新增未记录的素材组合，合同会 fail-closed，直到取得证据后新增模式。
 - 上游模型页、manifest 和价格快照仍可能继续漂移。定时检查只能生成差异，不得自动覆盖本轮人工审查后的合同或价格。
 - 本次验证发现 RE 公开全量价格快照已由基线的 476 个 SKU 漂移到 499 个 SKU。未将其余模型的未审计价格变化混入本轮；下次全量 RE 审计应单独复核该差异后再重生成整个目录。
 - 真实付费调用和账单对账尚未执行；后续若进行烟测，应使用受控额度并保留任务、报价和结算证据。
