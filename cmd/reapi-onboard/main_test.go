@@ -85,6 +85,50 @@ func TestCheckedInAsyncContractCatalog(t *testing.T) {
 	assert.Equal(t, map[string]int{"image": 32, "video": 34, "audio": 19, "text": 3}, typeCounts)
 }
 
+func TestCheckedInSeedanceContractsMatchDocumentedSchemas(t *testing.T) {
+	repositoryRoot := filepath.Join("..", "..")
+	models, err := loadCatalog(filepath.Join(repositoryRoot, defaultCatalogPath))
+	require.NoError(t, err)
+	pricing, err := loadAsyncPricingCatalog(filepath.Join(repositoryRoot, defaultPricingCatalogPath), models)
+	require.NoError(t, err)
+	contracts, err := loadAsyncContractCatalog(filepath.Join(repositoryRoot, defaultContractCatalogPath), pricing)
+	require.NoError(t, err)
+
+	byUpstream := make(map[string]asyncContractModel, len(contracts.Models))
+	for _, item := range contracts.Models {
+		byUpstream[item.UpstreamModel] = item
+	}
+
+	for modelName, resolutions := range map[string][]interface{}{
+		"doubao-seedance-2.0-face":      {"480p", "720p", "1080p", "4k"},
+		"doubao-seedance-2.0-fast-face": {"480p", "720p"},
+	} {
+		contract, ok := byUpstream[modelName]
+		require.True(t, ok, modelName)
+		properties, ok := contract.InputSchema["properties"].(map[string]interface{})
+		require.True(t, ok, modelName)
+		assert.NotContains(t, contract.InputSchema, "required", modelName)
+		assert.Equal(t, "boolean", properties["nsfw_checker"].(map[string]interface{})["type"], modelName)
+		assert.Equal(t, "boolean", properties["tools"].(map[string]interface{})["type"], modelName)
+		assert.Equal(t, resolutions, properties["resolution"].(map[string]interface{})["enum"], modelName)
+		widgets, ok := contract.UISchema["widgets"].(map[string]interface{})
+		require.True(t, ok, modelName)
+		assert.Equal(t, "toggle", widgets["tools"], modelName)
+		assert.Equal(t, "toggle", widgets["nsfw_checker"], modelName)
+	}
+
+	mini, ok := byUpstream["seedance-2.0-mini"]
+	require.True(t, ok)
+	miniProperties, ok := mini.InputSchema["properties"].(map[string]interface{})
+	require.True(t, ok)
+	assert.NotContains(t, mini.InputSchema, "required")
+	assert.NotContains(t, miniProperties, "return_last_frame")
+	assert.Equal(t, "boolean", miniProperties["nsfw_checker"].(map[string]interface{})["type"])
+	miniWidgets, ok := mini.UISchema["widgets"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "toggle", miniWidgets["nsfw_checker"])
+}
+
 func TestUpsertREAsyncContractsIsIdempotent(t *testing.T) {
 	repositoryRoot := filepath.Join("..", "..")
 	models, err := loadCatalog(filepath.Join(repositoryRoot, defaultCatalogPath))

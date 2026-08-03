@@ -86,6 +86,7 @@ type pricingIntegrity struct {
 	AsyncModelCount          int `json:"async_model_count"`
 	PricedModelCount         int `json:"priced_model_count"`
 	SnapshotPricedModelCount int `json:"snapshot_priced_model_count"`
+	DocumentedOverrideCount  int `json:"documented_override_model_count"`
 	PublishableModelCount    int `json:"publishable_model_count"`
 	ComingSoonModelCount     int `json:"coming_soon_model_count"`
 	ExcludedChatModelCount   int `json:"excluded_chat_model_count"`
@@ -121,6 +122,45 @@ type publishedPriceRange struct {
 	MinPriceUSD float64 `json:"min_price_usd"`
 	MaxPriceUSD float64 `json:"max_price_usd"`
 	Unit        string  `json:"unit"`
+}
+
+type documentedPricingOverride struct {
+	SourceURL string
+	SKUs      []pricingSKU
+}
+
+var documentedSeedancePricingOverrides = map[string]documentedPricingOverride{
+	"doubao-seedance-2.0-face": {
+		SourceURL: "https://reapi.ai/zh/models/seedance-2-0",
+		SKUs: []pricingSKU{
+			{Key: "doubao-seedance-2.0-face:480p:withVideo", PriceUSD: 0.052},
+			{Key: "doubao-seedance-2.0-face:480p:noVideo", PriceUSD: 0.086},
+			{Key: "doubao-seedance-2.0-face:720p:withVideo", PriceUSD: 0.113},
+			{Key: "doubao-seedance-2.0-face:720p:noVideo", PriceUSD: 0.185},
+			{Key: "doubao-seedance-2.0-face:1080p:withVideo", PriceUSD: 0.279},
+			{Key: "doubao-seedance-2.0-face:1080p:noVideo", PriceUSD: 0.459},
+			{Key: "doubao-seedance-2.0-face:4k:withVideo", PriceUSD: 0.576},
+			{Key: "doubao-seedance-2.0-face:4k:noVideo", PriceUSD: 0.936},
+		},
+	},
+	"doubao-seedance-2.0-fast-face": {
+		SourceURL: "https://reapi.ai/zh/models/seedance-2-0",
+		SKUs: []pricingSKU{
+			{Key: "doubao-seedance-2.0-fast-face:480p:withVideo", PriceUSD: 0.041},
+			{Key: "doubao-seedance-2.0-fast-face:480p:noVideo", PriceUSD: 0.070},
+			{Key: "doubao-seedance-2.0-fast-face:720p:withVideo", PriceUSD: 0.090},
+			{Key: "doubao-seedance-2.0-fast-face:720p:noVideo", PriceUSD: 0.149},
+		},
+	},
+	"seedance-2.0-mini": {
+		SourceURL: "https://reapi.ai/zh/models/seedance-2-0-mini",
+		SKUs: []pricingSKU{
+			{Key: "seedance-2.0-mini:480p:withVideo", PriceUSD: 0.029},
+			{Key: "seedance-2.0-mini:480p:noVideo", PriceUSD: 0.046},
+			{Key: "seedance-2.0-mini:720p:withVideo", PriceUSD: 0.060},
+			{Key: "seedance-2.0-mini:720p:noVideo", PriceUSD: 0.098},
+		},
+	},
 }
 
 func main() {
@@ -253,6 +293,7 @@ func buildPricingCatalog(catalog modelCatalog, snapshot upstreamSnapshot, snapsh
 	snapshotPricedCount := 0
 	publishableCount := 0
 	comingSoonCount := 0
+	documentedOverrideCount := 0
 	for _, item := range catalog.Models {
 		if item.Protocol != "re-task" {
 			continue
@@ -268,7 +309,14 @@ func buildPricingCatalog(catalog modelCatalog, snapshot upstreamSnapshot, snapsh
 			skuPrefix = "kling-3-0-turbo"
 			skuAliasOf = skuPrefix
 		}
-		skus := collectSKUs(snapshot.SKUPrices, skuPrefix)
+		snapshotSKUs := collectSKUs(snapshot.SKUPrices, skuPrefix)
+		skus := snapshotSKUs
+		documentedOverride, hasDocumentedOverride := documentedSeedancePricingOverrides[item.UpstreamModel]
+		if hasDocumentedOverride {
+			skus = append([]pricingSKU(nil), documentedOverride.SKUs...)
+			sort.Slice(skus, func(i, j int) bool { return skus[i].Key < skus[j].Key })
+			documentedOverrideCount++
+		}
 		entry := pricingModel{
 			ModelName:             item.ModelName,
 			UpstreamModel:         item.UpstreamModel,
@@ -283,6 +331,9 @@ func buildPricingCatalog(catalog modelCatalog, snapshot upstreamSnapshot, snapsh
 			SourceURL:             modelsURL + "/" + card.Slug,
 			SourceSnapshotVersion: snapshot.Version,
 		}
+		if hasDocumentedOverride {
+			entry.SourceURL = documentedOverride.SourceURL
+		}
 		if len(skus) == 0 {
 			if !card.ComingSoon || card.MinPrice <= 0 || card.MaxPrice <= 0 {
 				return pricingCatalog{}, fmt.Errorf("RE model %q has no non-zero snapshot SKU", item.ModelName)
@@ -293,6 +344,9 @@ func buildPricingCatalog(catalog modelCatalog, snapshot upstreamSnapshot, snapsh
 			entry.MaxPriceUSD = card.MaxPrice
 		} else {
 			entry.PricingBasis = "snapshot_sku_max"
+			if hasDocumentedOverride {
+				entry.PricingBasis = "documented_model_page_override"
+			}
 			entry.MinPriceUSD = skus[0].PriceUSD
 			entry.MaxPriceUSD = skus[0].PriceUSD
 			for _, sku := range skus[1:] {
@@ -300,10 +354,21 @@ func buildPricingCatalog(catalog modelCatalog, snapshot upstreamSnapshot, snapsh
 				entry.MaxPriceUSD = max(entry.MaxPriceUSD, sku.PriceUSD)
 			}
 			entry.BasePriceUSD = entry.MaxPriceUSD
-			for _, sku := range skus {
-				matchedSKUKeys[sku.Key] = struct{}{}
+			if hasDocumentedOverride {
+				entry.PublishedPriceRange = publishedPriceRange{
+					MinPriceUSD: entry.MinPriceUSD,
+					MaxPriceUSD: entry.MaxPriceUSD,
+					Unit:        entry.Unit,
+				}
 			}
-			snapshotPricedCount++
+			for _, sku := range skus {
+				if _, exists := snapshot.SKUPrices[sku.Key]; exists {
+					matchedSKUKeys[sku.Key] = struct{}{}
+				}
+			}
+			if len(snapshotSKUs) > 0 {
+				snapshotPricedCount++
+			}
 		}
 		if entry.BasePriceUSD <= 0 {
 			return pricingCatalog{}, fmt.Errorf("RE model %q has a non-positive base price", item.ModelName)
@@ -334,6 +399,7 @@ func buildPricingCatalog(catalog modelCatalog, snapshot upstreamSnapshot, snapsh
 			AsyncModelCount:          len(models),
 			PricedModelCount:         len(models),
 			SnapshotPricedModelCount: snapshotPricedCount,
+			DocumentedOverrideCount:  documentedOverrideCount,
 			PublishableModelCount:    publishableCount,
 			ComingSoonModelCount:     comingSoonCount,
 			ExcludedChatModelCount:   catalog.Integrity.ChatModelCount,

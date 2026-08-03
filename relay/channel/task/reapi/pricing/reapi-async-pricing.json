@@ -11,11 +11,12 @@
     "async_model_count": 96,
     "priced_model_count": 96,
     "snapshot_priced_model_count": 95,
+    "documented_override_model_count": 3,
     "publishable_model_count": 95,
     "coming_soon_model_count": 1,
     "excluded_chat_model_count": 8,
     "snapshot_sku_count": 476,
-    "matched_sku_count": 386
+    "matched_sku_count": 374
   },
   "models": [
     {
@@ -260,52 +261,52 @@
       "model_type": "video",
       "publishable": true,
       "coming_soon": false,
-      "pricing_basis": "snapshot_sku_max",
-      "base_price_usd": 0.817559,
-      "min_price_usd": 0.066,
-      "max_price_usd": 0.817559,
+      "pricing_basis": "documented_model_page_override",
+      "base_price_usd": 0.936,
+      "min_price_usd": 0.052,
+      "max_price_usd": 0.936,
       "unit": "per second",
       "sku_prefix": "doubao-seedance-2.0-face",
       "skus": [
         {
-          "key": "doubao-seedance-2.0-face:1080p:ref",
-          "price_usd": 0.33
+          "key": "doubao-seedance-2.0-face:1080p:noVideo",
+          "price_usd": 0.459
         },
         {
-          "key": "doubao-seedance-2.0-face:1080p:text",
-          "price_usd": 0.55
+          "key": "doubao-seedance-2.0-face:1080p:withVideo",
+          "price_usd": 0.279
         },
         {
-          "key": "doubao-seedance-2.0-face:480p:ref",
-          "price_usd": 0.066
+          "key": "doubao-seedance-2.0-face:480p:noVideo",
+          "price_usd": 0.086
         },
         {
-          "key": "doubao-seedance-2.0-face:480p:text",
-          "price_usd": 0.10912
+          "key": "doubao-seedance-2.0-face:480p:withVideo",
+          "price_usd": 0.052
         },
         {
-          "key": "doubao-seedance-2.0-face:4k:ref",
-          "price_usd": 0.503112
+          "key": "doubao-seedance-2.0-face:4k:noVideo",
+          "price_usd": 0.936
         },
         {
-          "key": "doubao-seedance-2.0-face:4k:text",
-          "price_usd": 0.817559
+          "key": "doubao-seedance-2.0-face:4k:withVideo",
+          "price_usd": 0.576
         },
         {
-          "key": "doubao-seedance-2.0-face:720p:ref",
-          "price_usd": 0.14168
+          "key": "doubao-seedance-2.0-face:720p:noVideo",
+          "price_usd": 0.185
         },
         {
-          "key": "doubao-seedance-2.0-face:720p:text",
-          "price_usd": 0.23496
+          "key": "doubao-seedance-2.0-face:720p:withVideo",
+          "price_usd": 0.113
         }
       ],
       "published_price_range": {
-        "min_price_usd": 0.045,
-        "max_price_usd": 1.04,
+        "min_price_usd": 0.052,
+        "max_price_usd": 0.936,
         "unit": "per second"
       },
-      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_url": "https://reapi.ai/zh/models/seedance-2-0",
       "source_snapshot_version": 1785200182468
     },
     {
@@ -352,36 +353,36 @@
       "model_type": "video",
       "publishable": true,
       "coming_soon": false,
-      "pricing_basis": "snapshot_sku_max",
-      "base_price_usd": 0.1892,
-      "min_price_usd": 0.0528,
-      "max_price_usd": 0.1892,
+      "pricing_basis": "documented_model_page_override",
+      "base_price_usd": 0.149,
+      "min_price_usd": 0.041,
+      "max_price_usd": 0.149,
       "unit": "per second",
       "sku_prefix": "doubao-seedance-2.0-fast-face",
       "skus": [
         {
-          "key": "doubao-seedance-2.0-fast-face:480p:ref",
-          "price_usd": 0.0528
+          "key": "doubao-seedance-2.0-fast-face:480p:noVideo",
+          "price_usd": 0.07
         },
         {
-          "key": "doubao-seedance-2.0-fast-face:480p:text",
-          "price_usd": 0.088
+          "key": "doubao-seedance-2.0-fast-face:480p:withVideo",
+          "price_usd": 0.041
         },
         {
-          "key": "doubao-seedance-2.0-fast-face:720p:ref",
-          "price_usd": 0.11352
+          "key": "doubao-seedance-2.0-fast-face:720p:noVideo",
+          "price_usd": 0.149
         },
         {
-          "key": "doubao-seedance-2.0-fast-face:720p:text",
-          "price_usd": 0.1892
+          "key": "doubao-seedance-2.0-fast-face:720p:withVideo",
+          "price_usd": 0.09
         }
       ],
       "published_price_range": {
-        "min_price_usd": 0.045,
-        "max_price_usd": 1.04,
+        "min_price_usd": 0.041,
+        "max_price_usd": 0.149,
         "unit": "per second"
       },
-      "source_url": "https://reapi.ai/models/seedance-2-0",
+      "source_url": "https://reapi.ai/zh/models/seedance-2-0",
       "source_snapshot_version": 1785200182468
     },
     {
@@ -2759,36 +2760,36 @@
       "model_type": "video",
       "publishable": true,
       "coming_soon": false,
-      "pricing_basis": "snapshot_sku_max",
-      "base_price_usd": 0.097375,
-      "min_price_usd": 0.0285,
-      "max_price_usd": 0.097375,
+      "pricing_basis": "documented_model_page_override",
+      "base_price_usd": 0.098,
+      "min_price_usd": 0.029,
+      "max_price_usd": 0.098,
       "unit": "per second",
       "sku_prefix": "seedance-2.0-mini",
       "skus": [
         {
           "key": "seedance-2.0-mini:480p:noVideo",
-          "price_usd": 0.045125
+          "price_usd": 0.046
         },
         {
           "key": "seedance-2.0-mini:480p:withVideo",
-          "price_usd": 0.0285
+          "price_usd": 0.029
         },
         {
           "key": "seedance-2.0-mini:720p:noVideo",
-          "price_usd": 0.097375
+          "price_usd": 0.098
         },
         {
           "key": "seedance-2.0-mini:720p:withVideo",
-          "price_usd": 0.059375
+          "price_usd": 0.06
         }
       ],
       "published_price_range": {
-        "min_price_usd": 0.0285,
-        "max_price_usd": 0.097375,
+        "min_price_usd": 0.029,
+        "max_price_usd": 0.098,
         "unit": "per second"
       },
-      "source_url": "https://reapi.ai/models/seedance-2-0-mini",
+      "source_url": "https://reapi.ai/zh/models/seedance-2-0-mini",
       "source_snapshot_version": 1785200182468
     },
     {

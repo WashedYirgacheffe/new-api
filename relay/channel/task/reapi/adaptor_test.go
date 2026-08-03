@@ -186,6 +186,42 @@ func TestTaskAdaptorPreservesContractMaterialFieldNames(t *testing.T) {
 	assert.NotContains(t, decoded, "image_urls")
 }
 
+func TestTaskAdaptorPreservesExplicitSeedanceNSFWChecker(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{
+		"model":"re/doubao-seedance-2.0-face",
+		"prompt":"a cinematic scene",
+		"duration":5,
+		"resolution":"4k",
+		"nsfw_checker":false
+	}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	context.Set("task_request", relaycommon.TaskSubmitReq{Prompt: "a cinematic scene", Duration: 5})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/doubao-seedance-2.0-face",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelBaseUrl:    "https://reapi.ai/api/v1",
+			ApiKey:            "task-key",
+			UpstreamModelName: "doubao-seedance-2.0-face",
+		},
+	}
+	adaptor := &TaskAdaptor{}
+	adaptor.Init(info)
+
+	require.Nil(t, adaptor.ValidateRequestAndSetAction(context, info))
+	body, err := adaptor.BuildRequestBody(context, info)
+	require.NoError(t, err)
+	payload, err := io.ReadAll(body)
+	require.NoError(t, err)
+	var decoded map[string]any
+	require.NoError(t, common.Unmarshal(payload, &decoded))
+	assert.Equal(t, false, decoded["nsfw_checker"])
+	assert.Equal(t, "4k", decoded["resolution"])
+}
+
 func TestOperationForModelMatchesAsyncCapability(t *testing.T) {
 	tests := map[string]string{
 		"gpt-image-2":      "image.generate",

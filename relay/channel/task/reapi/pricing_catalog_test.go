@@ -81,6 +81,87 @@ func TestApplyPricingSKUToPriceDataMatchesSeedanceTextAndReferenceModes(t *testi
 	assert.InDelta(t, refQuote.UnitPriceUSD*5, finalAmount(refPrice), 0.00001)
 }
 
+func TestApplyPricingSKUToPriceDataMatchesDocumentedSeedanceFaceAndMiniPrices(t *testing.T) {
+	tests := []struct {
+		name       string
+		model      string
+		parameters map[string]interface{}
+		expected   string
+		unitPrice  float64
+	}{
+		{
+			name:  "Face image input keeps no-video price",
+			model: "re/doubao-seedance-2.0-face",
+			parameters: map[string]interface{}{
+				"resolution": "720p",
+				"duration":   float64(5),
+				"image_urls": []interface{}{"https://example.com/reference.png"},
+			},
+			expected:  "doubao-seedance-2.0-face:720p:noVideo",
+			unitPrice: 0.185,
+		},
+		{
+			name:  "Face video input gets video price",
+			model: "re/doubao-seedance-2.0-face",
+			parameters: map[string]interface{}{
+				"resolution": "1080p",
+				"duration":   float64(5),
+				"video_urls": []interface{}{"https://example.com/reference.mp4"},
+			},
+			expected:  "doubao-seedance-2.0-face:1080p:withVideo",
+			unitPrice: 0.279,
+		},
+		{
+			name:  "Fast Face video price",
+			model: "re/doubao-seedance-2.0-fast-face",
+			parameters: map[string]interface{}{
+				"resolution": "480p",
+				"duration":   float64(4),
+				"video_urls": []interface{}{"https://example.com/reference.mp4"},
+			},
+			expected:  "doubao-seedance-2.0-fast-face:480p:withVideo",
+			unitPrice: 0.041,
+		},
+		{
+			name:  "Mini nsfw checker remains a valid quoted parameter",
+			model: "re/seedance-2.0-mini",
+			parameters: map[string]interface{}{
+				"resolution":   "720p",
+				"duration":     float64(5),
+				"nsfw_checker": false,
+			},
+			expected:  "seedance-2.0-mini:720p:noVideo",
+			unitPrice: 0.098,
+		},
+		{
+			name:  "Mini reference video price",
+			model: "re/seedance-2.0-mini",
+			parameters: map[string]interface{}{
+				"resolution":           "720p",
+				"duration":             float64(5),
+				"reference_video_urls": []interface{}{"https://example.com/reference.mp4"},
+			},
+			expected:  "seedance-2.0-mini:720p:withVideo",
+			unitPrice: 0.060,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			priceData := skuPriceData()
+			quote, _, err := ApplyPricingSKUToPriceData(&priceData, tt.model, tt.parameters)
+
+			require.NoError(t, err)
+			require.NotNil(t, quote)
+			assert.Equal(t, tt.expected, quote.MatchedSKU)
+			assert.Equal(t, tt.unitPrice, quote.UnitPriceUSD)
+			duration, ok := tt.parameters["duration"].(float64)
+			require.True(t, ok)
+			assert.InDelta(t, tt.unitPrice*duration, finalAmount(priceData), 0.00001)
+		})
+	}
+}
+
 func TestApplyPricingSKUToPriceDataMatchesSeedreamNSFWReferenceCount(t *testing.T) {
 	priceData := skuPriceData()
 	quote, _, err := ApplyPricingSKUToPriceData(&priceData, "re/doubao-seedream-5-0-pro", map[string]interface{}{

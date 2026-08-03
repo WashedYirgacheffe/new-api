@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
+import { applySeedanceContractOverride } from './seedance_overrides.mjs'
+
 async function loadZod() {
   try {
     return (await import('../../web/node_modules/zod/index.js')).z
@@ -1262,7 +1264,7 @@ async function buildSnapshot(options, generatedAt) {
       const operation = OPERATION_BY_TYPE[catalogModel.model_type]
       const responseContract = RESPONSE_CONTRACT_BY_TYPE[catalogModel.model_type]
       assert(operation && responseContract, `unsupported model type ${catalogModel.model_type}`)
-      return {
+      return applySeedanceContractOverride({
         model_name: catalogModel.model_name,
         upstream_model_id: catalogModel.upstream_model_id,
         model_type: catalogModel.model_type,
@@ -1293,7 +1295,7 @@ async function buildSnapshot(options, generatedAt) {
           enum_evidence_mismatches: enumMismatches,
           conditional_rules: collectZodConditions(manifest.schema),
         },
-      }
+      })
     })
     .sort((left, right) => left.model_name.localeCompare(right.model_name))
 

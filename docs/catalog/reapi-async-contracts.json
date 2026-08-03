@@ -696,9 +696,7 @@
         "type": "object",
         "properties": {
           "prompt": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 4000
+            "type": "string"
           },
           "duration": {
             "type": "integer",
@@ -723,25 +721,25 @@
           "size": {
             "type": "string",
             "enum": [
-              "16:9",
-              "9:16",
               "1:1",
               "4:3",
               "3:4",
+              "16:9",
+              "9:16",
               "21:9",
               "adaptive"
             ],
             "default": "16:9"
           },
           "resolution": {
-            "default": "720p",
             "type": "string",
             "enum": [
               "480p",
               "720p",
               "1080p",
               "4k"
-            ]
+            ],
+            "default": "720p"
           },
           "generate_audio": {
             "type": "boolean",
@@ -752,49 +750,27 @@
             "default": false
           },
           "tools": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": [
-                    "web_search"
-                  ]
-                }
-              },
-              "required": [
-                "type"
-              ]
-            }
+            "type": "boolean",
+            "default": false
           },
           "nsfw_checker": {
-            "default": true,
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
+          },
+          "seed": {
+            "type": "integer"
           },
           "fallback": {
             "type": "object",
             "properties": {
               "enabled": {
-                "default": true,
-                "type": "boolean"
-              },
-              "allow_lossy": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": [
-                    "seed"
-                  ]
-                }
+                "type": "boolean",
+                "default": true
               }
             },
             "additionalProperties": false
           }
         },
-        "required": [
-          "prompt"
-        ],
         "additionalProperties": false
       },
       "ui_schema": {
@@ -807,6 +783,7 @@
           "return_last_frame",
           "tools",
           "nsfw_checker",
+          "seed",
           "fallback"
         ],
         "placements": {
@@ -816,8 +793,9 @@
           "resolution": "footer",
           "generate_audio": "advanced",
           "return_last_frame": "advanced",
-          "tools": "hidden",
+          "tools": "advanced",
           "nsfw_checker": "advanced",
+          "seed": "advanced",
           "fallback": "hidden"
         },
         "widgets": {
@@ -827,8 +805,9 @@
           "resolution": "segmented",
           "generate_audio": "toggle",
           "return_last_frame": "toggle",
-          "tools": "hidden",
+          "tools": "toggle",
           "nsfw_checker": "toggle",
+          "seed": "stepper",
           "fallback": "hidden"
         }
       },
@@ -893,6 +872,7 @@
         "resolution": "720p",
         "generate_audio": false,
         "return_last_frame": false,
+        "tools": false,
         "nsfw_checker": true
       },
       "dispatch_path": "/v1/re/generations",
@@ -1212,7 +1192,14 @@
             ],
             "message": "must be a public http(s) URL"
           }
-        ]
+        ],
+        "authoritative_override": {
+          "source_url": "https://reapi.ai/zh/models/seedance-2-0",
+          "documented_at": "2026-08-03",
+          "status": "documented",
+          "precedence": "specific_model_api_reference",
+          "url_inputs_only": true
+        }
       }
     },
     {
@@ -1556,9 +1543,7 @@
         "type": "object",
         "properties": {
           "prompt": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 4000
+            "type": "string"
           },
           "duration": {
             "type": "integer",
@@ -1583,23 +1568,23 @@
           "size": {
             "type": "string",
             "enum": [
-              "16:9",
-              "9:16",
               "1:1",
               "4:3",
               "3:4",
+              "16:9",
+              "9:16",
               "21:9",
               "adaptive"
             ],
             "default": "16:9"
           },
           "resolution": {
-            "default": "720p",
             "type": "string",
             "enum": [
               "480p",
               "720p"
-            ]
+            ],
+            "default": "720p"
           },
           "generate_audio": {
             "type": "boolean",
@@ -1610,49 +1595,27 @@
             "default": false
           },
           "tools": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": [
-                    "web_search"
-                  ]
-                }
-              },
-              "required": [
-                "type"
-              ]
-            }
+            "type": "boolean",
+            "default": false
           },
           "nsfw_checker": {
-            "default": true,
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
+          },
+          "seed": {
+            "type": "integer"
           },
           "fallback": {
             "type": "object",
             "properties": {
               "enabled": {
-                "default": true,
-                "type": "boolean"
-              },
-              "allow_lossy": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": [
-                    "seed"
-                  ]
-                }
+                "type": "boolean",
+                "default": true
               }
             },
             "additionalProperties": false
           }
         },
-        "required": [
-          "prompt"
-        ],
         "additionalProperties": false
       },
       "ui_schema": {
@@ -1665,6 +1628,7 @@
           "return_last_frame",
           "tools",
           "nsfw_checker",
+          "seed",
           "fallback"
         ],
         "placements": {
@@ -1674,8 +1638,9 @@
           "resolution": "footer",
           "generate_audio": "advanced",
           "return_last_frame": "advanced",
-          "tools": "hidden",
+          "tools": "advanced",
           "nsfw_checker": "advanced",
+          "seed": "advanced",
           "fallback": "hidden"
         },
         "widgets": {
@@ -1685,8 +1650,9 @@
           "resolution": "segmented",
           "generate_audio": "toggle",
           "return_last_frame": "toggle",
-          "tools": "hidden",
+          "tools": "toggle",
           "nsfw_checker": "toggle",
+          "seed": "stepper",
           "fallback": "hidden"
         }
       },
@@ -1751,6 +1717,7 @@
         "resolution": "720p",
         "generate_audio": false,
         "return_last_frame": false,
+        "tools": false,
         "nsfw_checker": true
       },
       "dispatch_path": "/v1/re/generations",
@@ -2086,7 +2053,14 @@
             ],
             "message": "must be a public http(s) URL"
           }
-        ]
+        ],
+        "authoritative_override": {
+          "source_url": "https://reapi.ai/zh/models/seedance-2-0",
+          "documented_at": "2026-08-03",
+          "status": "documented",
+          "precedence": "specific_model_api_reference",
+          "url_inputs_only": true
+        }
       }
     },
     {
@@ -13996,27 +13970,21 @@
         "type": "object",
         "properties": {
           "prompt": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 20000
+            "type": "string"
           },
           "generate_audio": {
             "type": "boolean",
             "default": false
           },
-          "return_last_frame": {
-            "type": "boolean"
-          },
           "resolution": {
-            "default": "720p",
             "type": "string",
             "enum": [
               "480p",
               "720p"
-            ]
+            ],
+            "default": "720p"
           },
           "aspect_ratio": {
-            "default": "16:9",
             "type": "string",
             "enum": [
               "1:1",
@@ -14026,7 +13994,8 @@
               "9:16",
               "21:9",
               "adaptive"
-            ]
+            ],
+            "default": "16:9"
           },
           "duration": {
             "type": "integer",
@@ -14053,20 +14022,16 @@
             "default": false
           },
           "nsfw_checker": {
-            "default": true,
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           }
         },
-        "required": [
-          "prompt"
-        ],
         "additionalProperties": false
       },
       "ui_schema": {
         "order": [
           "prompt",
           "generate_audio",
-          "return_last_frame",
           "resolution",
           "aspect_ratio",
           "duration",
@@ -14076,7 +14041,6 @@
         "placements": {
           "prompt": "prompt",
           "generate_audio": "advanced",
-          "return_last_frame": "advanced",
           "resolution": "footer",
           "aspect_ratio": "footer",
           "duration": "footer",
@@ -14086,7 +14050,6 @@
         "widgets": {
           "prompt": "textarea",
           "generate_audio": "toggle",
-          "return_last_frame": "toggle",
           "resolution": "segmented",
           "aspect_ratio": "segmented",
           "duration": "select",
@@ -14398,7 +14361,14 @@
             ],
             "message": "must be a public http(s) URL"
           }
-        ]
+        ],
+        "authoritative_override": {
+          "source_url": "https://reapi.ai/zh/models/seedance-2-0-mini",
+          "documented_at": "2026-08-03",
+          "status": "documented",
+          "precedence": "specific_model_api_reference",
+          "url_inputs_only": true
+        }
       }
     },
     {
