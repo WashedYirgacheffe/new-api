@@ -38,8 +38,9 @@
 
 ## 发布状态
 
-- 代码待通过 GitHub `main` 推送触发 Railway 自动部署；不使用本地 `railway up` 覆盖 Git 记录。
-- 部署完成后只检查 Railway 状态、构建日志和 `GET https://api.carlab.top/api/status`，不提交视频生成任务。
+- 开发提交 `6a4c713e` 已推送到 `WashedYirgacheffe/new-api:codex/oem-api-hub`；生产没有合并已分叉的开发分支，而是从最新 `CarLabAPI/main` 精确 cherry-pick 为提交 `824d8e2d`，保留生产独有的 DeepWL/NodyHub 运行时改动。
+- `824d8e2d` 已推送到 `WashedYirgacheffe/CarLabAPI:main`，由 GitHub 自动触发 Railway 部署 `7e150b91-1e03-4fc4-9e1e-718a5ae33f1a`；状态为 `SUCCESS`，镜像摘要为 `sha256:94b1a2f6935cc1fc17e46195bd68d7fe9644ce43aafebea31a95db00bda42adf`。
+- Railway 容器完成 PostgreSQL 初始化检查后正常启动，部署健康检查 `GET /api/status` 返回 200；Cloudflare 入口 `https://api.carlab.top/api/status` 同样返回 HTTP 200。未使用本地 `railway up`，未提交视频生成任务。
 
 ## 回滚
 
