@@ -343,6 +343,16 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 	delete(body, "metadata")
 	delete(body, "group")
 	body["model"] = info.UpstreamModelName
+	switch info.UpstreamModelName {
+	case "doubao-seedance-2.0-face", "doubao-seedance-2.0-fast-face":
+		if toolsEnabled, ok := body["tools"].(bool); ok {
+			if toolsEnabled {
+				body["tools"] = []map[string]string{{"type": "web_search"}}
+			} else {
+				delete(body, "tools")
+			}
+		}
+	}
 	if _, exists := body["prompt"]; !hasJSONBody && !exists && strings.TrimSpace(req.Prompt) != "" {
 		body["prompt"] = req.Prompt
 	}

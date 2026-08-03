@@ -39,7 +39,10 @@ test('Mini exposes nsfw_checker and omits return_last_frame', () => {
 
   assert.equal(mini.input_schema.required, undefined)
   assert.equal(mini.input_schema.properties.nsfw_checker.type, 'boolean')
+  assert.equal(mini.input_schema.properties.web_search.type, 'boolean')
+  assert.equal(mini.input_schema.properties.web_search.default, false)
   assert.equal(mini.ui_schema.widgets.nsfw_checker, 'toggle')
+  assert.equal(mini.ui_schema.widgets.web_search, 'toggle')
   assert.equal(mini.input_schema.properties.return_last_frame, undefined)
   assert.deepEqual(mini.input_schema.properties.resolution.enum, ['480p', '720p'])
   assert.deepEqual(

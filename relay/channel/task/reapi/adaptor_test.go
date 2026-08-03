@@ -195,6 +195,7 @@ func TestTaskAdaptorPreservesExplicitSeedanceNSFWChecker(t *testing.T) {
 		"prompt":"a cinematic scene",
 		"duration":5,
 		"resolution":"4k",
+		"tools":true,
 		"nsfw_checker":false
 	}`))
 	context.Request.Header.Set("Content-Type", "application/json")
@@ -220,6 +221,78 @@ func TestTaskAdaptorPreservesExplicitSeedanceNSFWChecker(t *testing.T) {
 	require.NoError(t, common.Unmarshal(payload, &decoded))
 	assert.Equal(t, false, decoded["nsfw_checker"])
 	assert.Equal(t, "4k", decoded["resolution"])
+	assert.Equal(t, []any{map[string]any{"type": "web_search"}}, decoded["tools"])
+}
+
+func TestTaskAdaptorDropsDisabledSeedanceToolsToggle(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{
+		"model":"re/doubao-seedance-2.0-fast-face",
+		"prompt":"a cinematic scene",
+		"duration":5,
+		"resolution":"720p",
+		"tools":false
+	}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	context.Set("task_request", relaycommon.TaskSubmitReq{Prompt: "a cinematic scene", Duration: 5})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/doubao-seedance-2.0-fast-face",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelBaseUrl:    "https://reapi.ai/api/v1",
+			ApiKey:            "task-key",
+			UpstreamModelName: "doubao-seedance-2.0-fast-face",
+		},
+	}
+	adaptor := &TaskAdaptor{}
+	adaptor.Init(info)
+
+	require.Nil(t, adaptor.ValidateRequestAndSetAction(context, info))
+	body, err := adaptor.BuildRequestBody(context, info)
+	require.NoError(t, err)
+	payload, err := io.ReadAll(body)
+	require.NoError(t, err)
+	var decoded map[string]any
+	require.NoError(t, common.Unmarshal(payload, &decoded))
+	assert.NotContains(t, decoded, "tools")
+}
+
+func TestTaskAdaptorDoesNotRewriteMiniWebSearch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/re/generations", strings.NewReader(`{
+		"model":"re/seedance-2.0-mini",
+		"prompt":"a cinematic scene",
+		"duration":5,
+		"resolution":"720p",
+		"web_search":true
+	}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+	context.Set("task_request", relaycommon.TaskSubmitReq{Prompt: "a cinematic scene", Duration: 5})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "re/seedance-2.0-mini",
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelBaseUrl:    "https://reapi.ai/api/v1",
+			ApiKey:            "task-key",
+			UpstreamModelName: "seedance-2.0-mini",
+		},
+	}
+	adaptor := &TaskAdaptor{}
+	adaptor.Init(info)
+
+	require.Nil(t, adaptor.ValidateRequestAndSetAction(context, info))
+	body, err := adaptor.BuildRequestBody(context, info)
+	require.NoError(t, err)
+	payload, err := io.ReadAll(body)
+	require.NoError(t, err)
+	var decoded map[string]any
+	require.NoError(t, common.Unmarshal(payload, &decoded))
+	assert.Equal(t, true, decoded["web_search"])
+	assert.NotContains(t, decoded, "tools")
 }
 
 func TestOperationForModelMatchesAsyncCapability(t *testing.T) {
